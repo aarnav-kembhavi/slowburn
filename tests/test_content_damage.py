@@ -33,6 +33,17 @@ def test_hard_negatives_are_high_entropy():
     assert _entropy(generate_file("txt", rng, 32 * 1024)) < 5.5
 
 
+@pytest.mark.parametrize("ftype", ["zip", "docx"])
+def test_zip_containers_have_fixed_timestamps(ftype):
+    # regression: zipfile.writestr(name, ...) stamps the wall clock -> non-reproducible bytes
+    import io
+    import zipfile
+
+    data = generate_file(ftype, np.random.default_rng(0), 16 * 1024)
+    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+        assert {i.date_time for i in zf.infolist()} == {(2024, 1, 1, 0, 0, 0)}
+
+
 def test_unknown_type_rejected():
     with pytest.raises(ValueError):
         generate_file("exe", np.random.default_rng(0), 1024)

@@ -1,0 +1,33 @@
+# Tiny detector run for tests and quick checks (seconds, not minutes).
+seed: 3
+experiment: detector_smoke
+output_dir: results/detector_smoke
+
+data:
+  benign_source: synthetic
+  damage_source: synthetic_random
+  napierone_dir: data/napierone
+  file_types: [txt, bin, zip, jpg]
+  files_per_type: 10
+  file_kib: [8, 24]
+  chunk_size: 4096
+  min_chunk_bytes: 2048
+  max_chunks_per_file: 4
+  split: {train: 0.6, calib: 0.2, test: 0.2}
+  damage_models: [whole, striped]
+  fractions: [1.0, 0.1]
+  stripe_bytes: 16
+
+model:
+  n_estimators: 30
+  learning_rate: 0.1
+  num_leaves: 15
+  min_child_samples: 5
+  class_weight: balanced
+
+calibration:
+  conformal_alphas: [0.05]
+
+eval:
+  n_bootstrap: 10
+  ci: 0.95

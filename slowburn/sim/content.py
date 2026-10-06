@@ -99,19 +99,27 @@ def _docx_xml(rng: np.random.Generator, n_chars: int) -> bytes:
     ).encode()
 
 
+def _write(zf: zipfile.ZipFile, name: str, data, compress: int = zipfile.ZIP_DEFLATED) -> None:
+    """writestr with a fixed timestamp; the default stamps the wall clock (non-reproducible)."""
+    info = zipfile.ZipInfo(name, date_time=(2024, 1, 1, 0, 0, 0))
+    info.compress_type = compress
+    zf.writestr(info, data)
+
+
 def gen_docx(rng: np.random.Generator, size: int) -> bytes:
     """OOXML-shaped zip container (deflated XML), as Word writes it."""
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr(
+        _write(
+            zf,
             "[Content_Types].xml",
             '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/'
             'content-types"><Default Extension="xml" ContentType="application/xml"/></Types>',
         )
-        zf.writestr("word/document.xml", _docx_xml(rng, size * 3))
-        zf.writestr("docProps/core.xml", f"<cp:coreProperties rev='{rng.integers(1, 99)}'/>")
+        _write(zf, "word/document.xml", _docx_xml(rng, size * 3))
+        _write(zf, "docProps/core.xml", f"<cp:coreProperties rev='{rng.integers(1, 99)}'/>")
         if rng.random() < 0.5:  # embedded image, common in real documents
-            zf.writestr("word/media/image1.png", gen_png(rng, size // 3), zipfile.ZIP_STORED)
+            _write(zf, "word/media/image1.png", gen_png(rng, size // 3), zipfile.ZIP_STORED)
     return buf.getvalue()
 
 
@@ -121,7 +129,7 @@ def gen_zip(rng: np.random.Generator, size: int) -> bytes:
         k = int(rng.integers(2, 6))
         for i in range(k):
             g = [gen_txt, gen_csv, gen_bin][int(rng.integers(0, 3))]
-            zf.writestr(f"member_{i}.dat", g(rng, size * 2 // k))
+            _write(zf, f"member_{i}.dat", g(rng, size * 2 // k))
     return buf.getvalue()
 
 

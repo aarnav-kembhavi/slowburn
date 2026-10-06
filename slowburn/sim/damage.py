@@ -76,32 +76,35 @@ def _n_chunks(n: int, chunk_size: int) -> int:
     return max(1, -(-n // chunk_size))
 
 
+def _overwrite(data: bytes, mask: np.ndarray, source, file_key, chunk_size) -> DamageResult:
+    """Replace masked bytes with offset-aligned bytes from ``source``."""
+    n = len(data)
+    arr = np.frombuffer(data, dtype=np.uint8).copy()
+    if mask.any():
+        repl = np.frombuffer(source.bytes_for(file_key, 0, n), dtype=np.uint8)
+        arr[mask] = repl[mask]
+    n_chunks = _n_chunks(n, chunk_size)
+    padded = np.zeros(n_chunks * chunk_size, dtype=bool)
+    padded[:n] = mask
+    lens = np.clip(n - np.arange(n_chunks) * chunk_size, 1, chunk_size)
+    damage = padded.reshape(n_chunks, chunk_size).sum(axis=1) / lens
+    return DamageResult(arr.tobytes(), damage, float(mask.mean()) if n else 0.0, source.name)
+
+
 def _apply_whole(data, fraction, chunk_size, rng, source, file_key) -> DamageResult:
-    buf = bytearray(data)
-    n_chunks = _n_chunks(len(buf), chunk_size)
+    n = len(data)
+    n_chunks = _n_chunks(n, chunk_size)
     k = min(n_chunks, max(1, round(fraction * n_chunks)))
     chosen = rng.choice(n_chunks, size=k, replace=False)
-    damage = np.zeros(n_chunks)
-    hit = 0
+    mask = np.zeros(n, dtype=bool)
     for c in chosen:
-        lo, hi = c * chunk_size, min(len(buf), (c + 1) * chunk_size)
-        buf[lo:hi] = source.bytes_for(file_key, lo, hi - lo)
-        damage[c] = 1.0
-        hit += hi - lo
-    return DamageResult(bytes(buf), damage, hit / max(1, len(buf)), source.name)
+        mask[c * chunk_size : (c + 1) * chunk_size] = True
+    return _overwrite(data, mask, source, file_key, chunk_size)
 
 
 def _apply_striped(data, fraction, chunk_size, rng, source, file_key, stripe_bytes):
-    buf = bytearray(data)
-    n = len(buf)
+    n = len(data)
     period = max(stripe_bytes, int(round(stripe_bytes / fraction)))
     phase = int(rng.integers(0, period))  # random per file, so headers are not always hit
-    mask = np.zeros(n, dtype=bool)
-    for start in range(phase - period, n, period):
-        lo, hi = max(0, start), min(n, start + stripe_bytes)
-        if lo < hi:
-            buf[lo:hi] = source.bytes_for(file_key, lo, hi - lo)
-            mask[lo:hi] = True
-    n_chunks = _n_chunks(n, chunk_size)
-    damage = np.array([mask[c * chunk_size : (c + 1) * chunk_size].mean() for c in range(n_chunks)])
-    return DamageResult(bytes(buf), damage, float(mask.mean()) if n else 0.0, source.name)
+    mask = ((np.arange(n) - phase) % period) < stripe_bytes
+    return _overwrite(data, mask, source, file_key, chunk_size)

@@ -26,3 +26,25 @@
 
 ## Paper
 - Venue / formatting template and page limit.
+
+## Decisions taken unattended (2026-10-07 night) — please review
+Conservative choice made, work continued. Each is easy to reverse.
+
+- **D1 Mondrian conformal as the default p-value for M2.** Marginal conformal broke its
+  false-alarm level on high-entropy types (FPR 0.0215 at alpha 0.01). Mondrian, conditioned on the
+  declared file type (known from the backup manifest), stays at its level per type. Both variants are
+  computed and reported.
+- **D2 AUROC is computed on the raw LightGBM score**, not the isotonic output. Isotonic is a step
+  function, so it creates ties that lower AUROC; the ranking is the classifier's.
+- **D3 Isotonic is calibrated under a 50/50 class prior** (balanced calibration weights). Converting
+  to a deployment prior is a documented formula; no deployment prior is assumed.
+- **D4 File-level score = max over the file's changed chunks.** The simplest aggregator; the mean
+  or top-k were not explored.
+- **D5 Dataset shape:** 150 files per type, 16-128 KiB, fixed 4 KiB chunks, at most 12 chunks per
+  file, tails under 2 KiB dropped, stripe length 16 bytes. The stripe-length sweep is deferred.
+- **D6 Benign NapierOne loading is not wired into dataset building** (`NotImplementedError`)
+  until the directory layout is known. The damage-source loader exists and is unit-tested on a
+  fake directory only.
+- **D7 No feature engineering beyond the spec** (histogram, entropy, chi2, printable, magic).
+  Possible additions, not done: windowed max-entropy, byte-pair statistics, deflate-stream
+  validity checks for zip/png/docx (likely to help most on compressed containers).
