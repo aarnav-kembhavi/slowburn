@@ -1,0 +1,24 @@
+# Attack-timing assumptions for the changepoint prior (used from M2).
+#
+# Agreed with the team: the hazard prior on attack start is a simple geometric (constant hazard)
+# or uniform prior. The discovery delay (days from attack start to discovery) is a SWEPT
+# PARAMETER, not a sourced fact.
+#
+# Context values below are placeholders with citation fields; fill in and verify before quoting
+# them in the paper. They motivate the sweep range, they do not drive any result.
+
+start_prior:
+  kind: geometric        # geometric | uniform
+  hazard: 0.02           # P(attack starts on a given day | not started yet); placeholder
+
+discovery_delay_days: [3, 7, 14, 21, 30]
+
+context_sources:
+  - claim: "median dwell time, intrusion to detection"
+    value: null          # TODO(team): fill from the report
+    source: "Mandiant M-Trends (year TBD)"
+    url: null
+  - claim: "median ransomware dwell time"
+    value: null
+    source: "Sophos Active Adversary Report (year TBD)"
+    url: null

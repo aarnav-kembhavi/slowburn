@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# datasets are downloaded locally, never committed
+data/*
+!data/README.md
+
+# generated experiment outputs (CHANGELOG is tracked)
+results/*
+!results/CHANGELOG.md
