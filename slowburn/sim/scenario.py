@@ -33,6 +33,8 @@ class ScenarioConfig:
     damage_model: str = "striped"
     damage_fraction: float = 0.1
     stripe_bytes: int = 16
+    # file types the attacker damages; None = all types
+    attack_target_types: tuple[str, ...] | None = None
 
     @classmethod
     def from_dict(cls, d: dict) -> ScenarioConfig:
@@ -40,6 +42,11 @@ class ScenarioConfig:
         for k in ("file_types", "file_kib", "weekday_multipliers"):
             if k in d:
                 d[k] = tuple(d[k])
+        targets = d.get("attack_target_types")
+        if targets is None or targets == "all":
+            d["attack_target_types"] = None
+        else:
+            d["attack_target_types"] = tuple(targets)
         return cls(**d)
 
 
@@ -119,7 +126,12 @@ class Scenario:
 
     def _attack(self, day, files, damage, rng, source) -> None:
         cfg = self.cfg
-        targets = [f for f in files if f not in self.damaged_on]
+        allowed = cfg.attack_target_types
+        targets = [
+            f
+            for f in files
+            if f not in self.damaged_on and (allowed is None or self.file_types[f] in allowed)
+        ]
         n = min(len(targets), int(rng.poisson(cfg.attack_files_per_day)))
         if day == cfg.attack_start:
             n = min(len(targets), max(n, 1))  # start day := first day with damage

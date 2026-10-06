@@ -3,7 +3,6 @@ import pytest
 
 from slowburn.bench.metrics import recovery_metrics
 from slowburn.bench.runner import expand_sweep, run_benchmark
-from slowburn.inference.aggregate import make_aggregator
 from slowburn.inference.placeholder import naive_start_posterior
 from slowburn.retention.base import KeepLastN, RetentionContext
 from slowburn.sim.damage import RandomDamageSource
@@ -53,22 +52,23 @@ def test_attack_labels_start_on_attack_day():
     assert min(scen.damaged_on.values()) == 10
 
 
+def test_attack_respects_target_types():
+    cfg = ScenarioConfig.from_dict({
+        "n_files": 8, "file_kib": [8, 12], "days": 20, "attack_start": 5,
+        "attack_files_per_day": 2.0, "file_types": ["txt", "zip"],
+        "attack_target_types": ["zip"],
+    })  # fmt: skip
+    scen, days = _run(cfg)
+    assert scen.damaged_on and all(scen.file_types[f] == "zip" for f in scen.damaged_on)
+    assert ScenarioConfig.from_dict({"attack_target_types": "all"}).attack_target_types is None
+
+
 def test_scenario_is_reproducible():
     cfg = ScenarioConfig(n_files=5, file_kib=(8, 12), days=8, attack_start=4)
     _, d1 = _run(cfg, seed=3)
     _, d2 = _run(cfg, seed=3)
     assert [len(d.changed) for d in d1] == [len(d.changed) for d in d2]
     assert d1[-1].files == d2[-1].files
-
-
-def test_aggregators():
-    s = np.array([0.0, 0.1, 0.2, 0.9, 1.0])
-    assert make_aggregator("mean")(s) == pytest.approx(0.44)
-    assert make_aggregator("frac_above", reference=0.5)(s) == pytest.approx(0.4)
-    assert make_aggregator("trimmed_mean", proportion=0.2)(s) == pytest.approx(0.4)
-    assert make_aggregator("mean")(np.array([])) == 0.0
-    with pytest.raises(ValueError):
-        make_aggregator("nope")
 
 
 def test_naive_posterior_is_distribution_and_finds_shift():

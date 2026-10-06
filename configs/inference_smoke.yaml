@@ -1,0 +1,34 @@
+# Tiny M2 run for tests: trains a throwaway detector from detector_smoke if needed.
+seed: 5
+experiment: inference_smoke
+output_dir: results/inference_smoke
+
+detector_path: results/detector_smoke/detector.pkl
+timing_config: configs/discovery.yaml
+
+warmup_days: 7
+alpha: 0.05
+
+statistics:
+  exceed: {aggregator: exceed, model: betabinom}
+  trimmed_mean: {aggregator: trimmed_mean, model: gaussian_weekday}
+
+inference_models: [single_cp, bocpd, single_cp_uniform, prior_only]
+
+scenario:
+  n_files: 10
+  file_types: [txt, bin, zip, jpg]
+  file_kib: [8, 24]
+  edits_per_day: 3.0
+  attack_start: 12
+  attack_files_per_day: 1.0
+  damage_model: striped
+
+sweep:
+  damage_fraction: [1.0]
+  attack_target_types: [all]
+
+discovery_delay: [3, 6]
+headline_delay: 6
+reps: 1
+clean_reps: 1

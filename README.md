@@ -22,10 +22,14 @@ Python 3.11+, CPU only.
 ## Commands
 
 ```sh
-uv run slowburn bench configs/smoke.yaml     # end-to-end retention benchmark (tiny)
-uv run pytest                                # tests
+uv run slowburn bench configs/smoke.yaml          # end-to-end retention benchmark (tiny)
+uv run slowburn detector configs/detector.yaml    # M1: train + calibrate detector, AUROC sweep (~2 min)
+uv run slowburn inference configs/inference.yaml  # M2: start-day inference (needs the M1 detector)
+uv run pytest                                     # tests
 uv run ruff check . && uv run ruff format --check .
 ```
+
+`configs/*_smoke.yaml` variants run the same pipelines in seconds.
 
 Outputs go to `results/<experiment>/` as tidy CSV plus PNG plots. Every result row records
 `benign_source` and `damage_source` (`synthetic`, `synthetic_random`, `napierone`, ...) so

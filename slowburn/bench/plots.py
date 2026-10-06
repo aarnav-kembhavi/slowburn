@@ -176,3 +176,131 @@ def plot_recovery_vs_fraction(df: pd.DataFrame, out: Path) -> Path:
     fig.savefig(path, dpi=200)
     plt.close(fig)
     return path
+
+
+# ---- M2: start-day inference ------------------------------------------------------------
+
+COMBO_ORDER = [
+    ("single_cp", "exceed"),
+    ("single_cp", "trimmed_mean"),
+    ("bocpd", "exceed"),
+    ("bocpd", "trimmed_mean"),
+]
+COMBO_LABEL = {
+    ("single_cp", "exceed"): "single-CP, exceedances",
+    ("single_cp", "trimmed_mean"): "single-CP, trimmed mean",
+    ("bocpd", "exceed"): "BOCPD, exceedances",
+    ("bocpd", "trimmed_mean"): "BOCPD, trimmed mean",
+}
+TARGET_TITLE = {
+    "all": "Attacker damages any file type",
+    "high_entropy": "Attacker damages high-entropy types only",
+}
+
+
+def plot_start_accuracy(df: pd.DataFrame, hazard: float, out: Path, delay: int = 14) -> Path:
+    """Posterior mass within +-3 days of the true start vs damage fraction, per model."""
+    from slowburn.bench.plotstyle import CATEGORICAL
+
+    apply_style()
+    a = df[(df.attack == 1) & (df.hazard == hazard) & (df.discovery_delay == delay)]
+    targets = [t for t in ("all", "high_entropy") if (a.attack_target_types == t).any()]
+    fig, axes = plt.subplots(
+        1, len(targets), figsize=(4.4 * len(targets), 3.5), sharey=True, squeeze=False
+    )
+    for ax, tgt in zip(axes[0], targets, strict=True):
+        sub = a[a.attack_target_types == tgt]
+        for slot, combo in enumerate(COMBO_ORDER):
+            s = sub[(sub.model == combo[0]) & (sub.statistic == combo[1])]
+            if s.empty:
+                continue
+            g = s.groupby("damage_fraction").mass_within_3.agg(["mean", "sem"]).sort_index()
+            x, c = g.index.to_numpy() * 100, CATEGORICAL[slot]
+            ax.fill_between(
+                x,
+                g["mean"] - g["sem"].fillna(0),
+                g["mean"] + g["sem"].fillna(0),
+                color=c,
+                alpha=0.15,
+                lw=0,
+            )
+            ax.plot(x, g["mean"], marker="o", color=c, label=COMBO_LABEL[combo])
+        _fraction_axis(ax)
+        ax.set_title(TARGET_TITLE.get(tgt, tgt), fontsize=9)
+        ax.set_xlabel("Damaged bytes per file (striped)")
+    axes[0][0].set_ylabel(f"Posterior mass within ±3 days\nof true start (day +{delay})")
+    axes[0][0].set_ylim(-0.02, 1.02)
+    handles, labels = axes[0][0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper right", ncol=2, fontsize=8)
+    fig.suptitle("Attack start-day recovery", x=0.01, ha="left", fontsize=10, fontweight="bold")
+    fig.text(
+        0.01,
+        0.01,
+        f"{_source_tag(a)}  |  hazard {hazard}  |  shaded: ±1 s.e. over reps",
+        color=MUTED,
+        fontsize=7,
+        ha="left",
+        va="bottom",
+    )
+    fig.tight_layout(rect=(0, 0.04, 1, 0.9))
+    path = out / "start_accuracy_vs_fraction.png"
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+    return path
+
+
+def plot_example_trace(
+    trace: pd.DataFrame,
+    out: Path,
+    fraction: float = 0.1,
+    target: str = "all",
+    true_start: int | None = None,
+) -> Path | None:
+    """Daily exceedance rate (top) and the start posterior at discovery (bottom), one machine."""
+    from slowburn.bench.plotstyle import CATEGORICAL
+
+    t = trace[(trace.damage_fraction == fraction) & (trace.attack_target_types == target)
+              & (trace.statistic == "exceed")]  # fmt: skip
+    if t.empty:
+        return None
+    apply_style()
+    fig, (top, bot) = plt.subplots(
+        2, 1, figsize=(6.4, 4.6), sharex=True, gridspec_kw={"height_ratios": [1, 1]}
+    )
+    first = t[t.model == t.model.iloc[0]]
+    top.plot(first.day, first.value, color=INK_2, lw=1.2, marker="o", ms=3)
+    top.set_ylabel("Exceedance rate k/n")
+    for slot, kind in ((0, "single_cp"), (2, "bocpd")):
+        s = t[t.model == kind]
+        if not s.empty:
+            label = (
+                COMBO_LABEL[(kind, "exceed")] + f"  (P(not started) {s.p_not_started.iloc[0]:.3f})"
+            )
+            bot.plot(s.day, s.posterior, color=CATEGORICAL[slot], label=label)
+    bot.set_ylabel("P(start = day)")
+    bot.set_xlabel("Day")
+    for ax in (top, bot):
+        if true_start is not None:
+            ax.axvline(true_start, color=MUTED, lw=1, ls=(0, (3, 3)))
+    if true_start is not None:
+        top.annotate(
+            "true start",
+            (true_start, top.get_ylim()[1]),
+            xytext=(3, -10),
+            textcoords="offset points",
+            color=MUTED,
+            fontsize=8,
+        )
+    bot.legend(loc="upper right", fontsize=8)
+    fig.suptitle(
+        f"Example machine: striped damage {fraction:.0%}, targets: {target}",
+        x=0.01,
+        ha="left",
+        fontsize=10,
+        fontweight="bold",
+    )
+    fig.tight_layout()
+    path = out / f"example_trace_f{int(fraction * 100)}_{target}.png"
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+    return path

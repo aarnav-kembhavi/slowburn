@@ -39,7 +39,28 @@ def _detector(cfg: dict) -> None:
     print(f"outputs -> {out}")
 
 
-COMMANDS = {"bench": _bench, "detector": _detector}
+def _inference(cfg: dict) -> None:
+    from slowburn.bench.inference_experiment import run_inference_experiment, summarise
+    from slowburn.bench.plots import plot_example_trace, plot_start_accuracy
+    from slowburn.utils.config import resolve_path
+
+    res = run_inference_experiment(cfg)
+    out = resolve_path(cfg["output_dir"])
+    h = res["hazards"][0]
+    d = res["headline_delay"]
+    plot_start_accuracy(res["results"], h, out, delay=d)
+    start = int(cfg["scenario"]["attack_start"])
+    for f in (0.05, 0.1, 0.25):
+        for tgt in ("all", "high_entropy"):
+            plot_example_trace(res["traces"], out, f, tgt, start)
+    for name, tbl in summarise(res["results"], h, delay=d).items():
+        tbl.to_csv(out / f"summary_{name}.csv")
+        print(f"== {name} (hazard {h}, headline delay {d} days)")
+        print(tbl.round(4).to_string())
+    print(f"outputs -> {out}")
+
+
+COMMANDS = {"bench": _bench, "detector": _detector, "inference": _inference}
 
 
 def main(argv: list[str] | None = None) -> int:

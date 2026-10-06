@@ -1,0 +1,38 @@
+# M2: daily statistic + changepoint inference, evaluated on simulated machines.
+seed: 23
+experiment: inference_m2
+output_dir: results/inference
+
+detector_path: results/detector/detector.pkl   # produced by: slowburn detector configs/detector.yaml
+timing_config: configs/discovery.yaml          # start prior (geometric hazard)
+
+warmup_days: 14        # days assumed clean, used to fit the benign (null) model
+alpha: 0.05            # Mondrian conformal level defining an "exceedance"
+
+statistics:            # daily statistic -> observation model
+  exceed: {aggregator: exceed, model: betabinom}
+  trimmed_mean: {aggregator: trimmed_mean, model: gaussian_weekday}
+
+inference_models: [single_cp, bocpd, single_cp_uniform, prior_only]
+extra_hazards: [0.005]   # sensitivity; the primary hazard comes from configs/discovery.yaml
+
+scenario:
+  n_files: 40
+  file_types: [txt, csv, bin, docx, zip, png, jpg, mp3, zlib, lzma]
+  file_kib: [16, 96]
+  edits_per_day: 4.0
+  attack_start: 30
+  attack_files_per_day: 0.5       # slow: one file every ~2 days on average
+  damage_model: striped
+
+sweep:
+  damage_fraction: [0.05, 0.1, 0.25, 0.5, 1.0]
+  # which files the attacker damages: all types, or only high-entropy (hardest for the detector)
+  attack_target_types:
+    - all
+    - [docx, zip, png, jpg, mp3, zlib, lzma]
+
+discovery_delay: [3, 7, 14, 21, 30]
+headline_delay: 14
+reps: 16
+clean_reps: 16         # attack-free machines, to measure false alarms
