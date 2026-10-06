@@ -11,6 +11,7 @@ dist/
 data/*
 !data/README.md
 
-# generated experiment outputs (CHANGELOG is tracked)
+# generated experiment outputs (CHANGELOG and the morning report are tracked)
 results/*
 !results/CHANGELOG.md
+!results/MORNING_REPORT.md
