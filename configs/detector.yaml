@@ -18,6 +18,9 @@ data:
   fractions: [1.0, 0.5, 0.25, 0.1, 0.05]
   stripe_bytes: 16
 
+variants: [base, validity, validity_rule]
+default_variant: validity      # saved as detector.pkl for downstream experiments
+
 model:
   n_estimators: 400
   learning_rate: 0.05
@@ -32,5 +35,6 @@ calibration:
   conformal_alphas: [0.01, 0.05, 0.1]
 
 eval:
+  type_weights: uniform   # explicit per-type weights for WAVG_* rows; or a {type: weight} map
   n_bootstrap: 200        # cluster bootstrap over test FILES
   ci: 0.95

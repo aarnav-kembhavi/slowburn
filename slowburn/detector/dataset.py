@@ -7,6 +7,9 @@ Construction (all seeded from the config):
 3. for every damage model and fraction, damage a copy of the file and add its *changed* chunks
    (label 1). Striped damage reuses the benign rows' chunk positions, so positives and negatives
    are paired; whole-chunk damage only adds the chunks it actually hit.
+
+Every row also carries ``file_valid``: whether the whole file version the chunk came from still
+decodes as its declared type. ``X`` therefore has the base features plus that column.
 """
 
 from __future__ import annotations
@@ -17,7 +20,8 @@ import numpy as np
 import pandas as pd
 
 from slowburn.detector.datasets import NapierOneDamageSource
-from slowburn.detector.features import features_batch
+from slowburn.detector.features import features_batch, with_file_validity
+from slowburn.detector.validity import file_validity
 from slowburn.sim.content import chunk_bytes, generate_file
 from slowburn.sim.damage import DamageSource, RandomDamageSource, apply_damage
 from slowburn.utils.seed import child_rng
@@ -75,11 +79,12 @@ def build_chunk_dataset(cfg: dict) -> ChunkDataset:
 
     rows, bufs, types, starts = [], [], [], []
 
-    def add(chunk: bytes, f: dict, idx: int, model: str, frac: float, dmg: float) -> None:
+    def add(chunk: bytes, f: dict, idx: int, model: str, frac: float, dmg: float,
+            valid: float) -> None:  # fmt: skip
         rows.append({
             "file_id": f["file_id"], "file_type": f["file_type"], "split": split[f["file_id"]],
             "chunk_index": idx, "damage_model": model, "fraction": frac,
-            "damaged_byte_frac": dmg, "label": int(dmg > 0),
+            "damaged_byte_frac": dmg, "label": int(dmg > 0), "file_valid": valid,
             "benign_source": "synthetic",
             "damage_source": source.name if dmg > 0 else "none",
         })  # fmt: skip
@@ -95,14 +100,16 @@ def build_chunk_dataset(cfg: dict) -> ChunkDataset:
         if not eligible:
             continue
         keep = sorted(rng.choice(eligible, size=min(cap, len(eligible)), replace=False))
+        valid = file_validity(data, f["file_type"])
         for i in keep:
-            add(chunks[i], f, i, "none", 0.0, 0.0)
+            add(chunks[i], f, i, "none", 0.0, 0.0, valid)
         for model in d["damage_models"]:
             for frac in d["fractions"]:
                 res = apply_damage(
                     data, model, frac, cs, rng, source, f["file_id"], d.get("stripe_bytes", 16)
                 )
                 dchunks = chunk_bytes(res.data, cs)
+                dvalid = file_validity(res.data, f["file_type"])
                 if model == "striped":
                     candidates = keep
                 else:
@@ -110,7 +117,8 @@ def build_chunk_dataset(cfg: dict) -> ChunkDataset:
                     candidates = sorted(rng.choice(hit, size=min(cap, len(hit)), replace=False))
                 for i in candidates:
                     if res.chunk_damage[i] > 0:
-                        add(dchunks[i], f, i, model, frac, float(res.chunk_damage[i]))
+                        add(dchunks[i], f, i, model, frac, float(res.chunk_damage[i]), dvalid)
 
-    X = features_batch(bufs, types, starts)
-    return ChunkDataset(pd.DataFrame(rows), X)
+    meta = pd.DataFrame(rows)
+    X = with_file_validity(features_batch(bufs, types, starts), meta.file_valid.to_numpy())
+    return ChunkDataset(meta, X)

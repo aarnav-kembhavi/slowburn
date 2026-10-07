@@ -235,3 +235,29 @@ def test_bocpd_start_posterior_finds_shift():
     post = BOCPDStart(statistic="exceed", hazard=0.02, warmup=14).posterior(obs)
     assert post.sum() == pytest.approx(1.0)
     assert abs(int(np.argmax(post)) - 35) <= 2
+
+
+@pytest.mark.parametrize("kind", ["single_cp", "bocpd", "prior_only", "single_cp_uniform"])
+@pytest.mark.parametrize("obs_model", ["betabinom", "gaussian_weekday"])
+def test_posterior_path_equals_daily_recomputation(kind, obs_model):
+    from slowburn.inference.changepoint import make_start_model
+
+    obs = _exceed_series(40, 25, seed=1) if obs_model == "betabinom" else _gauss_series(40, 25)
+    model = make_start_model(kind, "x", obs_model, hazard=0.01, warmup=10)
+    Ts = list(range(5, 41))
+    path = model.posterior_path(obs, Ts)
+    for T in Ts:
+        fresh = make_start_model(kind, "x", obs_model, hazard=0.01, warmup=10)
+        np.testing.assert_allclose(path[T], fresh.posterior(obs[:T]), rtol=1e-9, atol=1e-12)
+
+
+def test_hazard_from_window():
+    from slowburn.inference.changepoint import hazard_from_window
+
+    for p in (0.005, 0.01, 0.05, 0.2):
+        h = hazard_from_window(p, 60)
+        assert 1 - (1 - h) ** 60 == pytest.approx(p)
+        lp = geometric_log_prior(60 + 14, h, warmup=14)
+        assert 1 - np.exp(lp[-1]) == pytest.approx(p)  # prior P(started) over the window
+    with pytest.raises(ValueError):
+        hazard_from_window(1.0, 60)

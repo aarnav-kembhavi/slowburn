@@ -29,35 +29,39 @@ def _detector(cfg: dict) -> None:
     res = run_detector_experiment(cfg)
     out = resolve_path(cfg["output_dir"])
     plot_auroc_vs_fraction(res["auroc"], out)
-    plot_auroc_by_type(res["auroc"], out)
+    for model in ("striped", "whole"):
+        plot_auroc_by_type(res["auroc"], out, model)
     print(f"run info: {res['info']}")
-    print("chunk-level AUROC:")
+    print("chunk-level AUROC, weighted averages over types:")
     print(headline_summary(res["auroc"]).to_string())
     cal = res["calibration"]
-    print("conformal false-alarm check (test benign, ALL):")
-    print(cal[cal.file_type.isin(["ALL", "HIGH_ENTROPY"])].to_string(index=False))
+    print("conformal false-alarm check (test benign, weighted averages):")
+    print(cal[cal.file_type.str.startswith("WAVG_")].to_string(index=False))
     print(f"outputs -> {out}")
 
 
 def _inference(cfg: dict) -> None:
-    from slowburn.bench.inference_experiment import run_inference_experiment, summarise
+    from slowburn.bench.inference_experiment import (
+        load_timing,
+        prior_grid,
+        run_inference_experiment,
+        summarise,
+    )
     from slowburn.bench.plots import plot_example_trace, plot_start_accuracy
     from slowburn.utils.config import resolve_path
 
     res = run_inference_experiment(cfg)
     out = resolve_path(cfg["output_dir"])
-    h = res["hazards"][0]
     d = res["headline_delay"]
-    plot_start_accuracy(res["results"], h, out, delay=d)
     start = int(cfg["scenario"]["attack_start"])
-    for f in (0.05, 0.1, 0.25):
-        for tgt in ("all", "high_entropy"):
-            plot_example_trace(res["traces"], out, f, tgt, start)
-    for name, tbl in summarise(res["results"], h, delay=d).items():
-        tbl.to_csv(out / f"summary_{name}.csv")
-        print(f"== {name} (hazard {h}, headline delay {d} days)")
-        print(tbl.round(4).to_string())
-    print(f"outputs -> {out}")
+    for p_win, _ in prior_grid(load_timing(cfg["timing_config"])):
+        plot_start_accuracy(res["results"], p_win, out, delay=d)
+        for f in (0.05, 0.1, 0.25):
+            for tgt in ("all", "high_entropy"):
+                plot_example_trace(res["traces"], out, f, tgt, p_win, start)
+        for name, tbl in summarise(res["results"], p_win, delay=d).items():
+            tbl.to_csv(out / f"summary_{name}_p{p_win}.csv")
+    print(f"outputs -> {out}  {res['info']}")
 
 
 COMMANDS = {"bench": _bench, "detector": _detector, "inference": _inference}

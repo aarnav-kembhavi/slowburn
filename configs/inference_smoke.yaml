@@ -1,13 +1,18 @@
-# Tiny M2 run for tests: trains a throwaway detector from detector_smoke if needed.
+# Tiny M2 run for tests (uses the detector_smoke outputs).
 seed: 5
 experiment: inference_smoke
 output_dir: results/inference_smoke
+split: dev
+workers: 1
 
-detector_path: results/detector_smoke/detector.pkl
+detectors:
+  lgbm_base: results/detector_smoke/detector_base.pkl
+  lgbm_validity: results/detector_smoke/detector_validity.pkl
 timing_config: configs/discovery.yaml
 
 warmup_days: 7
 alpha: 0.05
+fa_targets: [0.1]
 
 statistics:
   exceed: {aggregator: exceed, model: betabinom}
@@ -31,4 +36,4 @@ sweep:
 discovery_delay: [3, 6]
 headline_delay: 6
 reps: 1
-clean_reps: 1
+clean_reps: 2

@@ -87,3 +87,26 @@ Conservative choice made, work continued. Each is easy to reverse.
   extra older snapshots? This is a modelling decision with paper impact.
 - **Hard regime**: on high-entropy targets with <=10% damage the detector adds nothing; the paper's
   claim there must rest on the prior/retention layer alone.
+
+## Workstream A decisions (2026-10-08)
+- **D17 Weighted averages use uniform type weights** (`eval.type_weights: uniform`) unless the team
+  supplies a mix (e.g. from real file-type frequencies once data arrives). No pooled AUROC is reported.
+- **D18 Default detector = LightGBM + format validity** (`detector.pkl`); M2 runs both it and the base
+  detector so weak-evidence and strong-evidence regimes are both on record.
+- **D19 Alarm thresholds:** "ever alarms" means P(started) exceeds the threshold on any monitored day
+  (after warm-up, up to day 60). Thresholds are set on 200 attack-free DEV machines, so a 1% target is
+  resolved by about 2 machines.
+- **D20 Prior reference window = 60 days** for P(attack within window).
+- **D21 Format validity covers text:** txt/csv must decode as strict UTF-8; `bin` has no check.
+- **D22 Primary prior is chosen after Workstream C**, on dev machines only, by the headline retention
+  metric; until then all four values are reported.
+
+## NEEDS DECISION: paper motivation after format validity (Workstream A finding)
+On synthetic data, whole-file format validity flags 100% of damaged files at every damage fraction
+in every checked type, with 0% false flags on pristine benign files. LightGBM + validity has
+weighted-average chunk AUROC 0.9976-1.0000 in every cell. The "compressed types near chance"
+blind spot disappears for naive damage. It remains only for (a) types without an integrity check
+(`bin` here), (b) the abstract weak-evidence attacker (swept detection probability), and possibly
+(c) real data, where benign files can be invalid (unknown until NapierOne/Govdocs1). The
+detector-agnostic claim is unaffected, but "detection blind spots are the motivation" needs new
+wording, e.g. "detection quality varies by format and attacker, and retention must not depend on it".

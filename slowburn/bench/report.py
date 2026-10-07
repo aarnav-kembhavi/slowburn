@@ -20,25 +20,22 @@ def md_table(df: pd.DataFrame, floatfmt: str = "{:.4f}", index: bool = True) -> 
     return "\n".join(lines)
 
 
-def detector_tables(auroc: pd.DataFrame) -> dict[str, str]:
-    """Markdown tables for the detector write-up (chunk + file level)."""
-    out = {}
-    chunk = auroc[auroc.level == "chunk"]
-    for model in sorted(chunk.damage_model.unique()):
-        sub = chunk[chunk.damage_model == model]
-        piv = sub.pivot_table(index="file_type", columns="fraction", values="auroc")
-        piv = piv[sorted(piv.columns, reverse=True)]
-        piv.columns = [f"{int(round(c * 100))}%" for c in piv.columns]
-        out[f"chunk_{model}"] = md_table(piv)
-    head = chunk[chunk.file_type.isin(["ALL", "HIGH_ENTROPY", "LOW_ENTROPY"])]
-    alpha_cols = [c for c in head.columns if c.startswith(("tpr_at", "fpr_at"))]
-    cols = ["damage_model", "fraction", "file_type", "auroc", "ci_low", "ci_high", *alpha_cols]
-    out["chunk_groups_ci"] = md_table(
-        head[cols].sort_values(["damage_model", "file_type", "fraction"]), index=False
-    )
-    f = auroc[(auroc.level == "file") & auroc.file_type.isin(["ALL", "HIGH_ENTROPY"])]
-    piv = f.pivot_table(index=["damage_model", "file_type"], columns="fraction", values="auroc")
+def _fraction_pivot(sub: pd.DataFrame, index, value: str = "auroc") -> pd.DataFrame:
+    piv = sub.pivot_table(index=index, columns="fraction", values=value)
     piv = piv[sorted(piv.columns, reverse=True)]
     piv.columns = [f"{int(round(c * 100))}%" for c in piv.columns]
-    out["file_level"] = md_table(piv)
+    return piv
+
+
+def detector_tables(auroc: pd.DataFrame) -> dict[str, str]:
+    """Markdown tables for the detector write-up: per detector x damage model, per type and
+    weighted-average rows (chunk level), plus file-level weighted averages."""
+    out = {}
+    chunk = auroc[auroc.level == "chunk"]
+    for det in sorted(chunk.detector.unique()):
+        for model in sorted(chunk.damage_model.unique()):
+            sub = chunk[(chunk.detector == det) & (chunk.damage_model == model)]
+            out[f"chunk_{det}_{model}"] = md_table(_fraction_pivot(sub, "file_type"))
+    f = auroc[(auroc.level == "file") & auroc.file_type.str.startswith("WAVG_")]
+    out["file_level_wavg"] = md_table(_fraction_pivot(f, ["detector", "damage_model", "file_type"]))
     return out

@@ -13,7 +13,7 @@ from collections.abc import Sequence
 import numpy as np
 from scipy.special import logsumexp
 
-from slowburn.inference.bocpd import BetaBinomialConj, NormalInvGammaConj, bocpd_run_length
+from slowburn.inference.bocpd import BetaBinomialConj, NormalInvGammaConj, bocpd_run_lengths
 from slowburn.inference.daily import DailyObs
 from slowburn.inference.obsmodels import BetaBinomialExceedance, GaussianWeekday
 
@@ -25,6 +25,13 @@ def null_window(obs: Sequence[DailyObs], warmup: int) -> Sequence[DailyObs]:
     file-type mix is the whole disk rather than the daily churn, so it is not a typical benign day.
     """
     return obs[1:warmup] if warmup > 1 else obs[:warmup]
+
+
+def hazard_from_window(p_within: float, window_days: int) -> float:
+    """Constant daily hazard h with P(start within ``window_days``) = 1 - (1 - h)^W = p."""
+    if not 0.0 < p_within < 1.0 or window_days < 1:
+        raise ValueError("need 0 < p_within < 1 and window_days >= 1")
+    return float(-np.expm1(np.log1p(-p_within) / window_days))
 
 
 def geometric_log_prior(T: int, hazard: float, warmup: int = 0) -> np.ndarray:
@@ -107,6 +114,25 @@ class SingleChangepoint:
         ll0, ll1, logw0, logw1 = self.obs_model.loglik(obs)
         return single_changepoint_posterior(ll0, ll1, logw1, lp, logw0)
 
+    def posterior_path(self, obs: Sequence[DailyObs], Ts: Sequence[int]) -> dict[int, np.ndarray]:
+        """Posteriors after the first T days, for every T in ``Ts``, from one likelihood pass.
+
+        Exact: the benign model is fitted on warm-up days only, which every prefix longer than
+        the warm-up contains, so the likelihood of a prefix is the prefix of the likelihood.
+        """
+        out, fitted = {}, None
+        for T in Ts:
+            lp = self.log_prior(T)
+            if not self.use_data or T <= self.warmup:
+                out[T] = np.exp(lp - logsumexp(lp))
+                continue
+            if fitted is None:
+                self.obs_model.fit_null(null_window(obs, self.warmup))
+                fitted = self.obs_model.loglik(obs[: max(Ts)])
+            ll0, ll1, logw0, logw1 = fitted
+            out[T] = single_changepoint_posterior(ll0[:T], ll1[:T], logw1, lp, logw0)
+        return out
+
 
 class BOCPDStart:
     """BOCPD run-length posterior mapped to the start-day convention.
@@ -124,29 +150,42 @@ class BOCPDStart:
         self.hazard = hazard
         self.warmup = warmup
 
-    def posterior(self, obs: Sequence[DailyObs]) -> np.ndarray:
-        T = len(obs)
-        out = np.zeros(T + 1)
-        if T <= self.warmup:
-            out[T] = 1.0
-            return out
+    def _prepare(self, obs: Sequence[DailyObs]):
         warm = null_window(obs, self.warmup)
         if self.statistic == "exceed":
             null = BetaBinomialExceedance().fit_null(warm)
             conc = (1 - null.rho) / null.rho
             model = BetaBinomialConj(null.null_rate * conc, (1 - null.null_rate) * conc)
-            xs = [(o.k, o.n) for o in obs]
-        else:
-            null = GaussianWeekday().fit_null(warm)
-            model = NormalInvGammaConj()
-            xs = list(null.standardise(obs))
-        rl = bocpd_run_length(xs, model, self.hazard)  # rl[r], r = 1..T
+            return model, [(o.k, o.n) for o in obs]
+        null = GaussianWeekday().fit_null(warm)
+        return NormalInvGammaConj(), list(null.standardise(obs))
+
+    def _to_start(self, rl: np.ndarray, T: int) -> np.ndarray:
+        """Run-length posterior (rl[r], r = 1..T) -> start-day posterior of length T + 1."""
+        out = np.zeros(T + 1)
         starts = T - np.arange(1, T + 1)  # start day for run length r
         mass = rl[1:]
         late = starts >= self.warmup
         out[starts[late]] = mass[late]
         out[T] = mass[~late].sum()  # segment began inside warm-up: no attack yet
         return out / out.sum()
+
+    def posterior(self, obs: Sequence[DailyObs]) -> np.ndarray:
+        return self.posterior_path(obs, [len(obs)])[len(obs)]
+
+    def posterior_path(self, obs: Sequence[DailyObs], Ts: Sequence[int]) -> dict[int, np.ndarray]:
+        """Posteriors after the first T days for every T in ``Ts``, from one online pass."""
+        out, wanted = {}, set(Ts)
+        for T in wanted:
+            if T <= self.warmup:
+                out[T] = np.r_[np.zeros(T), 1.0]
+        if not any(T > self.warmup for T in wanted):
+            return out
+        model, xs = self._prepare(obs[: max(wanted)])
+        for t, rl in enumerate(bocpd_run_lengths(xs, model, self.hazard), start=1):
+            if t in wanted and t > self.warmup:
+                out[t] = self._to_start(rl, t)
+        return out
 
 
 # named variants used in experiment configs; the last two are the agreed ablations

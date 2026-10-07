@@ -1,12 +1,22 @@
-"""Detector evaluation: AUROC per damage model x fraction x file type, with file-cluster
-bootstrap confidence intervals, plus TPR at conformal false-alarm levels."""
+"""Detector evaluation, per file type.
+
+Headline numbers are per-type AUROCs and their *weighted averages* with explicit type weights
+from config (never a pooled AUROC: pooling mixes types with different base rates and lets easy
+types hide hard ones). Confidence intervals come from a file-cluster bootstrap inside each type;
+a weighted average's CI combines the per-type bootstrap draws with the same weights (stratified
+bootstrap).
+"""
 
 from __future__ import annotations
+
+from collections.abc import Mapping
 
 import numpy as np
 import pandas as pd
 
 from slowburn.sim.content import HIGH_ENTROPY_TYPES
+
+GROUP_PREFIX = "WAVG_"
 
 
 def weighted_auroc(
@@ -25,41 +35,63 @@ def weighted_auroc(
     return float((pos * (neg_below + 0.5 * neg)).sum() / (P * N))
 
 
-def bootstrap_auroc(
-    scores: np.ndarray,
-    labels: np.ndarray,
-    file_ids: np.ndarray,
-    n_boot: int,
-    ci: float,
+def bootstrap_draws(
+    scores: np.ndarray, labels: np.ndarray, file_ids: np.ndarray, n_boot: int,
     rng: np.random.Generator,
-) -> tuple[float, float, float]:
-    """Point AUROC and a percentile CI from resampling whole files with replacement."""
+) -> tuple[float, np.ndarray]:  # fmt: skip
+    """Point AUROC and ``n_boot`` file-cluster bootstrap AUROCs (NaN where degenerate)."""
     point = weighted_auroc(scores, labels)
-    if n_boot <= 0 or np.isnan(point):
-        return point, float("nan"), float("nan")
     uniq, fidx = np.unique(file_ids, return_inverse=True)
-    boots = []
-    for _ in range(n_boot):
+    draws = np.full(n_boot, np.nan)
+    if np.isnan(point):
+        return point, draws
+    for b in range(n_boot):
         counts = rng.multinomial(len(uniq), np.full(len(uniq), 1 / len(uniq)))
-        a = weighted_auroc(scores, labels, counts[fidx].astype(float))
-        if not np.isnan(a):
-            boots.append(a)
-    if not boots:
-        return point, float("nan"), float("nan")
+        draws[b] = weighted_auroc(scores, labels, counts[fidx].astype(float))
+    return point, draws
+
+
+def bootstrap_auroc(scores, labels, file_ids, n_boot, ci, rng) -> tuple[float, float, float]:
+    """Point AUROC and a percentile CI from resampling whole files with replacement."""
+    point, draws = bootstrap_draws(scores, labels, file_ids, n_boot, rng)
+    lo, hi = _percentile_ci(draws, ci)
+    return point, lo, hi
+
+
+def _percentile_ci(draws: np.ndarray, ci: float) -> tuple[float, float]:
+    d = draws[~np.isnan(draws)]
+    if len(d) == 0:
+        return float("nan"), float("nan")
     q = (1 - ci) / 2
-    return point, float(np.quantile(boots, q)), float(np.quantile(boots, 1 - q))
+    return float(np.quantile(d, q)), float(np.quantile(d, 1 - q))
 
 
-def _type_groups(types: list[str]) -> dict[str, list[str]]:
-    groups = {"ALL": types}
+def type_weights(types: list[str], spec: str | Mapping[str, float] = "uniform") -> dict:
+    """Explicit per-type weights (normalised). ``uniform`` gives every type equal weight."""
+    if spec == "uniform":
+        return {t: 1.0 / len(types) for t in types}
+    missing = set(types) - set(spec)
+    if missing:
+        raise ValueError(f"type_weights missing types: {sorted(missing)}")
+    total = sum(float(spec[t]) for t in types)
+    return {t: float(spec[t]) / total for t in types}
+
+
+def type_groups(types: list[str]) -> dict[str, list[str]]:
+    groups = {"ALL": list(types)}
     hi = [t for t in types if t in HIGH_ENTROPY_TYPES]
     lo = [t for t in types if t not in HIGH_ENTROPY_TYPES]
     if hi:
         groups["HIGH_ENTROPY"] = hi
     if lo:
         groups["LOW_ENTROPY"] = lo
-    groups.update({t: [t] for t in types})
     return groups
+
+
+def _weighted(values: Mapping[str, float], weights: Mapping[str, float], members: list[str]):
+    w = np.array([weights[t] for t in members])
+    v = np.array([values[t] for t in members], dtype=float)
+    return float((w * v).sum() / w.sum())
 
 
 def auroc_table(
@@ -70,62 +102,103 @@ def auroc_table(
     n_boot: int,
     ci: float,
     rng: np.random.Generator,
+    weights_spec: str | Mapping[str, float] = "uniform",
 ) -> pd.DataFrame:
-    """Tidy AUROC table at chunk level and file level (file score = max chunk score).
+    """Per-type AUROC (chunk and file level) plus weighted-average group rows ``WAVG_*``.
 
-    ``pvals`` maps a conformal variant name (e.g. marginal, mondrian) to per-row p-values;
-    TPR/FPR at each alpha are reported per variant.
+    ``pvals`` maps a conformal variant name to per-row p-values; TPR/FPR at each alpha are
+    reported per type and weight-averaged the same way. File level: a file's score is the max
+    over its changed chunks.
     """
     m = meta.reset_index(drop=True).assign(raw=raw, **{f"pv_{k}": v for k, v in pvals.items()})
-    neg_all = m[m.label == 0]
+    types = sorted(m.file_type.unique())
+    weights = type_weights(types, weights_spec)
     rows = []
     for (model, frac), pos_all in m[m.label == 1].groupby(["damage_model", "fraction"]):
-        for gname, gtypes in _type_groups(sorted(m.file_type.unique())).items():
-            pos = pos_all[pos_all.file_type.isin(gtypes)]
-            neg = neg_all[neg_all.file_type.isin(gtypes)]
+        per = {"chunk": {}, "file": {}}
+        for t in types:
+            pos = pos_all[pos_all.file_type == t]
+            neg = m[(m.label == 0) & (m.file_type == t)]
             if pos.empty or neg.empty:
                 continue
+            base = {"damage_model": model, "fraction": frac, "file_type": t,
+                    "weight": weights[t],
+                    "damage_source": "+".join(sorted(pos.damage_source.unique())),
+                    "benign_source": "+".join(sorted(pd.concat([pos, neg]).benign_source
+                                                     .unique())),
+                    "mean_damaged_byte_frac": float(pos.damaged_byte_frac.mean())}  # fmt: skip
             both = pd.concat([pos, neg])
-            base = {
-                "damage_model": model, "fraction": frac, "file_type": gname,
-                "damage_source": "+".join(sorted(pos.damage_source.unique())),
-                "benign_source": "+".join(sorted(both.benign_source.unique())),
-                "mean_damaged_byte_frac": float(pos.damaged_byte_frac.mean()),
-            }  # fmt: skip
-            a, lo_, hi_ = bootstrap_auroc(
-                both.raw.values, both.label.values, both.file_id.values, n_boot, ci, rng
-            )
-            row = {**base, "level": "chunk", "auroc": a, "ci_low": lo_, "ci_high": hi_,
-                   "n_pos": len(pos), "n_neg": len(neg)}  # fmt: skip
+            pt, draws = bootstrap_draws(both.raw.values, both.label.values, both.file_id.values,
+                                        n_boot, rng)  # fmt: skip
+            row = {**base, "level": "chunk", "auroc": pt, "n_pos": len(pos), "n_neg": len(neg)}
+            row["ci_low"], row["ci_high"] = _percentile_ci(draws, ci)
             for name in pvals:
                 for al in alphas:
                     row[f"tpr_{name}_a{al}"] = float(np.mean(pos[f"pv_{name}"] <= al))
                     row[f"fpr_{name}_a{al}"] = float(np.mean(neg[f"pv_{name}"] <= al))
             rows.append(row)
-            # file level: a benign file vs its damaged version, scored by max chunk score
-            fpos = pos.groupby("file_id").raw.max()
-            fneg = neg.groupby("file_id").raw.max()
+            per["chunk"][t] = (row, draws)
+            fpos, fneg = pos.groupby("file_id").raw.max(), neg.groupby("file_id").raw.max()
             fs = np.r_[fpos.values, fneg.values]
             fy = np.r_[np.ones(len(fpos)), np.zeros(len(fneg))]
             fid = np.r_[fpos.index.values, fneg.index.values]
-            a, lo_, hi_ = bootstrap_auroc(fs, fy, fid, n_boot, ci, rng)
-            rows.append({**base, "level": "file", "auroc": a, "ci_low": lo_, "ci_high": hi_,
-                         "n_pos": len(fpos), "n_neg": len(fneg)})  # fmt: skip
+            pt, fdraws = bootstrap_draws(fs, fy, fid, n_boot, rng)
+            frow = {**base, "level": "file", "auroc": pt, "n_pos": len(fpos), "n_neg": len(fneg)}
+            frow["ci_low"], frow["ci_high"] = _percentile_ci(fdraws, ci)
+            rows.append(frow)
+            per["file"][t] = (frow, fdraws)
+        for level, entries in per.items():
+            for gname, members in type_groups(types).items():
+                members = [t for t in members if t in entries]
+                if not members:
+                    continue
+                vals = {t: entries[t][0]["auroc"] for t in members}
+                draws = sum(weights[t] * entries[t][1] for t in members) / sum(
+                    weights[t] for t in members
+                )
+                g = {"damage_model": model, "fraction": frac, "file_type": GROUP_PREFIX + gname,
+                     "weight": sum(weights[t] for t in members), "level": level,
+                     "auroc": _weighted(vals, weights, members),
+                     "n_pos": sum(entries[t][0]["n_pos"] for t in members),
+                     "n_neg": sum(entries[t][0]["n_neg"] for t in members),
+                     "damage_source": entries[members[0]][0]["damage_source"],
+                     "benign_source": entries[members[0]][0]["benign_source"],
+                     "mean_damaged_byte_frac": _weighted(
+                         {t: entries[t][0]["mean_damaged_byte_frac"] for t in members},
+                         weights, members)}  # fmt: skip
+                g["ci_low"], g["ci_high"] = _percentile_ci(draws, ci)
+                if level == "chunk":
+                    for col in entries[members[0]][0]:
+                        if col.startswith(("tpr_", "fpr_")):
+                            g[col] = _weighted({t: entries[t][0][col] for t in members},
+                                               weights, members)  # fmt: skip
+                rows.append(g)
     return pd.DataFrame(rows)
 
 
 def calibration_table(
-    meta: pd.DataFrame, pvals: dict[str, np.ndarray], alphas: list[float]
+    meta: pd.DataFrame,
+    pvals: dict[str, np.ndarray],
+    alphas: list[float],
+    weights_spec: str | Mapping[str, float] = "uniform",
 ) -> pd.DataFrame:
-    """Empirical false-alarm rate of each conformal variant on benign TEST chunks, per type."""
+    """Empirical false-alarm rate of each conformal variant on benign TEST chunks, per type,
+    plus weighted averages over the type groups."""
     m = meta.reset_index(drop=True).assign(**{f"pv_{k}": v for k, v in pvals.items()})
     neg = m[m.label == 0]
+    types = sorted(m.file_type.unique())
+    weights = type_weights(types, weights_spec)
     rows = []
-    for gname, gtypes in _type_groups(sorted(m.file_type.unique())).items():
-        g = neg[neg.file_type.isin(gtypes)]
-        for name in pvals:
-            for al in alphas:
-                fpr = float(np.mean(g[f"pv_{name}"] <= al))
-                rows.append({"file_type": gname, "variant": name, "alpha": al,
-                             "empirical_fpr": fpr, "n_benign": len(g)})  # fmt: skip
+    for name in pvals:
+        for al in alphas:
+            per = {t: float(np.mean(neg.loc[neg.file_type == t, f"pv_{name}"] <= al))
+                   for t in types}  # fmt: skip
+            for t in types:
+                rows.append({"file_type": t, "variant": name, "alpha": al,
+                             "empirical_fpr": per[t],
+                             "n_benign": int((neg.file_type == t).sum())})  # fmt: skip
+            for gname, members in type_groups(types).items():
+                rows.append({"file_type": GROUP_PREFIX + gname, "variant": name, "alpha": al,
+                             "empirical_fpr": _weighted(per, weights, members),
+                             "n_benign": int(neg.file_type.isin(members).sum())})  # fmt: skip
     return pd.DataFrame(rows)

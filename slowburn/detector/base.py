@@ -6,7 +6,7 @@ from typing import Protocol
 
 import numpy as np
 
-from slowburn.detector.features import features
+from slowburn.detector.features import features, with_file_validity
 
 
 class Detector(Protocol):
@@ -18,10 +18,16 @@ class Detector(Protocol):
 
 
 def score(
-    detector: Detector, chunk: bytes, declared_type: str | None = None, at_file_start: bool = False
+    detector: Detector,
+    chunk: bytes,
+    declared_type: str | None = None,
+    at_file_start: bool = False,
+    file_valid: float = -1.0,
 ) -> float:
-    """Convenience: calibrated probability for a single raw chunk."""
-    return float(detector.score_features(features(chunk, declared_type, at_file_start)[None, :])[0])
+    """Convenience: calibrated probability for a single raw chunk (``file_valid``: whole-file
+    validity of the chunk's file, -1 if unknown)."""
+    X = with_file_validity(features(chunk, declared_type, at_file_start)[None, :], [file_valid])
+    return float(detector.score_features(X)[0])
 
 
 class EntropyDetector:

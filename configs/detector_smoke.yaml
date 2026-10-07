@@ -18,6 +18,9 @@ data:
   fractions: [1.0, 0.1]
   stripe_bytes: 16
 
+variants: [base, validity, validity_rule]
+default_variant: validity
+
 model:
   n_estimators: 30
   learning_rate: 0.1
@@ -29,5 +32,6 @@ calibration:
   conformal_alphas: [0.05]
 
 eval:
+  type_weights: uniform   # explicit per-type weights for WAVG_* rows; or a {type: weight} map
   n_bootstrap: 10
   ci: 0.95

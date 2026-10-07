@@ -18,7 +18,7 @@ from scipy import stats
 class DayScores:
     day: int
     probs: np.ndarray  # calibrated P(damaged) per changed chunk
-    pvals: np.ndarray  # conformal p-values per changed chunk (Mondrian by default)
+    pvals: np.ndarray  # conformal p-values per changed chunk (type-conditional by default)
 
 
 @dataclass(frozen=True)

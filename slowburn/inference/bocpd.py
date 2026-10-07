@@ -9,7 +9,7 @@ independent changepoints of probability ``hazard`` and conjugate per-segment mar
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 
 import numpy as np
 from scipy import stats
@@ -68,11 +68,9 @@ class NormalInvGammaConj:
         return tuple(np.r_[p, s] for p, s in zip(self.p0, st, strict=True))
 
 
-def bocpd_run_length(xs: Sequence, model, hazard: float) -> np.ndarray:
-    """Run-length posterior after all observations; see module docstring for the convention."""
-    T = len(xs)
-    if T == 0:
-        return np.array([1.0])
+def bocpd_run_lengths(xs: Sequence, model, hazard: float) -> Iterator[np.ndarray]:
+    """Online form: yield the run-length posterior after each observation (same convention as
+    ``bocpd_run_length``; the t-th yield has length t + 2 with entry 0 equal to 0)."""
     log_h, log_1h = np.log(hazard), np.log1p(-hazard)
     log_r = np.array([0.0])  # before x_0: a segment with 0 observations, probability 1
     st = model.init()
@@ -83,5 +81,13 @@ def bocpd_run_length(xs: Sequence, model, hazard: float) -> np.ndarray:
         log_r = log_r + model.logpred(x, st)
         log_r -= logsumexp(log_r)
         st = model.update(st, x)
-    # entry i now holds segments with i + 1 observations
-    return np.r_[0.0, np.exp(log_r)]
+        # entry i holds segments with i + 1 observations
+        yield np.r_[0.0, np.exp(log_r)]
+
+
+def bocpd_run_length(xs: Sequence, model, hazard: float) -> np.ndarray:
+    """Run-length posterior after all observations; see module docstring for the convention."""
+    rl = np.array([1.0])
+    for step in bocpd_run_lengths(xs, model, hazard):
+        rl = step
+    return rl

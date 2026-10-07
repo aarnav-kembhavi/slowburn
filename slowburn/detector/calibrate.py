@@ -1,12 +1,14 @@
-"""Calibration wrappers that give a raw classifier score a known meaning.
+"""Calibration wrappers that give a raw detector score a known meaning.
 
 * ``score_features`` - isotonic-calibrated P(damaged), fitted on a held-out calibration split
   with class-balanced weights, i.e. calibrated under a 50/50 prior. Convert to another prior pi
   via odds: p' = p*pi / (p*pi + (1-p)*(1-pi)).
-* ``pvalues`` - split-conformal p-values against the benign calibration chunks. Under
-  exchangeability with benign data, P(p <= alpha | benign) <= alpha: thresholding at alpha has a
-  false-alarm rate of at most alpha, regardless of class prior. (Chunks of one file are
-  correlated, so exchangeability is approximate; the test-set check is reported.)
+* ``pvalues`` - split-conformal outlier p-values (Bates et al., 2023, "Testing for outliers with
+  conformal p-values") against benign calibration chunks. Under exchangeability with benign data,
+  P(p <= alpha | benign) <= alpha. With ``groups`` they are *type-conditional (Mondrian)*
+  conformal p-values (Vovk et al.'s Mondrian taxonomy, here by declared file type): the
+  guarantee then holds within each file type. Chunks of one file are correlated, so
+  exchangeability is approximate; the test-set check is reported.
 """
 
 from __future__ import annotations
@@ -25,17 +27,18 @@ def conformal_pvalues(benign_cal_scores: np.ndarray, scores: np.ndarray) -> np.n
 
 
 class CalibratedDetector:
-    """Isotonic probabilities plus marginal and Mondrian (per file type) conformal p-values.
+    """Isotonic probabilities plus marginal and type-conditional (Mondrian) conformal p-values.
 
-    Mondrian p-values compare a chunk only against benign calibration chunks of the same
+    Type-conditional p-values compare a chunk only against benign calibration chunks of the same
     declared file type (known from the backup manifest), giving the alpha guarantee *per type*.
     Types with fewer than ``min_group`` benign calibration chunks fall back to the marginal set.
+    Wraps any object with ``raw_scores(X)`` (a ``ChunkClassifier`` or a rule).
     """
-
-    name = "lightgbm_isotonic"
 
     def __init__(self, classifier: ChunkClassifier, min_group: int = 50):
         self.classifier = classifier
+        self.name = getattr(classifier, "name", "detector")
+        self.uses_validity = bool(getattr(classifier, "uses_validity", False))
         self.min_group = min_group
         self._iso = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip")
         self._benign_cal: np.ndarray | None = None
@@ -66,7 +69,7 @@ class CalibratedDetector:
         return self._iso.predict(self.raw_scores(X))
 
     def pvalues(self, X: np.ndarray, groups: np.ndarray | None = None) -> np.ndarray:
-        """Marginal p-values, or Mondrian p-values when ``groups`` (file types) are given."""
+        """Marginal p-values, or type-conditional p-values when ``groups`` (file types) given."""
         if self._benign_cal is None:
             raise RuntimeError("call fit() first")
         raw = self.raw_scores(X)

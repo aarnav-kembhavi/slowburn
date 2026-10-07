@@ -1,20 +1,24 @@
-# M2: daily statistic + changepoint inference, evaluated on simulated machines.
+# M2: daily statistic + start-day inference on simulated machines (DEV split).
 seed: 23
 experiment: inference_m2
 output_dir: results/inference
+split: dev             # dev | test; alarm thresholds are only ever set on dev machines
+workers: 5             # capped at 6
 
-detector_path: results/detector/detector.pkl   # produced by: slowburn detector configs/detector.yaml
-timing_config: configs/discovery.yaml          # start prior (geometric hazard)
+detectors:             # produced by: slowburn detector configs/detector.yaml
+  lgbm_base: results/detector/detector_base.pkl
+  lgbm_validity: results/detector/detector_validity.pkl
+timing_config: configs/discovery.yaml          # start prior sweep (P(attack within window))
 
 warmup_days: 14        # days assumed clean, used to fit the benign (null) model
-alpha: 0.05            # Mondrian conformal level defining an "exceedance"
+alpha: 0.05            # type-conditional conformal level defining an "exceedance"
+fa_targets: [0.01, 0.05, 0.1]   # target ever-alarm rates on attack-free dev machines
 
 statistics:            # daily statistic -> observation model
   exceed: {aggregator: exceed, model: betabinom}
   trimmed_mean: {aggregator: trimmed_mean, model: gaussian_weekday}
 
 inference_models: [single_cp, bocpd, single_cp_uniform, prior_only]
-extra_hazards: [0.005]   # sensitivity; the primary hazard comes from configs/discovery.yaml
 
 scenario:
   n_files: 40
@@ -34,5 +38,5 @@ sweep:
 
 discovery_delay: [3, 7, 14, 21, 30]
 headline_delay: 14
-reps: 16
-clean_reps: 16         # attack-free machines, to measure false alarms
+reps: 32
+clean_reps: 200        # attack-free machines; 200 so a 1% ever-alarm threshold is estimable

@@ -172,3 +172,74 @@ def test_napierone_damage_source_reads_offset_aligned(tmp_path):
     big = src.bytes_for("f1", 0, 3000)  # longer than the sample: wraps, never fails
     assert len(big) == 3000
     assert src.bytes_for("f1", 10, 20) == out  # deterministic per file key
+
+
+# ---- per-type evaluation, weights, validity variants ------------------------------------
+
+
+def test_type_weights():
+    from slowburn.detector.evaluate import type_weights
+
+    assert type_weights(["a", "b"]) == {"a": 0.5, "b": 0.5}
+    w = type_weights(["a", "b"], {"a": 3, "b": 1})
+    assert w == {"a": 0.75, "b": 0.25}
+    with pytest.raises(ValueError):
+        type_weights(["a", "c"], {"a": 1})
+
+
+def test_auroc_table_reports_per_type_and_weighted_average_not_pooled():
+    from slowburn.detector.evaluate import auroc_table
+
+    rng = np.random.default_rng(0)
+    rows, raw = [], []
+    for t, sep in (("txt", 2.0), ("zip", 0.0)):  # txt separable, zip at chance
+        for f in range(20):
+            for lab in (0, 1):
+                for _ in range(3):
+                    rows.append(
+                        {
+                            "file_id": f"{t}{f}",
+                            "file_type": t,
+                            "label": lab,
+                            "damage_model": "striped" if lab else "none",
+                            "fraction": 0.1 if lab else 0.0,
+                            "damaged_byte_frac": 0.1 * lab,
+                            "benign_source": "synthetic",
+                            "damage_source": "synthetic_random" if lab else "none",
+                        }
+                    )
+                    raw.append(rng.normal(sep * lab))
+    meta = pd.DataFrame(rows)
+    pv = {"type_conditional": rng.random(len(meta))}
+    tbl = auroc_table(meta, np.array(raw), pv, [0.05], 20, 0.95, rng, {"txt": 1, "zip": 3})
+    chunk = tbl[tbl.level == "chunk"].set_index("file_type")
+    assert "ALL" not in chunk.index  # no pooled AUROC
+    expect = 0.25 * chunk.loc["txt", "auroc"] + 0.75 * chunk.loc["zip", "auroc"]
+    assert chunk.loc["WAVG_ALL", "auroc"] == pytest.approx(expect)
+    assert chunk.loc["WAVG_ALL", "ci_low"] <= expect <= chunk.loc["WAVG_ALL", "ci_high"]
+
+
+def test_dataset_carries_file_validity(dataset):
+    from slowburn.detector.features import FILE_VALID_INDEX
+
+    m, X = dataset.meta, dataset.X
+    np.testing.assert_array_equal(X[:, FILE_VALID_INDEX], m.file_valid.to_numpy())
+    benign = m[(m.label == 0) & m.file_type.isin(["txt", "zip", "jpg"])]
+    assert (benign.file_valid == 1.0).all()  # pristine files decode
+    assert (m.loc[m.file_type == "bin", "file_valid"] == -1.0).all()  # no check for raw binary
+
+
+def test_validity_rule_scores():
+    from slowburn.detector.model import ValidityRule
+
+    X = np.zeros((3, 261))
+    X[:, 260] = [1.0, 0.0, -1.0]
+    np.testing.assert_array_equal(ValidityRule().raw_scores(X), [0.0, 1.0, 0.5])
+
+
+def test_base_classifier_ignores_validity_column(dataset, smoke_cfg):
+    m, X = dataset.meta, dataset.X
+    clf = ChunkClassifier(smoke_cfg["model"], seed=0, feature_set="base").fit(X, m.label.values)
+    X2 = X.copy()
+    X2[:, 260] = 1 - X2[:, 260]
+    np.testing.assert_array_equal(clf.raw_scores(X), clf.raw_scores(X2))

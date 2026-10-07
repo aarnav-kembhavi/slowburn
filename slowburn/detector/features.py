@@ -6,6 +6,10 @@ Layout of the feature vector (``N_FEATURES`` = 260):
     [257]    chi-square statistic against the uniform byte distribution
     [258]    printable-byte ratio (0x20-0x7E plus \\t \\n \\r)
     [259]    magic-byte consistency flag: 1 consistent, 0 inconsistent, -1 not applicable
+
+Optional whole-file context column (``with_file_validity``):
+    [260]    file_valid: does the *whole changed file* still decode as its declared type
+             (1 valid, 0 invalid, -1 no check); see ``slowburn.detector.validity``
 """
 
 from __future__ import annotations
@@ -22,6 +26,10 @@ FEATURE_NAMES = [f"hist_{i:02x}" for i in range(N_HIST)] + [
     "printable_ratio",
     "magic_consistent",
 ]
+
+FILE_VALID_INDEX = N_FEATURES
+N_FEATURES_WITH_VALIDITY = N_FEATURES + 1
+FEATURE_NAMES_WITH_VALIDITY = [*FEATURE_NAMES, "file_valid"]
 
 # Known leading signatures per declared type. Types with no signature (txt, csv, bin) are n/a.
 MAGIC: dict[str, tuple[bytes, ...]] = {
@@ -91,3 +99,11 @@ def features_batch(
         count=k,
     )
     return np.column_stack([base, flags])
+
+
+def with_file_validity(X: np.ndarray, file_valid: Sequence[float]) -> np.ndarray:
+    """Append the whole-file validity flag of each row's file as column ``FILE_VALID_INDEX``."""
+    v = np.asarray(file_valid, dtype=np.float64).reshape(-1, 1)
+    if X.shape[0] != v.shape[0]:
+        raise ValueError("one validity flag per feature row is required")
+    return np.hstack([X, v])
