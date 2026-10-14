@@ -213,3 +213,20 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   whole-system work lost, with the oracle-ideal work lost alongside every policy. Conservative
   choices: 112 days of history so Theorem 2's s >= 2d holds up to d = 56; other scenario
   parameters unchanged from the earlier headline.
+- **D33 A posterior-DP policy restores with the posterior it plans with (fix found on DEV, before
+  any freeze).** In the first D30 run the shared restore gated every policy with the evidence
+  posterior, while the prior-only DP planned with the prior. Its DP loss then did not match its
+  restore (item 1 of the team decision): at detection probability 0 the evidence posterior still
+  differs from the prior (the model reads "no flags" as weak evidence against an early start), so
+  the gate often excluded prior-only's planned snapshot. Fixed: prior-only uses the prior for
+  both retention and the restore gate; SlowBurn uses the evidence posterior for both; fixed
+  schedules (no DP) keep the evidence-gated shared restore. Verification is shared by all.
+  Stage 2 was stopped and the whole D30 tuning re-run. **Set-aside first-run stage 1, for
+  transparency** (`results/tune_retention_v2_setaside/stage1_scoreboard.csv`, mean clean recovery
+  over the six shared baselines): (p, gate) = (0.01, 0.95) 0.4809; (0.05, 0.95) 0.4807;
+  (0.01, 0.8) 0.4801; (0.05, 0.8) 0.4799; (0.2, 0.95) 0.4623; (0.2, 0.8) 0.4616; (0.05, 0.5)
+  0.4413; (0.01, 0.5) 0.4408; (0.2, 0.5) 0.4332. The rule would have chosen (0.05, 0.8).
+  Observation from that run (DEV, kept for the report): at detection probability 0 SlowBurn's
+  recovery (e.g. 1.000 at K = 4, b = 0) exceeds prior-only's (0.3) because its evidence model
+  treats the absence of flags as information (it assumes the detector has some power). SlowBurn
+  at q = 0 is therefore NOT the blind policy; prior-only is.

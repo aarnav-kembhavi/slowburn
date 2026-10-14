@@ -305,12 +305,15 @@ def evaluate_trace(
                       "p_started_at_discovery": float(1 - post[-1]),
                       "sim_s": sim_s, "infer_ms_per_day": 1000 * infer_s / n,
                       "dp_ms_per_decision": 1000 * dp_s / max(dp_calls, 1)}  # fmt: skip
-            for nm in pols[K]:
+            for nm, pol in pols[K].items():
                 kept = kept_at[(K, nm)][td]
+                # a posterior-DP policy restores with the posterior it plans with (D33): the
+                # blind policy's DP loss assumes a prior-gated restore, so its gate uses the prior
+                rpost = post if getattr(pol, "use_evidence", True) else prior[td + 1]
                 if rule == "verified":
-                    r = verified_restore(kept, post, td, trace.histories, start, gate, scan_eps)
+                    r = verified_restore(kept, rpost, td, trace.histories, start, gate, scan_eps)
                 else:
-                    r = selective_restore(kept, post, td, trace.histories, start,
+                    r = selective_restore(kept, rpost, td, trace.histories, start,
                                           float(hp["restore_quantile"]))  # fmt: skip
                     r["snapshots_scanned"] = snapshots_scanned(kept, start, r["restore_point"])
                 ub = _unique_bytes(trace, kept)
