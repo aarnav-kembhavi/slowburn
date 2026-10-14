@@ -752,3 +752,15 @@ warm-up), oldest retained age 138.6 d at every K, work lost 3329.9 h vs GFS 2076
 
 **Also corrected:** a D34 statement (prior-only 0.65 after the fix) was wrong; prior-only's
 restore points are identical before and after D33/D34 (see OPEN_QUESTIONS D34 correction).
+
+## 2026-10-15: HEADLINE TEST grid (frozen D30 stage 1 + D36), 2400 test machines, 1728000 rows
+
+`results/headline/grid_summary.csv` (1600 cells per policy; clean recovery avg / worst; whole-
+system work lost avg / worst, h; oracle-ideal avg 772.8 h):
+keep_first 0.999687 / 0.966667, 3647.0510 / 4776.0; oracle 0.999687 / 0.966667, 776.5100 /
+1555.2; slowburn 0.932583 / 0.0, 1368.8045 / 4776.0; gfs 0.643750 / 0.0, 2072.2055 / 4776.0;
+tower_of_hanoi 0.597542 / 0.0, 2379.6550 / 4776.0; prior_only 0.575000 / 0.0, 2112.9000 /
+4272.0; amoeba_style 0.151396 / 0.0 (file-level work lost only); threshold_vault 0.068521 / 0.0,
+3461.9340 / 4776.0; keep_last_n 0.050000 / 0.0, 3512.3390 / 4776.0.
+Prior-only (0.575) does NOT match GFS (0.644) on test, as on DEV. Per-cell tests:
+`results/headline/paired_tests.csv`. Figures: `paper/generated/` (`slowburn fig all`).
