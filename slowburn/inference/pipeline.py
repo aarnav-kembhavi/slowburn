@@ -16,13 +16,15 @@ def score_day(detector, day: Day) -> DayScores:
     Detectors with ``pvalues`` get type-conditional (Mondrian) conformal p-values grouped by
     declared file type (decision D1).
     The M0 placeholder has none; it falls back to 1 - score, which is NOT a valid p-value.
+    Clean files the scenario marks as failing validation today (``day.benign_invalid``) get
+    validity 0, as a mid-write or truncated file would.
     """
     chunks = day.changed
     types = [c.file_type for c in chunks]
     X = features_batch([c.data for c in chunks], types, [c.index == 0 for c in chunks])
     # whole-file validity, computed once per changed file from today's full file contents
     validity = {
-        fid: file_validity(b"".join(day.files[fid]), ftype)
+        fid: (0.0 if fid in day.benign_invalid else file_validity(b"".join(day.files[fid]), ftype))
         for fid, ftype in {(c.file_id, c.file_type) for c in chunks}
     }
     X = with_file_validity(X, [validity[c.file_id] for c in chunks])
@@ -31,7 +33,36 @@ def score_day(detector, day: Day) -> DayScores:
         pvals = detector.pvalues(X, groups=np.array(types))
     else:
         pvals = 1.0 - probs
-    return DayScores(day=day.day, probs=probs, pvals=pvals)
+    return DayScores(day.day, probs, pvals, tuple(c.file_id for c in chunks))
+
+
+class AbstractFileDetector:
+    """Detector-agnostic evidence model (no bytes needed).
+
+    Each damaged changed file is flagged with probability ``detect_prob``; a clean changed file is
+    flagged exactly when it fails validation today (``day.benign_invalid``, rate swept by the
+    scenario). Flags become chunk p-values 0 (flagged file) or 1, so ``file_exceed`` counts
+    exactly the flagged files. ``detect_prob = 0`` is the blind (null) detector.
+    """
+
+    def __init__(self, detect_prob: float, rng: np.random.Generator):
+        if not 0.0 <= detect_prob <= 1.0:
+            raise ValueError("detect_prob must be in [0, 1]")
+        self.detect_prob = detect_prob
+        self.rng = rng
+        self.name = f"abstract_q{detect_prob}"
+
+    def score_day(self, day: Day) -> DayScores:
+        files = day.changed_files
+        flagged = set()
+        for fid in sorted(files):  # sorted: draws do not depend on dict order
+            if files[fid] > 0:
+                if self.rng.random() < self.detect_prob:
+                    flagged.add(fid)
+            elif fid in day.benign_invalid:
+                flagged.add(fid)
+        p = np.array([0.0 if c.file_id in flagged else 1.0 for c in day.changed])
+        return DayScores(day.day, 1.0 - p, p, tuple(c.file_id for c in day.changed))
 
 
 def start_map(post: np.ndarray) -> int | None:

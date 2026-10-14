@@ -110,3 +110,22 @@ blind spot disappears for naive damage. It remains only for (a) types without an
 (c) real data, where benign files can be invalid (unknown until NapierOne/Govdocs1). The
 detector-agnostic claim is unaffected, but "detection blind spots are the motivation" needs new
 wording, e.g. "detection quality varies by format and attacker, and retention must not depend on it".
+
+## F0 decisions (2026-10-14)
+- **D23 File statistic = minimum chunk p-value per changed file, no Bonferroni.** Conformal p-values
+  cannot fall below 1/(n_cal + 1) (~0.003 with our per-type calibration sets), so multiplying by a
+  file's chunk count would make any file with more than ~3 chunks unflaggable at alpha = 0.01. The
+  benign file-flag rate is estimated from warm-up (D9), so alpha is an operating point, not a
+  guarantee. Normalisation: flagged files out of changed files (binomial), as requested.
+- **D24 Pre-registered tuning rule (set before the run; DEV only).** Candidates: chunk statistic at
+  alpha 0.05 (old), file statistic at alpha in {0.05, 0.01, 0.005}. Model: single-CP. Prior
+  P(attack within 60 d) = 0.01. Score = mean posterior mass within +-3 days of the true start at day
+  +14, averaged over every attack cell (2 detectors x 3 damage fractions x 2 target sets x 3 benign
+  failure rates, 16 machines each). Constraint: mean clean-machine rate of P(started) > 0.5 at day
+  +14 must not exceed 0.05 (averaged over detectors and benign rates). Pick the highest score among
+  candidates meeting the constraint; ties within 0.01 go to the smaller alpha (fewer benign flags).
+  The chunk statistic is reported as the ablation, including how much of the late bias it explains.
+- **D25 Machines are paired across benign failure rates** (same churn and attack, nested validation
+  failures), so rate comparisons are paired.
+- **D26 Benign validation failures are drawn per clean changed file per day**, from an auxiliary
+  random stream; with rate 0 every earlier result is reproduced exactly.

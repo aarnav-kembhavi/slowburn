@@ -126,3 +126,12 @@ def test_run_machines_resumes_from_cache(smoke_results, tmp_path):
 
     assert frame(again).equals(frame(first))  # NaN-aware equality
     assert all(r["peak_rss_mb"] > 0 for r in first)
+
+
+def test_machines_are_paired_across_benign_invalid_rate():
+    from slowburn.bench.inference_experiment import task_cache_key
+
+    a = MachineTask("dev", {"damage_fraction": 0.1, "benign_invalid_rate": 0.0}, True, 0)
+    b = MachineTask("dev", {"damage_fraction": 0.1, "benign_invalid_rate": 0.05}, True, 0)
+    assert machine_key(1, a) == machine_key(1, b)  # same churn and attack
+    assert task_cache_key(1, a) != task_cache_key(1, b)  # but cached separately

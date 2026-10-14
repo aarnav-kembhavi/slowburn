@@ -35,6 +35,13 @@ class ScenarioConfig:
     stripe_bytes: int = 16
     # file types the attacker damages; None = all types
     attack_target_types: tuple[str, ...] | None = None
+    # probability that a clean changed file fails format validation that day (mid-write,
+    # truncated, unusual variant); drawn from a separate random stream (``aux_rng``)
+    benign_invalid_rate: float = 0.0
+    # "bytes": real synthetic file contents (needed by byte-level detectors);
+    # "tokens": each chunk is a unique 16-byte token of nominal ``chunk_size`` bytes (fast; for
+    # abstract detectors and retention experiments where content bytes are irrelevant)
+    content: str = "bytes"
 
     @classmethod
     def from_dict(cls, d: dict) -> ScenarioConfig:
@@ -68,6 +75,16 @@ class Day:
     day: int
     files: dict[str, list[bytes]]  # full current state, for snapshotting
     changed: list[ChangedChunk]
+    # clean changed files that fail format validation today (see benign_invalid_rate)
+    benign_invalid: frozenset[str] = frozenset()
+
+    @property
+    def changed_files(self) -> dict[str, float]:
+        """file id -> max damage fraction over its changed chunks (0 = clean change)."""
+        out: dict[str, float] = {}
+        for c in self.changed:
+            out[c.file_id] = max(out.get(c.file_id, 0.0), c.damage)
+        return out
 
 
 @dataclass
@@ -76,8 +93,13 @@ class Scenario:
     file_types: dict[str, str] = field(default_factory=dict)
     damaged_on: dict[str, int] = field(default_factory=dict)  # file id -> day damaged
 
-    def run(self, rng: np.random.Generator, source: DamageSource) -> Iterator[Day]:
+    def run(self, rng: np.random.Generator, source: DamageSource,
+            aux_rng: np.random.Generator | None = None) -> Iterator[Day]:  # fmt: skip
         cfg = self.cfg
+        if cfg.content not in ("bytes", "tokens"):
+            raise ValueError("content must be 'bytes' or 'tokens'")
+        if cfg.benign_invalid_rate > 0 and aux_rng is None:
+            raise ValueError("benign_invalid_rate > 0 needs aux_rng (a separate random stream)")
         files: dict[str, list[bytes]] = {}
         damage: dict[str, np.ndarray] = {}
         for i in range(cfg.n_files):
@@ -101,11 +123,19 @@ class Scenario:
                             ChangedChunk(fid, self.file_types[fid], idx, c, float(damage[fid][idx]))
                         )
                 prev_hashes[fid] = {chunk_hash(c) for c in chunks}
-            yield Day(day, {k: list(v) for k, v in files.items()}, changed)
+            invalid: frozenset[str] = frozenset()
+            if cfg.benign_invalid_rate > 0:
+                clean = sorted({c.file_id for c in changed if c.damage == 0}
+                               - {c.file_id for c in changed if c.damage > 0})  # fmt: skip
+                draws = aux_rng.random(len(clean)) < cfg.benign_invalid_rate
+                invalid = frozenset(f for f, d in zip(clean, draws, strict=True) if d)
+            yield Day(day, {k: list(v) for k, v in files.items()}, changed, invalid)
 
     def _new_content(self, ftype: str, rng: np.random.Generator) -> list[bytes]:
         lo, hi = self.cfg.file_kib
         size = int(rng.integers(lo, hi + 1)) * 1024
+        if self.cfg.content == "tokens":
+            return [rng.bytes(16) for _ in range(-(-size // self.cfg.chunk_size))]
         return chunk_bytes(generate_file(ftype, rng, size), self.cfg.chunk_size)
 
     def _benign_edits(self, day, files, damage, rng) -> None:
@@ -136,6 +166,9 @@ class Scenario:
         if day == cfg.attack_start:
             n = min(len(targets), max(n, 1))  # start day := first day with damage
         for fid in rng.choice(targets, size=n, replace=False) if n else []:
+            if cfg.content == "tokens":
+                self._attack_tokens(fid, day, files, damage, rng)
+                continue
             res = apply_damage(
                 b"".join(files[fid]),
                 cfg.damage_model,
@@ -149,3 +182,21 @@ class Scenario:
             files[fid] = chunk_bytes(res.data, cfg.chunk_size)
             damage[fid] = res.chunk_damage
             self.damaged_on[fid] = day
+
+    def _attack_tokens(self, fid, day, files, damage, rng) -> None:
+        """Token-mode damage: same placement models, chunks replaced by fresh tokens."""
+        cfg = self.cfg
+        n = len(files[fid])
+        if cfg.damage_model == "striped":
+            hit = np.ones(n, dtype=bool)  # periodic stripes touch every chunk
+            frac = np.full(n, cfg.damage_fraction)
+        elif cfg.damage_model == "whole":
+            k = min(n, max(1, round(cfg.damage_fraction * n)))
+            hit = np.zeros(n, dtype=bool)
+            hit[rng.choice(n, size=k, replace=False)] = True
+            frac = hit.astype(float)
+        else:
+            raise ValueError(f"unknown damage model {cfg.damage_model!r}")
+        files[fid] = [rng.bytes(16) if h else c for c, h in zip(files[fid], hit, strict=True)]
+        damage[fid] = frac
+        self.damaged_on[fid] = day

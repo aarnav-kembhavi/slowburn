@@ -64,7 +64,31 @@ def _inference(cfg: dict) -> None:
     print(f"outputs -> {out}  {res['info']}")
 
 
-COMMANDS = {"bench": _bench, "detector": _detector, "inference": _inference}
+def _tune_statistic(cfg: dict) -> None:
+    from slowburn.bench.inference_experiment import run_inference_experiment
+    from slowburn.bench.registry import update_frozen
+    from slowburn.bench.tune import statistic_rule
+    from slowburn.utils.config import resolve_path
+
+    res = run_inference_experiment(cfg)
+    out = resolve_path(cfg["output_dir"])
+    board, choice = statistic_rule(res["results"], delay=int(cfg.get("headline_delay", 14)))
+    board.to_csv(out / "statistic_scoreboard.csv")
+    spec = cfg["statistics"][choice]
+    update_frozen({"daily_statistic": spec["aggregator"],
+                   "daily_statistic_params": dict(spec.get("params", {})),
+                   "observation_model": spec["model"]},
+                  note=f"rule D24 on {cfg['_config_path']}: chose {choice}")  # fmt: skip
+    print(board.to_string())
+    print(f"chosen: {choice} -> configs/frozen.yaml (not frozen yet)")
+
+
+COMMANDS = {
+    "bench": _bench,
+    "detector": _detector,
+    "inference": _inference,
+    "tune-statistic": _tune_statistic,
+}
 
 
 def main(argv: list[str] | None = None) -> int:

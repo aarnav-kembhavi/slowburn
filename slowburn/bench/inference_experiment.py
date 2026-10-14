@@ -14,19 +14,14 @@ thresholds for target false-alarm rates are only ever set on DEV attack-free mac
 
 from __future__ import annotations
 
-import hashlib
-import os
-import pickle
 import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import yaml
 
+from slowburn.bench.parallel import MAX_WORKERS, run_tasks
 from slowburn.bench.runner import SCENARIO_KEYS, expand_sweep, make_detector
 from slowburn.inference.changepoint import hazard_from_window, make_start_model
 from slowburn.inference.daily import make_aggregator
@@ -37,7 +32,6 @@ from slowburn.utils.config import resolve_path
 from slowburn.utils.seed import child_rng
 from slowburn.utils.sysinfo import peak_rss_mb
 
-MAX_WORKERS = 6
 NUMERIC = ["damage_fraction", "true_start", "map_start", "map_error_days", "missed",
            "map_signed_error_days", "expected_abs_error_days", "false_alarm_p05",
            "false_alarm_p09", "mass_within_0", "mass_within_1", "mass_within_3"]  # fmt: skip
@@ -92,12 +86,23 @@ class MachineTask:
     rep: int
 
 
+# parameters that only act through the auxiliary stream: machines are PAIRED across their values
+# (same churn and attack; nested benign validation failures), which reduces comparison variance
+PAIRED_KEYS = frozenset({"benign_invalid_rate"})
+
+
 def machine_key(seed: int, task: MachineTask) -> tuple:
     """Seed stream of one machine. The split name is part of the key, so dev and test machines
-    never share randomness."""
-    scen = {k: v for k, v in task.params.items() if k in SCENARIO_KEYS}
+    never share randomness. ``PAIRED_KEYS`` are excluded (see above)."""
+    scen = {k: v for k, v in task.params.items() if k in SCENARIO_KEYS and k not in PAIRED_KEYS}
     return (seed, "machine", task.split, "attack" if task.attack else "clean", task.rep,
             *(str(v) for v in sorted(scen.items())))  # fmt: skip
+
+
+def task_cache_key(seed: int, task: MachineTask) -> tuple:
+    """Identity of a task for caching: the seed key plus the paired parameters."""
+    paired = tuple(sorted((k, task.params[k]) for k in PAIRED_KEYS if k in task.params))
+    return (*machine_key(seed, task), *paired)
 
 
 def targets_label(params: dict) -> str:
@@ -111,9 +116,6 @@ _WORKER: dict = {}
 
 
 def _init_worker(cfg: dict) -> None:
-    # One thread per worker: LightGBM/OpenMP otherwise starts a full-size thread pool in every
-    # process, oversubscribing CPUs and multiplying memory (observed ~1.35 GB per worker).
-    os.environ["OMP_NUM_THREADS"] = "1"
     _WORKER["cfg"] = cfg
     _WORKER["detectors"] = {
         name: make_detector({"kind": "trained", "path": path})
@@ -123,7 +125,11 @@ def _init_worker(cfg: dict) -> None:
         model = getattr(getattr(det, "classifier", None), "model", None)
         if model is not None and hasattr(model, "set_params"):
             model.set_params(n_jobs=1)
-    _WORKER["priors"] = prior_grid(load_timing(cfg["timing_config"]))
+    priors = prior_grid(load_timing(cfg["timing_config"]))
+    if cfg.get("p_attack_within_window"):  # optional subset of the timing-config sweep
+        keep = [float(p) for p in cfg["p_attack_within_window"]]
+        priors = [(p, h) for p, h in priors if any(np.isclose(p, k) for k in keep)]
+    _WORKER["priors"] = priors
 
 
 def evaluate_machine(task: MachineTask) -> dict:
@@ -143,7 +149,8 @@ def evaluate_machine(task: MachineTask) -> dict:
     scen = Scenario(ScenarioConfig.from_dict({**scen_params, "days": total_days}))
     source = RandomDamageSource(child_rng(*key, "damage"))
     scores = {name: [] for name in detectors}
-    for day in scen.run(child_rng(*key), source):  # one simulation, every detector
+    aux = child_rng(*key, "benign_invalid")
+    for day in scen.run(child_rng(*key), source, aux):  # one simulation, every detector
         for name, det in detectors.items():
             scores[name].append(score_day(det, day))
     score_s = time.perf_counter() - t0
@@ -155,7 +162,9 @@ def evaluate_machine(task: MachineTask) -> dict:
     rows, traj = [], {}
     for det_name, det_scores in scores.items():
         for stat, spec in cfg["statistics"].items():
-            params = {"alpha": alpha} if spec["aggregator"] == "exceed" else {}
+            params = dict(spec.get("params", {}))
+            if spec["aggregator"] == "exceed":
+                params.setdefault("alpha", alpha)
             agg = make_aggregator(spec["aggregator"], **params)
             obs = [agg(s) for s in det_scores]
             for kind in cfg["inference_models"]:
@@ -176,6 +185,7 @@ def evaluate_machine(task: MachineTask) -> dict:
                             "detector": det_name, "statistic": stat, "model": kind,
                             "p_attack_within_window": p_win, "hazard": h,
                             "n_files_damaged_total": len(scen.damaged_on),
+                            "benign_invalid_rate": scen.cfg.benign_invalid_rate,
                             "benign_source": "synthetic",
                             "damage_source": source.name if task.attack else "none",
                         }  # fmt: skip
@@ -190,75 +200,20 @@ def make_tasks(cfg: dict, split: str) -> list[MachineTask]:
     tasks = [MachineTask(split, p, True, r)
              for p in expand_sweep(cfg["scenario"], cfg.get("sweep", {}))
              for r in range(int(cfg["reps"]))]  # fmt: skip
-    tasks += [MachineTask(split, dict(cfg["scenario"]), False, r)
+    # clean machines for every value of the sweep keys that also apply to clean machines
+    clean_keys = cfg.get("clean_sweep_keys", [])
+    clean_grid = expand_sweep(cfg["scenario"], {k: cfg["sweep"][k] for k in clean_keys})
+    tasks += [MachineTask(split, p, False, r) for p in clean_grid
               for r in range(int(cfg.get("clean_reps", 0)))]  # fmt: skip
     return tasks
 
 
-def task_id(seed: int, task: MachineTask) -> str:
-    return hashlib.blake2b(repr(machine_key(seed, task)).encode(), digest_size=10).hexdigest()
-
-
-def run_machines(cfg: dict, tasks: list[MachineTask], log=print, cache_dir=None,
-                 max_pool_restarts: int = 3) -> list[dict]:  # fmt: skip
-    """Run every task, persisting each machine's summary to ``cache_dir`` as it finishes.
-
-    Finished machines are skipped on re-run (resume). If a worker dies (the pool breaks), a new
-    pool is started for the remaining machines, up to ``max_pool_restarts`` times.
-    """
+def run_machines(cfg: dict, tasks: list[MachineTask], log=print, cache_dir=None) -> list[dict]:
+    """Evaluate machines in the shared pool (single-threaded workers, cached, resumable)."""
     seed = int(cfg["seed"])
-    workers = max(1, min(int(cfg.get("workers", 1)), MAX_WORKERS, os.cpu_count() or 1))
-    cache = Path(cache_dir) if cache_dir is not None else None
-    if cache is not None:
-        cache.mkdir(parents=True, exist_ok=True)
-
-    def path_of(t):
-        return cache / f"{task_id(seed, t)}.pkl" if cache is not None else None
-
-    done: dict[int, dict] = {}
-    for i, t in enumerate(tasks):
-        p = path_of(t)
-        if p is not None and p.exists():
-            with p.open("rb") as fh:
-                done[i] = pickle.load(fh)
-    if done:
-        log(f"  resuming: {len(done)}/{len(tasks)} machines already done")
-
-    def keep(i, res):
-        done[i] = res
-        p = path_of(tasks[i])
-        if p is not None:
-            tmp = p.with_suffix(".tmp")
-            with tmp.open("wb") as fh:
-                pickle.dump(res, fh)
-            tmp.replace(p)
-        if len(done) % 20 == 0 or len(done) == len(tasks):
-            log(f"  machines {len(done)}/{len(tasks)} done")
-
-    if workers == 1:
-        _init_worker(cfg)
-        for i, t in enumerate(tasks):
-            if i not in done:
-                keep(i, evaluate_machine(t))
-    else:
-        for attempt in range(max_pool_restarts + 1):
-            pending = [i for i in range(len(tasks)) if i not in done]
-            if not pending:
-                break
-            try:
-                with ProcessPoolExecutor(workers, initializer=_init_worker,
-                                         initargs=(cfg,)) as ex:  # fmt: skip
-                    futures = {ex.submit(evaluate_machine, tasks[i]): i for i in pending}
-                    for fut in as_completed(futures):
-                        keep(futures[fut], fut.result())
-            except BrokenProcessPool:
-                log(f"  worker died (pool attempt {attempt + 1}); "
-                    f"{len(tasks) - len(done)} machines left")  # fmt: skip
-        missing = len(tasks) - len(done)
-        if missing:
-            raise RuntimeError(f"{missing} machines could not be evaluated after "
-                               f"{max_pool_restarts} pool restarts")  # fmt: skip
-    return [done[i] for i in range(len(tasks))]
+    return run_tasks(evaluate_machine, tasks, workers=int(cfg.get("workers", 1)),
+                     init=_init_worker, init_args=(cfg,), cache_dir=cache_dir,
+                     task_key=lambda t: task_cache_key(seed, t), log=log)  # fmt: skip
 
 
 def alarm_thresholds(results: list[dict], fa_targets: list[float]) -> pd.DataFrame:

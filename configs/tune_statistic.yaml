@@ -1,0 +1,47 @@
+# F0 dev tuning: daily statistic and suspicious level (DEV machines only; the rule is
+# pre-registered in OPEN_QUESTIONS.md D24 before this run).
+seed: 29
+experiment: tune_statistic
+output_dir: results/tune_statistic
+split: dev
+workers: 5
+
+detectors:
+  lgbm_base: results/detector/detector_base.pkl
+  lgbm_validity: results/detector/detector_validity.pkl
+timing_config: configs/discovery.yaml
+p_attack_within_window: [0.01]   # tuning prior; the primary prior is chosen later on retention
+
+warmup_days: 14
+alpha: 0.05
+fa_targets: [0.05]
+
+statistics:
+  chunk_a0.05: {aggregator: exceed, params: {alpha: 0.05}, model: betabinom}       # old (ablation)
+  file_a0.05: {aggregator: file_exceed, params: {alpha: 0.05}, model: betabinom}
+  file_a0.01: {aggregator: file_exceed, params: {alpha: 0.01}, model: betabinom}
+  file_a0.005: {aggregator: file_exceed, params: {alpha: 0.005}, model: betabinom}
+
+inference_models: [single_cp, bocpd]
+
+scenario:
+  n_files: 40
+  file_types: [txt, csv, bin, docx, zip, png, jpg, mp3, zlib, lzma]
+  file_kib: [16, 96]
+  edits_per_day: 4.0
+  attack_start: 30
+  attack_files_per_day: 0.5
+  damage_model: striped
+
+sweep:
+  damage_fraction: [0.05, 0.25, 1.0]
+  attack_target_types:
+    - all
+    - [docx, zip, png, jpg, mp3, zlib, lzma]
+  benign_invalid_rate: [0.0, 0.01, 0.05]
+clean_sweep_keys: [benign_invalid_rate]
+
+discovery_delay: [7, 14]
+headline_delay: 14
+reps: 16
+clean_reps: 50

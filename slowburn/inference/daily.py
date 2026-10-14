@@ -19,6 +19,7 @@ class DayScores:
     day: int
     probs: np.ndarray  # calibrated P(damaged) per changed chunk
     pvals: np.ndarray  # conformal p-values per changed chunk (type-conditional by default)
+    file_ids: tuple[str, ...] = ()  # file of each changed chunk (needed by file-level stats)
 
 
 @dataclass(frozen=True)
@@ -26,7 +27,7 @@ class DailyObs:
     day: int
     value: float  # the daily statistic
     k: int  # exceedance count (0 for score-based aggregators)
-    n: int  # number of changed chunks that day
+    n: int  # number of changed units that day (chunks, or files for file-level statistics)
 
     @property
     def weekday(self) -> int:
@@ -77,6 +78,36 @@ def exceed(alpha: float = 0.05) -> Aggregator:
         n = len(d.pvals)
         k = int(np.sum(d.pvals <= alpha))
         return DailyObs(d.day, k / n if n else 0.0, k, n)
+
+    return agg
+
+
+def file_pvalues(d: DayScores) -> dict[str, float]:
+    """Per changed file: the minimum p-value over its changed chunks.
+
+    No multiplicity correction: conformal p-values cannot go below 1/(n_cal + 1) (~0.003 with
+    our per-type calibration sets), so a Bonferroni factor of n_chunks would make any file with
+    more than a few chunks unflaggable. The resulting benign file-flag rate is not alpha; it is
+    estimated from warm-up days by the observation model (decision D9), so alpha only has to be
+    a sensible operating point."""
+    if len(d.file_ids) != len(d.pvals):
+        raise ValueError("file-level statistics need DayScores.file_ids for every chunk")
+    out: dict[str, float] = {}
+    for fid, p in zip(d.file_ids, d.pvals, strict=True):
+        out[fid] = min(out.get(fid, 1.0), float(p))
+    return out
+
+
+@register("file_exceed")
+def file_exceed(alpha: float = 0.01) -> Aggregator:
+    """Flagged files out of changed files (binomial normalisation): heavy benign churn raises n,
+    not the expected rate, so it does not look like an attack."""
+
+    def agg(d: DayScores) -> DailyObs:
+        fp = file_pvalues(d)
+        n = len(fp)
+        k = sum(p <= alpha for p in fp.values())
+        return DailyObs(d.day, k / n if n else 0.0, int(k), n)
 
     return agg
 
