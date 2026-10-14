@@ -4,8 +4,16 @@ frozen: false
 params:
   daily_statistic: file_exceed
   daily_statistic_params:
-    alpha: 0.005
+    alpha: 0.01
   observation_model: betabinom
+  p_attack_within_window: 0.05
+  restore_quantile: 0.1
+  penalty: 30.0
+  assumed_discovery:
+    kind: uniform
+    max_days: 60
+  budget: 8
+  prior_window_days: 60
 history:
 - date: '2026-10-14'
   commit: f2e19ec
@@ -14,3 +22,20 @@ history:
   - daily_statistic_params
   - observation_model
   note: 'rule D24 on configs\tune_statistic.yaml: chose file_a0.005'
+- date: '2026-10-14'
+  commit: '3969031'
+  set:
+  - daily_statistic
+  - daily_statistic_params
+  - observation_model
+  note: 'rule D24 on configs\tune_statistic.yaml: chose file_a0.01'
+- date: '2026-10-14'
+  commit: '3969031'
+  set:
+  - assumed_discovery
+  - budget
+  - p_attack_within_window
+  - penalty
+  - prior_window_days
+  - restore_quantile
+  note: rule D27 on configs\tune_retention.yaml

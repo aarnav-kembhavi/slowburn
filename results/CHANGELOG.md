@@ -677,3 +677,44 @@ rows): outputs -> C:\PROJECTS\ISM\results\inference  {'split': 'dev', 'n_machine
   delay 1-2 days); single-CP + base detects 90.00% (any type) / 56.25% (high-entropy) by day 30.
 - A7: the per-type calibration is described as type-conditional (Mondrian) conformal outlier
   p-values (Vovk et al.; Bates et al. 2023) in code and notes.
+
+## 2026-10-14 - F0, C, B1-B3, DEV tuning (no test-split runs yet)
+
+**F0** (committed 48808d8, 862f84a): shared runner, seed/split registry, frozen gate, stats,
+LaTeX, benign validation failures (paired machines, auxiliary stream), token-mode simulator,
+file-level statistic with file-level conformal calibration, abstract detector.
+
+**Statistic tuning, DEV (rule D24 v2; v1 set aside as defective, see OPEN_QUESTIONS.md).**
+Single-CP, prior 0.01, day +14, 36 attack cells x 16 machines:
+
+| statistic | score (mass +-3 d) | clean FA | late > 3 d | missed | eligible |
+|---|---|---|---|---|---|
+| chunk a0.01 | 0.3711 | 0.0667 | 0.1389 | 0.3802 | no |
+| chunk a0.05 | 0.3502 | 0.0700 | 0.1510 | 0.4184 | no |
+| file a0.01 | 0.1151 | 0.0000 | 0.0017 | 0.9028 | **chosen** |
+| file a0.05 | 0.0533 | 0.0000 | 0.0000 | 0.9427 | yes |
+
+The chunk statistic's false alarms come only from benign validation failures with the validity
+detector (0.16 at 1%, 0.24-0.26 at 5%): a benign invalid file flags all its chunks at once.
+The file statistic never false-alarms but has low power: one flagged file is worth only 0.7-1.6
+nats, because ~50 warm-up files cannot rule out benign flag rates up to ~0.05.
+Late-bias ablation (validity detector, no benign failures, machines where a start was found):
+more than 3 days late, chunk 0.2128 (n = 94) vs file 0.0476 (n = 21). The chunk statistic
+accounts for most of the late bias (small n for the file statistic).
+
+**Retention tuning, DEV (rule D27), headline grid, 10 machines per cell.** Chosen:
+p_attack_within_window 0.05, restore_quantile 0.1, penalty 30, assumed discovery uniform up to 60
+days. At these settings (delay 14):
+- clean recovery 1.000 at every delay for GFS, prior-only and SlowBurn (stage-2 settings);
+  Tower of Hanoi 0.000 at d >= 21 (history condition s >= 2d of Theorem 2 violated: s = 30);
+  keep-last-N 0.000 at d >= 7 (Proposition 1); threshold vault 0.015-0.075 at d >= 7.
+- whole-system work lost (h): GFS 576.0 at every q; SlowBurn 734.4 (q 0) -> 592.8 (q 1);
+  prior-only 736.8 -> 643.2; Tower of Hanoi 696.0; keep-last-N 1056.0.
+
+**This contradicts the second half of the claim on DEV**: SlowBurn improves with detector
+quality but does not beat GFS on work lost at any q, and recovery saturates at 1.000 for the
+best fixed schedule. Reported to the team before freezing; no test run made.
+
+**B1-B3**: docs/theory.md (NEEDS HUMAN REVIEW). Theorem 2(a): zero violations in 48,686 ToH
+cases, bound attained (max W/3d = 1.000); Theorem 2(b): within 1 of the exhaustive minimum;
+Theorem 3: DP = brute force on 120 random instances.
