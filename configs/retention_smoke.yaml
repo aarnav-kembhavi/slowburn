@@ -23,6 +23,7 @@ hp:                       # retention hyperparameters (chosen on DEV; frozen bef
   backbone: 0.4           # fraction of the budget for the Tower of Hanoi backbone (D30)
   null_pool: pooled       # fleet-level benign-rate prior (D31); per_machine = ablation
   restore_rule: verified
+  restore_posterior: discovery  # restore gate conditions on the discovery day (D34)
   scan_eps: 0.001
 
 scenario:

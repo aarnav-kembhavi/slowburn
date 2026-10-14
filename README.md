@@ -27,8 +27,9 @@ uv run slowburn bench configs/smoke.yaml              # M0 end-to-end smoke benc
 uv run slowburn detector configs/detector.yaml        # detector variants + per-type AUROC (~3 min)
 uv run slowburn inference configs/inference.yaml      # start-day inference study, DEV (~30 min)
 uv run slowburn tune-statistic configs/tune_statistic.yaml   # DEV rule D24 v2 -> configs/frozen.yaml
-uv run slowburn tune-retention configs/tune_retention.yaml   # DEV rule D27   -> configs/frozen.yaml
-uv run slowburn retention configs/headline.yaml       # headline experiment (TEST split; needs frozen.yaml)
+uv run slowburn preregister-grid configs/headline.yaml  # record the scenario grid (D32) in configs/frozen.yaml
+uv run slowburn tune-retention configs/tune_retention.yaml   # DEV rule D30   -> configs/frozen.yaml
+uv run slowburn retention configs/headline.yaml       # headline grid (TEST split; needs frozen.yaml incl. the grid)
 uv run slowburn theory-check configs/theory.yaml      # numerical checks for docs/theory.md
 uv run slowburn fig all                               # every paper figure/table -> paper/generated/
 ```

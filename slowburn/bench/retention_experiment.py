@@ -39,7 +39,11 @@ from slowburn.retention.base import (
     ThresholdVault,
     TowerOfHanoi,
 )
-from slowburn.retention.dp import discovery_survival, retention_posterior
+from slowburn.retention.dp import (
+    discovery_posterior,
+    discovery_survival,
+    retention_posterior,
+)
 from slowburn.sim.damage import RandomDamageSource
 from slowburn.sim.scenario import Scenario, ScenarioConfig
 from slowburn.store.restore import (
@@ -286,7 +290,8 @@ def evaluate_trace(
                "hp_backbone": float(hp.get("backbone", 0.0)),
                "hp_assumed_discovery_max": hp["assumed_discovery"]["max_days"],
                "hp_null_pool": hp.get("null_pool", "pooled"), "hp_restore_rule": rule,
-               "hp_restore_quantile": hp.get("restore_quantile")}  # fmt: skip
+               "hp_restore_quantile": hp.get("restore_quantile"),
+               "hp_restore_posterior": hp.get("restore_posterior", "discovery")}  # fmt: skip
     rows = []
     for K in Ks:
         for d, td in disc_days.items():
@@ -310,6 +315,8 @@ def evaluate_trace(
                 # a posterior-DP policy restores with the posterior it plans with (D33): the
                 # blind policy's DP loss assumes a prior-gated restore, so its gate uses the prior
                 rpost = post if getattr(pol, "use_evidence", True) else prior[td + 1]
+                if hp.get("restore_posterior", "discovery") == "discovery":  # D34
+                    rpost = discovery_posterior(rpost, td, S)
                 if rule == "verified":
                     r = verified_restore(kept, rpost, td, trace.histories, start, gate, scan_eps)
                 else:
@@ -555,6 +562,7 @@ def run_retention_tuning(cfg: dict, log=print) -> dict:
         "prior_window_days": int(base["prior_window_days"]),
         "null_pool": base.get("null_pool", "pooled"),
         "restore_rule": base.get("restore_rule", "verified"),
+        "restore_posterior": base.get("restore_posterior", "discovery"),
         "scan_eps": float(base.get("scan_eps", 0.001)),
     }
     update_frozen(chosen, note=f"rule D30 on {cfg.get('_config_path')}",

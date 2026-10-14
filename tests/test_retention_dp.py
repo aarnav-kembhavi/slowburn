@@ -138,3 +138,16 @@ def test_gated_forced_dp_matches_brute_force(seed, gate):
     assert expected_loss(chosen, pi, 30.0, gate) == pytest.approx(best, abs=1e-12)
     assert set(forced) <= set(chosen) and cand[-1] in chosen
     assert len(set(chosen) - set(forced)) <= K
+
+
+def test_discovery_posterior_uses_the_delay_pmf():
+    from slowburn.retention.dp import discovery_posterior
+
+    t = 40
+    post = np.r_[np.full(t + 1, 0.5 / (t + 1)), 0.5]
+    S = discovery_survival("uniform", 10)
+    d = discovery_posterior(post, t, S)
+    assert d[-1] == 0 and d.sum() == pytest.approx(1.0)
+    assert (d[: t - 10] == 0).all()  # starts more than 10 days back are impossible
+    assert d[t] == 0  # delay 0 has probability 0 under uniform on {1..10}
+    assert np.allclose(d[t - 10 : t], 0.1)

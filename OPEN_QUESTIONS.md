@@ -230,3 +230,16 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   recovery (e.g. 1.000 at K = 4, b = 0) exceeds prior-only's (0.3) because its evidence model
   treats the absence of flags as information (it assumes the detector has some power). SlowBurn
   at q = 0 is therefore NOT the blind policy; prior-only is.
+- **D34 The restore posterior conditions on the discovery day (second fix found on DEV, before
+  any freeze).** D33 did not change prior-only's results (stage-1 scoreboard of the re-run was
+  identical to the first run; `results/tune_retention_v2_setaside_b/`). Diagnosis: the restore
+  gate used the evidence (or prior) posterior over the whole history, ignoring that discovery
+  happened on day t, while the DP planned with the posterior conditioned on "not yet discovered"
+  under the assumed delay distribution. The prior over [warm-up, t] put the gate's 20% point
+  ~100 days back, every kept snapshot failed the gate, and prior-only always fell back to its
+  oldest snapshot. Fix: the restore posterior is P(s | evidence) x P(delay = t - s) under the
+  same assumed delay distribution the DP uses (`retention.dp.discovery_posterior`), for every
+  policy (shared restore). The unconditioned version is kept as an ablation
+  (`restore_posterior: evidence`). On 12 DEV machines (q in {0, 0.9}, b = 0.01, starts 112/139)
+  prior-only's clean recovery went from always-fallback to 0.65 (GFS 0.558-0.575). The full D30
+  tuning was re-run from scratch after this fix.

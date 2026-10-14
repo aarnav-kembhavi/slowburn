@@ -31,6 +31,7 @@ hp:
   backbone: 0.25               # Tower of Hanoi backbone fraction (D30)
   null_pool: pooled            # fleet-level benign-rate prior (D31)
   restore_rule: verified
+  restore_posterior: discovery  # restore gate conditions on the discovery day (D34)
   scan_eps: 0.001
 
 scenario:

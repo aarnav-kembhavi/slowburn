@@ -259,3 +259,20 @@ def retention_posterior(post: np.ndarray, t: int, survival) -> np.ndarray:
     started = post[: t + 1] * survival(t - np.arange(t + 1))
     total = started.sum() + post[-1]
     return started / total if total > 0 else started
+
+
+def discovery_posterior(post: np.ndarray, t: int, survival) -> np.ndarray:
+    """Condition a start posterior (length t+2: days 0..t then 'not started') on "the attack was
+    discovered on day t", under the assumed delay distribution with survival S (D34):
+    P(s | evidence, discovered at t) ∝ P(s | evidence) * P(delay = t - s). Returns the same
+    layout with zero 'not started' mass (falls back to the input if the product vanishes)."""
+    post = np.asarray(post, float)
+    if len(post) != t + 2:
+        raise ValueError("posterior must cover days 0..t plus 'not started'")
+    k = t - np.arange(t + 1)
+    pmf = survival(k - 1) - survival(k)
+    w = post[: t + 1] * pmf
+    total = w.sum()
+    if total <= 0:
+        return post
+    return np.r_[w / total, 0.0]
