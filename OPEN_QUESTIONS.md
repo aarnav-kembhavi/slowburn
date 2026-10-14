@@ -145,3 +145,18 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   retention is the only variable. AMOEBA-style uses the same shared evidence as its EVID term and
   an equal incremental-bytes budget (keep-last-K's unique history bytes). Unrecovered runs score
   whole-system work lost as everything since day 0 (conservative).
+- **D24 v1 outcome set aside (defective candidates), recorded for transparency.** Scoreboard
+  (`results/tune_statistic/statistic_scoreboard.csv`, first run): chunk a0.05 score 0.3502, clean FA
+  0.07 (ineligible); file a0.005 0.0295; file a0.01 0.0042; file a0.05 0.0014 (missed 98-100%).
+  The rule mechanically chose file a0.005. Diagnosis: the file statistic took the minimum of
+  chunk-level conformal p-values, and those cannot go below 1/(n_cal + 1), about 0.003. Damaged
+  files sat at that floor, and so did many clean files (the minimum over 20+ chunks often reaches
+  the top calibration rank), so the two were indistinguishable. Fix: **file-level conformal
+  calibration**. A file's score is its maximum raw chunk score, compared with the maximum scores of
+  300 benign calibration FILES (marginal over types; per-type sets of ~30 files would floor at
+  ~0.03). On the diagnostic machine damaged files now get p = 0.0033 and clean files >= ~0.1.
+  The re-run uses rule D24 v2 below. All of this is DEV data; test is untouched.
+- **D24 v2 (pre-registered before the re-run).** Same rule as D24, candidates: chunk statistic at
+  alpha in {0.05, 0.01} (the lower suspicious level applied to the old statistic too, for
+  fairness) and the file-level calibrated statistic at alpha in {0.05, 0.01} (0.005 is below the
+  file-level floor plus margin). Ties within 0.01 go to the file statistic, then the smaller alpha.

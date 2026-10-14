@@ -70,7 +70,8 @@ def run_detector_experiment(cfg: dict) -> dict:
     for variant in variants:
         t = time.perf_counter()
         clf = make_variant(variant, cfg["model"], seed).fit(X[tr], y[tr])
-        det = CalibratedDetector(clf).fit(X[ca], y[ca], groups=ftypes[ca])
+        fver = (m.file_id + "|" + m.damage_model + "|" + m.fraction.astype(str)).to_numpy()
+        det = CalibratedDetector(clf).fit(X[ca], y[ca], groups=ftypes[ca], file_ids=fver[ca])
         timings[f"train_{variant}_s"] = time.perf_counter() - t
         t = time.perf_counter()
         raw = det.raw_scores(X[te])

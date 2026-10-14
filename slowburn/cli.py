@@ -92,12 +92,23 @@ def _tune_retention(cfg: dict) -> None:
     print(f"chosen: {res['chosen']} -> configs/frozen.yaml (not frozen yet)")
 
 
+def _theory_check(cfg: dict) -> None:
+    from slowburn.bench.theory_checks import theory_report
+    from slowburn.utils.config import resolve_path
+
+    res = theory_report(resolve_path(cfg["output_dir"]))
+    for name, df in res.items():
+        print(f"== {name}")
+        print(df.to_string(index=False))
+
+
 COMMANDS = {
     "bench": _bench,
     "detector": _detector,
     "inference": _inference,
     "tune-statistic": _tune_statistic,
     "tune-retention": _tune_retention,
+    "theory-check": _theory_check,
 }
 
 

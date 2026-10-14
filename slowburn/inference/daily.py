@@ -20,6 +20,8 @@ class DayScores:
     probs: np.ndarray  # calibrated P(damaged) per changed chunk
     pvals: np.ndarray  # conformal p-values per changed chunk (type-conditional by default)
     file_ids: tuple[str, ...] = ()  # file of each changed chunk (needed by file-level stats)
+    # file-level calibrated p-values when the detector provides them (preferred by file_exceed)
+    file_pvals: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -83,13 +85,16 @@ def exceed(alpha: float = 0.05) -> Aggregator:
 
 
 def file_pvalues(d: DayScores) -> dict[str, float]:
-    """Per changed file: the minimum p-value over its changed chunks.
+    """Per changed file: the detector's file-level calibrated p-value if it provides one
+    (``DayScores.file_pvals``), else the minimum p-value over its changed chunks.
 
     No multiplicity correction: conformal p-values cannot go below 1/(n_cal + 1) (~0.003 with
     our per-type calibration sets), so a Bonferroni factor of n_chunks would make any file with
     more than a few chunks unflaggable. The resulting benign file-flag rate is not alpha; it is
     estimated from warm-up days by the observation model (decision D9), so alpha only has to be
     a sensible operating point."""
+    if d.file_pvals is not None:
+        return dict(d.file_pvals)
     if len(d.file_ids) != len(d.pvals):
         raise ValueError("file-level statistics need DayScores.file_ids for every chunk")
     out: dict[str, float] = {}

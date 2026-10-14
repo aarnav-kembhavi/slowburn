@@ -1,0 +1,16 @@
+# Hyperparameters chosen on DEV machines only. Written by slowburn.bench.registry.update_frozen;
+# do not hand-edit values. Test-split runs require frozen: true.
+frozen: false
+params:
+  daily_statistic: file_exceed
+  daily_statistic_params:
+    alpha: 0.005
+  observation_model: betabinom
+history:
+- date: '2026-10-14'
+  commit: f2e19ec
+  set:
+  - daily_statistic
+  - daily_statistic_params
+  - observation_model
+  note: 'rule D24 on configs\tune_statistic.yaml: chose file_a0.005'

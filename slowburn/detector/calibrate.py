@@ -43,9 +43,14 @@ class CalibratedDetector:
         self._iso = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip")
         self._benign_cal: np.ndarray | None = None
         self._benign_by_group: dict[str, np.ndarray] = {}
+        self._benign_file_max: np.ndarray | None = None
 
     def fit(
-        self, X_cal: np.ndarray, y_cal: np.ndarray, groups: np.ndarray | None = None
+        self,
+        X_cal: np.ndarray,
+        y_cal: np.ndarray,
+        groups: np.ndarray | None = None,
+        file_ids: np.ndarray | None = None,
     ) -> CalibratedDetector:
         s = self.classifier.raw_scores(X_cal)
         y = np.asarray(y_cal)
@@ -60,7 +65,24 @@ class CalibratedDetector:
                 cal = s[(y == 0) & (g == key)]
                 if len(cal) >= self.min_group:
                     self._benign_by_group[str(key)] = cal
+        if file_ids is not None:
+            # file-level calibration: max raw score over each benign calibration file's chunks
+            f = np.asarray(file_ids)[y == 0]
+            sb = s[y == 0]
+            order = np.argsort(f, kind="stable")
+            f, sb = f[order], sb[order]
+            starts = np.r_[0, np.flatnonzero(f[1:] != f[:-1]) + 1]
+            self._benign_file_max = np.maximum.reduceat(sb, starts)
         return self
+
+    def file_pvalues_from_max(self, file_max_raw: np.ndarray) -> np.ndarray:
+        """Conformal p-values of files from their max raw chunk score, against the max scores of
+        benign calibration FILES (marginal over types: ~300 files give a floor of ~0.003, while
+        per-type sets of ~30 files would floor at ~0.03). A clean file is flagged at about rate
+        alpha whatever its number of changed chunks."""
+        if self._benign_file_max is None:
+            raise RuntimeError("fit() was called without file_ids; no file-level calibration")
+        return conformal_pvalues(self._benign_file_max, np.asarray(file_max_raw))
 
     def raw_scores(self, X: np.ndarray) -> np.ndarray:
         return self.classifier.raw_scores(X)

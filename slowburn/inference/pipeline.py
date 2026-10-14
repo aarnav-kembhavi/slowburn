@@ -33,7 +33,17 @@ def score_day(detector, day: Day) -> DayScores:
         pvals = detector.pvalues(X, groups=np.array(types))
     else:
         pvals = 1.0 - probs
-    return DayScores(day.day, probs, pvals, tuple(c.file_id for c in chunks))
+    fids = tuple(c.file_id for c in chunks)
+    file_pvals = None
+    if getattr(detector, "_benign_file_max", None) is not None and len(chunks):
+        raw = detector.raw_scores(X)
+        fmax: dict[str, float] = {}
+        for f, r in zip(fids, raw, strict=True):
+            fmax[f] = max(fmax.get(f, -np.inf), float(r))
+        names = sorted(fmax)
+        pv = detector.file_pvalues_from_max(np.array([fmax[f] for f in names]))
+        file_pvals = dict(zip(names, map(float, pv), strict=True))
+    return DayScores(day.day, probs, pvals, fids, file_pvals)
 
 
 class AbstractFileDetector:
@@ -62,7 +72,8 @@ class AbstractFileDetector:
             elif fid in day.benign_invalid:
                 flagged.add(fid)
         p = np.array([0.0 if c.file_id in flagged else 1.0 for c in day.changed])
-        return DayScores(day.day, 1.0 - p, p, tuple(c.file_id for c in day.changed))
+        fp = {f: (0.0 if f in flagged else 1.0) for f in files}
+        return DayScores(day.day, 1.0 - p, p, tuple(c.file_id for c in day.changed), fp)
 
 
 def start_map(post: np.ndarray) -> int | None:

@@ -145,3 +145,11 @@ def test_score_day_marks_benign_invalid_files_invalid():
         s = score_day(det, d)
         for fid, p in file_pvalues(s).items():
             assert (p < 1.0) == (fid in d.benign_invalid)
+
+
+def test_file_exceed_prefers_detector_file_pvalues():
+    d = DayScores(0, np.zeros(3), np.array([0.001, 0.9, 0.9]), ("a", "b", "b"),
+                  file_pvals={"a": 0.5, "b": 0.001})  # fmt: skip
+    obs = make_aggregator("file_exceed", alpha=0.01)(d)
+    assert (obs.k, obs.n) == (1, 2)
+    assert file_pvalues(d) == {"a": 0.5, "b": 0.001}

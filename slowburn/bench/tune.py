@@ -45,7 +45,9 @@ def statistic_rule(
         raise ValueError("no candidate meets the clean false-alarm constraint")
     best = elig.score.max()
     near = elig[elig.score >= best - tie]
-    choice = near.sort_values("alpha").index[0]  # ties: smaller alpha
+    # ties (D24 v2): the file statistic first, then the smaller alpha
+    near = near.assign(is_chunk=[not str(i).startswith("file") for i in near.index])
+    choice = near.sort_values(["is_chunk", "alpha"]).index[0]
     return board.sort_values("score", ascending=False), str(choice)
 
 

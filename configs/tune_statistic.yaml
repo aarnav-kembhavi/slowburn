@@ -1,8 +1,8 @@
 # F0 dev tuning: daily statistic and suspicious level (DEV machines only; the rule is
-# pre-registered in OPEN_QUESTIONS.md D24 before this run).
+# pre-registered in OPEN_QUESTIONS.md D24 v2 before this run).
 seed: 29
 experiment: tune_statistic
-output_dir: results/tune_statistic
+output_dir: results/tune_statistic_v2
 split: dev
 workers: 5
 
@@ -16,11 +16,11 @@ warmup_days: 14
 alpha: 0.05
 fa_targets: [0.05]
 
-statistics:
-  chunk_a0.05: {aggregator: exceed, params: {alpha: 0.05}, model: betabinom}       # old (ablation)
-  file_a0.05: {aggregator: file_exceed, params: {alpha: 0.05}, model: betabinom}
-  file_a0.01: {aggregator: file_exceed, params: {alpha: 0.01}, model: betabinom}
-  file_a0.005: {aggregator: file_exceed, params: {alpha: 0.005}, model: betabinom}
+statistics:   # rule D24 v2 candidates (pre-registered in OPEN_QUESTIONS.md)
+  chunk_a0.05: {aggregator: exceed, params: {alpha: 0.05}, model: betabinom}       # old statistic
+  chunk_a0.01: {aggregator: exceed, params: {alpha: 0.01}, model: betabinom}
+  file_a0.05: {aggregator: file_exceed, params: {alpha: 0.05}, model: betabinom}    # file-level
+  file_a0.01: {aggregator: file_exceed, params: {alpha: 0.01}, model: betabinom}    # calibration
 
 inference_models: [single_cp, bocpd]
 

@@ -243,3 +243,35 @@ def test_base_classifier_ignores_validity_column(dataset, smoke_cfg):
     X2 = X.copy()
     X2[:, 260] = 1 - X2[:, 260]
     np.testing.assert_array_equal(clf.raw_scores(X), clf.raw_scores(X2))
+
+
+def test_file_level_calibration_flags_files_not_chunks():
+    class Fixed:  # raw score = first feature
+        def raw_scores(self, X):
+            return X[:, 0]
+
+    rng = np.random.default_rng(0)
+    # 300 benign calibration files with 1..20 chunks each, scores ~ U(0, 0.9)
+    files, scores = [], []
+    for f in range(300):
+        for _ in range(int(rng.integers(1, 21))):
+            files.append(f"f{f}")
+            scores.append(rng.uniform(0, 0.9))
+    X = np.array(scores)[:, None]
+    det = CalibratedDetector(Fixed()).fit(X, np.zeros(len(X), int), file_ids=np.array(files))
+    assert len(det._benign_file_max) == 300
+    # a file whose max chunk score exceeds every benign file max gets the floor p = 1/301
+    assert det.file_pvalues_from_max(np.array([0.95]))[0] == pytest.approx(1 / 301)
+    # benign test files are flagged at about alpha (file-level, regardless of size)
+    test_max = [rng.uniform(0, 0.9, int(rng.integers(1, 21))).max() for _ in range(3000)]
+    assert np.mean(det.file_pvalues_from_max(np.array(test_max)) <= 0.05) <= 0.07
+
+
+def test_file_level_pvalues_need_file_ids():
+    class Fixed:
+        def raw_scores(self, X):
+            return X[:, 0]
+
+    det = CalibratedDetector(Fixed()).fit(np.zeros((5, 1)), np.zeros(5, int))
+    with pytest.raises(RuntimeError, match="file_ids"):
+        det.file_pvalues_from_max(np.array([0.5]))
