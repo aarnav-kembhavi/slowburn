@@ -718,3 +718,37 @@ best fixed schedule. Reported to the team before freezing; no test run made.
 **B1-B3**: docs/theory.md (NEEDS HUMAN REVIEW). Theorem 2(a): zero violations in 48,686 ToH
 cases, bound attained (max W/3d = 1.000); Theorem 2(b): within 1 of the exhaustive minimum;
 Theorem 3: DP = brute force on 120 random instances.
+
+## 2026-10-15: items 1-5 of the team decision, DEV tuning D30 (v3), test run stopped
+
+Commits 188a3d7..384e0f9. DEV only; no test machine evaluated (the stopped run had written no
+test rows; its empty log is in `results/headline_unread_aborted/`).
+
+**Built (tests + ruff clean):** verified restore (D29) with the DP loss matched exactly (DP =
+brute force for gates {0, 0.5, 0.9} and forced backbone days; gated loss = independent per-start
+evaluation); hybrid ToH backbone (D30) with Theorem 2(c) (0 superset and 0 bound violations for
+(K, R) = (6,3) 596 cases, (8,4) 1181, (12,6) 4439, (12,4) 1181); fleet-pooled benign rate (D31);
+oracle-ideal work lost on every row; pre-registered grid (D32) in frozen.yaml with a test gate;
+D33 (prior-only restores with its own posterior), D34 (restore posterior conditioned on the
+discovery day).
+
+**D30 v3 stage 1** (`results/tune_retention_v2/stage1_scoreboard.csv`, mean clean recovery over
+the six baselines, 96000 rows each): (p, gate) (0.01, 0.95) 0.48082; (0.05, 0.95) 0.48060;
+(0.01, 0.8) 0.47611; (0.05, 0.8) 0.47589 [chosen: lowest work lost 2484.376 h in the tie];
+(0.2, 0.95) 0.46227; (0.2, 0.8) 0.45807; (0.05, 0.5) 0.43294; (0.01, 0.5) 0.43293; (0.2, 0.5)
+0.42411. At the chosen pair (penalty 90, max 60, backbone 0.25): SlowBurn 0.929 / 1357.8 h,
+GFS 0.641 / 2076.1 h, ToH 0.593 / 2387.7 h, prior-only 0.575 / 2112.9 h, threshold vault
+0.068 / 3459.4 h, keep-last-N 0.050 / 3512.3 h (clean recovery / whole-system work lost).
+
+**D30 v3 stage 2** (SlowBurn, 16000 rows each), top rows: (270, 90, 0.0) 0.99900 / 3333.6 h;
+(270, 60, 0.0) 0.99875 / 3329.9 h [chosen]; (270, 90, 0.25) 0.98225 / 3264.7 h; (270, 60, 0.25)
+0.97763 / 3223.1 h; (270, 90, 0.5) 0.95900 / 2657.3 h; (270, 60, 0.5) 0.93850 / 2549.7 h;
+(90, 60, 0.25) 0.92900 / 1357.8 h; (90, 60, 0.5) 0.90100 / 1480.5 h; (90, 60, 0.0) 0.88350 /
+1340.7 h. Lowest work lost: (90, 30, 0.0) 0.600 / 1302.6 h.
+
+**Problem (D35):** the chosen setting is degenerate: median restore point day 13 (end of
+warm-up), oldest retained age 138.6 d at every K, work lost 3329.9 h vs GFS 2076.1 h. Recovery
+0.99875 comes from keeping the first backup forever. Test run stopped; decision asked.
+
+**Also corrected:** a D34 statement (prior-only 0.65 after the fix) was wrong; prior-only's
+restore points are identical before and after D33/D34 (see OPEN_QUESTIONS D34 correction).

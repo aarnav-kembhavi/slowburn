@@ -248,3 +248,13 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   and D34 change which candidates pass the gate, not where prior-only restores from: its deficit
   comes from its retention, not from the restore. D34 is kept because it makes the restore
   consistent with the DP's model, not because it changed this result.
+- **D35 The D30 stage-2 rule chose a degenerate policy (found on DEV after freezing; test run
+  stopped during its DEV calibration step, before any test machine was evaluated).** Chosen:
+  penalty 270, assumed discovery max 60, backbone 0 (mean clean recovery 0.99875, within the
+  0.005 tie of 0.999 at max 90; lower work lost). Its median restore point is day 13 (the last
+  warm-up day; 75% quantile 13, mean 13.6) and the oldest retained age is 138.6 days at every K:
+  the DP keeps the first post-warm-up snapshot forever. Mean whole-system work lost 3329.9 h vs
+  GFS 2076.1 h (oracle-ideal 772.8 h); work lost given recovery 3329.0 h vs GFS 902.9 h. A "keep
+  the first backup forever" baseline would match it. Cause: the rule maximises clean recovery and
+  uses work lost only to break ties, and a 270-day penalty makes the oldest snapshot optimal.
+  frozen.yaml is left frozen (unfreezing is a deliberate manual step); decision asked.
