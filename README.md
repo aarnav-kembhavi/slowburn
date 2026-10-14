@@ -22,14 +22,24 @@ Python 3.11+, CPU only.
 ## Commands
 
 ```sh
-uv run slowburn bench configs/smoke.yaml          # end-to-end retention benchmark (tiny)
-uv run slowburn detector configs/detector.yaml    # M1: train + calibrate detector, AUROC sweep (~2 min)
-uv run slowburn inference configs/inference.yaml  # M2: start-day inference (needs the M1 detector)
-uv run pytest                                     # tests
-uv run ruff check . && uv run ruff format --check .
+uv run pytest                                         # tests (ruff: uv run ruff check . && uv run ruff format --check .)
+uv run slowburn bench configs/smoke.yaml              # M0 end-to-end smoke benchmark
+uv run slowburn detector configs/detector.yaml        # detector variants + per-type AUROC (~3 min)
+uv run slowburn inference configs/inference.yaml      # start-day inference study, DEV (~30 min)
+uv run slowburn tune-statistic configs/tune_statistic.yaml   # DEV rule D24 v2 -> configs/frozen.yaml
+uv run slowburn tune-retention configs/tune_retention.yaml   # DEV rule D27   -> configs/frozen.yaml
+uv run slowburn retention configs/headline.yaml       # headline experiment (TEST split; needs frozen.yaml)
+uv run slowburn theory-check configs/theory.yaml      # numerical checks for docs/theory.md
+uv run slowburn fig all                               # every paper figure/table -> paper/generated/
 ```
 
-`configs/*_smoke.yaml` variants run the same pipelines in seconds.
+`configs/*_smoke.yaml` variants run the same pipelines in seconds. Experiments use 4-6 worker
+processes, one thread each, and resume from `results/<experiment>/machines/` if interrupted.
+
+**Integrity rules.** Hyperparameters are chosen on DEV machines only, by pre-registered rules
+(OPEN_QUESTIONS.md), and recorded in `configs/frozen.yaml` with provenance. Any TEST-split run is
+refused unless that file is frozen and the run does not override it. Paper numbers come only
+from `slowburn fig`.
 
 Outputs go to `results/<experiment>/` as tidy CSV plus PNG plots. Every result row records
 `benign_source` and `damage_source` (`synthetic`, `synthetic_random`, `napierone`, ...) so
