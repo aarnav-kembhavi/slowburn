@@ -29,7 +29,7 @@ def _fake(n=30):
 
 
 def test_paired_tests_columns_and_holm():
-    t = paired_tests(_fake(), 14)
+    t = paired_tests(_fake())
     assert set(t.baseline) == set(BASELINES)
     assert (t.n == 30).all()
     assert (t.recovery_diff > 0).all()  # SlowBurn recovers more often in the fake data
@@ -44,6 +44,8 @@ def test_registry_and_unknown_name():
         "table-headline",
         "table-stats",
         "table-theory",
+        "table-grid",
+        "grid-heatmap",
         "auroc",
     } <= set(REGISTRY)
     with pytest.raises(ValueError, match="unknown figure"):
