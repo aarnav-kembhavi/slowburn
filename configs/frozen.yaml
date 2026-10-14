@@ -8,7 +8,7 @@ params:
   observation_model: betabinom
   p_attack_within_window: 0.05
   restore_quantile: 0.1
-  penalty: 270.0
+  penalty: 90.0
   assumed_discovery:
     kind: uniform
     max_days: 60
@@ -67,7 +67,7 @@ params:
       of mean clean recovery and mean whole-system work lost, oracle-ideal work lost
       alongside
   gate: 0.8
-  backbone: 0.0
+  backbone: 0.25
   null_pool: pooled
   restore_rule: verified
   restore_posterior: discovery
@@ -123,3 +123,11 @@ history:
   set: []
   note: 'FROZEN after D30 v3 (post D33/D34) on DEV: stage 1 (p=0.05, gate=0.8), stage
     2 (penalty 270, discovery max 60, backbone 0.0); scenario grid D32'
+- date: '2026-10-15'
+  commit: dff2028
+  set:
+  - assumed_discovery
+  - backbone
+  - penalty
+  note: 'rule D36 (deviation from D30 stage 2, see OPEN_QUESTIONS) on C:\PROJECTS\ISM\results\tune_retention_v2:
+    work-lost cap 2076.063 h (best fixed schedule on DEV)'

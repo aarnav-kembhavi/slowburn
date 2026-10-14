@@ -55,6 +55,23 @@ class KeepLastN:
         return set(newest[: ctx.budget])
 
 
+class KeepFirst:
+    """Degenerate reference: the first backup (day 0) forever plus the newest K - 1 snapshots.
+    Shows what clean recovery is worth when bought by never letting go of the oldest copy."""
+
+    name = "keep_first"
+
+    def decide(self, ctx: RetentionContext) -> set[int]:
+        newest = sorted(ctx.snapshot_days, key=ctx.snapshot_days.get, reverse=True)
+        first = min(ctx.snapshot_days, key=ctx.snapshot_days.get)
+        keep = {first, newest[0]}
+        for sid in newest:
+            if len(keep) >= ctx.budget:
+                break
+            keep.add(sid)
+        return keep
+
+
 def gfs_split(budget: int) -> tuple[int, int, int]:
     """Deterministic (daily, weekly, monthly) split of a budget: half daily (rounded up), at
     least one monthly once budget >= 3, the rest weekly."""

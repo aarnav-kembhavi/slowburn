@@ -1,5 +1,6 @@
 """C: retention experiment end to end (token mode, abstract evidence)."""
 
+import pandas as pd
 import pytest
 
 from slowburn.bench.retention_experiment import (
@@ -42,7 +43,7 @@ def results(cfg, tmp_path_factory):
 def test_retention_experiment_rows(results, cfg):
     df = results
     n_cells = 4
-    n_policies = 8  # 7 snapshot policies + amoeba_style
+    n_policies = 9  # 8 snapshot policies (incl. keep_first) + amoeba_style
     n_rows = n_cells * cfg["reps"] * len(cfg["discovery_delay"]) * n_policies
     assert len(df) == n_rows * len(cfg["budgets"])
     snap = df[df.policy != "amoeba_style"]
@@ -153,3 +154,27 @@ def test_scenario_grid_gate_and_summaries(cfg, tmp_path):
     summ = grid_summary(cell_table(df))
     assert summ.loc["a", "recovery_worst"] == 0 and summ.loc["a", "work_lost_worst"] == 30
     assert summ.loc["b", "recovery_avg"] == 0.5 and summ.loc["a", "cells"] == 2
+
+
+def test_slowburn_never_sees_cell_truth(cfg):
+    """SlowBurn's decisions and restore depend only on the trace (flags, churn) and frozen hp:
+    relabelling the cell's detection probability / benign rate, or changing which delays are
+    evaluated, leaves every SlowBurn and prior-only output unchanged."""
+    from slowburn.bench.retention_experiment import evaluate_trace
+
+    params = {**cfg["scenario"], "detect_prob": 0.9, "benign_invalid_rate": 0.05,
+              "null_prior": (0.5, 100.5)}  # fmt: skip
+    task = RetentionTask("dev", "eval", params, 0)
+    trace = simulate(cfg, task)
+    cols = ["policy", "budget", "discovery_delay", "restore_point", "clean_recovery",
+            "snapshots_scanned", "work_lost_whole_system_hours"]  # fmt: skip
+    pols = ("slowburn", "prior_only")
+    a = pd.DataFrame(evaluate_trace(cfg, task, trace, cfg["hp"], pols))[cols]
+    relabelled = RetentionTask("dev", "eval", {**params, "detect_prob": 0.0,
+                                               "benign_invalid_rate": 0.0}, 0)  # fmt: skip
+    b = pd.DataFrame(evaluate_trace(cfg, relabelled, trace, cfg["hp"], pols))[cols]
+    assert a.equals(b)
+    one = {**cfg, "discovery_delay": [cfg["discovery_delay"][-1]]}
+    c = pd.DataFrame(evaluate_trace(one, task, trace, cfg["hp"], pols))[cols]
+    last = a[a.discovery_delay == cfg["discovery_delay"][-1]].reset_index(drop=True)
+    assert c.reset_index(drop=True).equals(last)

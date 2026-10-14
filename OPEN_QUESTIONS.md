@@ -258,3 +258,31 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   the first backup forever" baseline would match it. Cause: the rule maximises clean recovery and
   uses work lost only to break ties, and a 270-day penalty makes the oldest snapshot optimal.
   frozen.yaml is left frozen (unfreezing is a deliberate manual step); decision asked.
+- **D36 DEVIATION from the pre-registered rule D30 stage 2 (team decision, 2026-10-15).** Reason:
+  the D30 rule (maximise clean recovery, work lost only as tie-break) admits a degenerate
+  keep-oldest-forever solution (D35). The chosen point below was ALREADY VISIBLE on the DEV
+  stage-2 scoreboard before this rule was written, so this is a post-hoc rule change on DEV, not
+  a pre-registered one; the paper must say so. New rule: maximise SlowBurn's mean clean recovery
+  subject to mean whole-system work lost <= the best fixed schedule's on DEV at the stage-1
+  choice (lowest of keep-last-N, GFS, ToH, threshold vault: GFS 2076.063 h); ties within 0.005 to
+  lower work lost. Applied to the stored D30 stage-2 CSV (no re-run): penalty 90, assumed
+  discovery max 60, backbone 0.25 (mean clean recovery 0.929, work lost 1357.842 h). Stage 1
+  (p = 0.05, gate = 0.8) unchanged. Also added, per the team: a "keep first backup forever"
+  baseline (`keep_first`: day 0 + newest K - 1), so degenerate retention is visible; and a
+  recovery-vs-work-lost trade-off figure (SlowBurn as a curve over all 27 stage-2 settings, every
+  other policy as a point) on DEV and TEST. The curve on TEST is reporting only; the operating
+  point is the DEV choice above.
+- **Check requested before test (2026-10-15): SlowBurn is not given cell truth.** SlowBurn and
+  prior-only read only the trace (flags, churn, snapshot contents, the discovery DAY) and frozen
+  assumed values (hazard, assumed uniform delay to 60 d, penalty, gate, backbone). The true
+  detection probability, benign failure rate, start day and delay never enter their code path
+  (`oracle_start` is read only by the Oracle; the true start is used only to score outcomes).
+  Enforced by `tests/test_retention_experiment.py::test_slowburn_never_sees_cell_truth`
+  (relabelling q and b, or changing the evaluated delays, leaves every SlowBurn / prior-only
+  output identical). Caveats to state in the paper: (i) the fleet null prior (D31) is fitted on
+  40 attack-free DEV machines of the SAME deployment, so it is a data-driven estimate of that
+  deployment's benign flag rate, not the true value; the per-machine ablation removes it.
+  (ii) Baselines get comparable per-deployment calibration: the threshold vault's line comes
+  from the same attack-free machines, and AMOEBA-style is trained with labels on 8 attacked DEV
+  machines of the same cell (it therefore sees that cell's detection probability through its
+  training data, an advantage to the baseline).

@@ -32,6 +32,7 @@ from slowburn.inference.pipeline import AbstractFileDetector
 from slowburn.retention.amoeba import AmoebaStyle, Write, fit_weights
 from slowburn.retention.base import (
     GFS,
+    KeepFirst,
     KeepLastN,
     Oracle,
     PosteriorDP,
@@ -56,8 +57,8 @@ from slowburn.store.restore import (
 from slowburn.utils.config import resolve_path
 from slowburn.utils.seed import child_rng
 
-SNAPSHOT_POLICIES = ("keep_last_n", "gfs", "tower_of_hanoi", "threshold_vault", "prior_only",
-                     "slowburn", "oracle")  # fmt: skip
+SNAPSHOT_POLICIES = ("keep_last_n", "keep_first", "gfs", "tower_of_hanoi", "threshold_vault",
+                     "prior_only", "slowburn", "oracle")  # fmt: skip
 # act only through auxiliary streams -> excluded from the machine seed key (paired machines)
 PAIRED_KEYS = frozenset({"detect_prob", "benign_invalid_rate"})
 SCENARIO_FIELDS = set(ScenarioConfig.__dataclass_fields__)
@@ -163,6 +164,7 @@ def make_policies(hp: dict, vault_threshold: float) -> dict:
     gate, bb, P = float(hp.get("gate", 0.0)), float(hp.get("backbone", 0.0)), hp["penalty"]
     return {
         "keep_last_n": KeepLastN(),
+        "keep_first": KeepFirst(),
         "gfs": GFS(),
         "tower_of_hanoi": TowerOfHanoi(),
         "threshold_vault": ThresholdVault(vault_threshold),
@@ -189,7 +191,30 @@ def evaluate_machine_retention(cfg: dict, task: RetentionTask) -> list[dict]:
     trace = simulate(cfg, task)
     sim_s = time.perf_counter() - t0
     names = cfg.get("policies", ALL_POLICIES)
-    return evaluate_trace(cfg, task, trace, cfg["hp"], names, sim_s)
+    cache: dict = {}
+    rows = evaluate_trace(cfg, task, trace, cfg["hp"], names, sim_s, posterior_cache=cache)
+    return rows + tradeoff_rows(cfg, task, trace, cache)
+
+
+def tradeoff_combos(cfg: dict) -> list[dict]:
+    """SlowBurn settings for the recovery / work-lost trade-off curve (reporting only: the
+    operating point is fixed on DEV before test; the curve shows what other settings would do)."""
+    t = cfg.get("tradeoff")
+    if not t:
+        return []
+    base = cfg["hp"]
+    return [{**base, "penalty": P, "backbone": bb,
+             "assumed_discovery": {**base["assumed_discovery"], "max_days": m}}
+            for P in t["penalty"] for m in t["assumed_discovery_max_days"]
+            for bb in t["backbone"]]  # fmt: skip
+
+
+def tradeoff_rows(cfg: dict, task: RetentionTask, trace: MachineTrace, cache: dict) -> list[dict]:
+    rows = []
+    for hp in tradeoff_combos(cfg):
+        for r in evaluate_trace(cfg, task, trace, hp, ("slowburn",), posterior_cache=cache):
+            rows.append({**r, "policy": "slowburn_curve"})
+    return rows
 
 
 ALL_POLICIES = (*SNAPSHOT_POLICIES, "amoeba_style")
@@ -448,8 +473,9 @@ def preregister_grid(cfg: dict, path: str = "configs/frozen.yaml") -> dict:
 
 
 def cell_table(df: pd.DataFrame) -> pd.DataFrame:
-    """Mean clean recovery and work lost per grid cell and policy, oracle-ideal alongside."""
-    g = df.groupby([*GRID_CELL, "policy"])
+    """Mean clean recovery and work lost per grid cell and policy, oracle-ideal alongside
+    (the SlowBurn trade-off-curve rows are excluded: they are not a policy)."""
+    g = df[df.policy != "slowburn_curve"].groupby([*GRID_CELL, "policy"])
     return g.agg(clean_recovery=("clean_recovery", "mean"),
                  work_lost_whole_system_hours=("work_lost_whole_system_hours", "mean"),
                  work_lost_selective_file_hours=("work_lost_selective_file_hours", "mean"),
@@ -569,3 +595,23 @@ def run_retention_tuning(cfg: dict, log=print) -> dict:
                   path=cfg.get("frozen_path", "configs/frozen.yaml"),
                   remove=("budget",))  # fmt: skip
     return {"stage1": board1, "stage2": board2, "chosen": chosen}
+
+
+def apply_constrained_stage2(cfg: dict, stage1_choice: tuple, freeze: bool = True) -> dict:
+    """Rule D36 on the stored D30 DEV tuning CSVs (no re-run): records the choice in
+    configs/frozen.yaml and, with ``freeze``, freezes it."""
+    from slowburn.bench.registry import update_frozen
+    from slowburn.bench.tune import retention_stage2_constrained
+
+    out = resolve_path(cfg["output_dir"])
+    df1 = pd.read_csv(out / "tuning_stage1.csv")
+    df2 = pd.read_csv(out / "tuning_stage2.csv")
+    board, (P, m, bb), cap = retention_stage2_constrained(df2, df1, stage1_choice)
+    board.to_csv(out / "stage2_scoreboard_constrained.csv")
+    base = cfg["hp"]
+    chosen = {"penalty": float(P), "backbone": float(bb),
+              "assumed_discovery": {**base["assumed_discovery"], "max_days": int(m)}}  # fmt: skip
+    update_frozen(chosen, freeze=freeze, path=cfg.get("frozen_path", "configs/frozen.yaml"),
+                  note=f"rule D36 (deviation from D30 stage 2, see OPEN_QUESTIONS) on "
+                  f"{out}: work-lost cap {cap:.3f} h (best fixed schedule on DEV)")  # fmt: skip
+    return {"board": board, "chosen": chosen, "cap": cap}

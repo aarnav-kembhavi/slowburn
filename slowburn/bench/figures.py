@@ -27,13 +27,14 @@ from slowburn.utils.config import resolve_path
 GEN = "paper/generated"
 HEADLINE_CSV = "results/headline/retention_results.csv"
 POLICY_ORDER = ["slowburn", "prior_only", "tower_of_hanoi", "gfs", "keep_last_n",
-                "threshold_vault", "amoeba_style", "oracle"]  # fmt: skip
+                "threshold_vault", "amoeba_style", "keep_first", "oracle"]  # fmt: skip
 POLICY_LABEL = {"slowburn": "SlowBurn", "prior_only": "Prior only (blind DP)",
                 "tower_of_hanoi": "Tower of Hanoi", "gfs": "GFS", "keep_last_n": "Keep last N",
                 "threshold_vault": "Threshold vault", "amoeba_style": "AMOEBA-style (reimpl.)",
+                "keep_first": "Keep first backup",
                 "oracle": "Oracle (knows start)"}  # fmt: skip
 BASELINES = ["prior_only", "tower_of_hanoi", "gfs", "keep_last_n", "threshold_vault",
-             "amoeba_style"]  # fmt: skip
+             "amoeba_style", "keep_first"]  # fmt: skip
 
 REGISTRY: dict[str, Callable[[], list[Path]]] = {}
 
@@ -69,11 +70,14 @@ def _style(policy: str) -> dict:
 
 
 GRID_CELL = ["budget", "discovery_delay", "attack_start", "detect_prob", "benign_invalid_rate"]
-FIXED = ["keep_last_n", "gfs", "tower_of_hanoi", "threshold_vault"]
+FIXED = ["keep_last_n", "gfs", "tower_of_hanoi", "threshold_vault", "keep_first"]
+DEV_CSV = "results/headline_dev/retention_results.csv"
 
 
-def load_headline(path: str = HEADLINE_CSV) -> pd.DataFrame:
+def load_headline(path: str = HEADLINE_CSV, curve: bool = False) -> pd.DataFrame:
     df = pd.read_csv(resolve_path(path))
+    if not curve:
+        df = df[df.policy != "slowburn_curve"]
     for k in GRID_CELL:
         if k not in df:
             df[k] = 0  # single-scenario result files (no grid column)
@@ -287,6 +291,78 @@ def table_stats() -> list[Path]:
                           "difference (paired by machine; Holm across baselines within each "
                           "cell, p < 0.05)", label="tab:stats")  # fmt: skip
     return [p]
+
+
+def tradeoff_points(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Mean clean recovery and whole-system work lost over every grid cell: one point per
+    policy, and one per SlowBurn setting on the trade-off curve."""
+    agg = {"clean_recovery": "mean", "work_lost_whole_system_hours": "mean"}
+    pts = df[df.policy != "slowburn_curve"].groupby("policy").agg(agg)
+    curve = df[df.policy == "slowburn_curve"]
+    keys = ["hp_penalty", "hp_assumed_discovery_max", "hp_backbone"]
+    cur = curve.groupby(keys).agg(agg).reset_index() if len(curve) else pd.DataFrame()
+    return pts, cur
+
+
+def _pareto(cur: pd.DataFrame) -> pd.DataFrame:
+    c = cur.sort_values(["work_lost_whole_system_hours", "clean_recovery"],
+                        ascending=[True, False])  # fmt: skip
+    best, keep = -1.0, []
+    for i, r in c.iterrows():
+        if r.clean_recovery > best:
+            best = r.clean_recovery
+            keep.append(i)
+    return c.loc[keep]
+
+
+def _tradeoff_figure(path: str, stem: str, split: str) -> list[Path]:
+    df = load_headline(path, curve=True)
+    pts, cur = tradeoff_points(df)
+    apply_style()
+    fig, ax = plt.subplots(figsize=(6.4, 4.4))
+    if len(cur):
+        ax.scatter(cur.work_lost_whole_system_hours, cur.clean_recovery, s=14,
+                   color=_style("slowburn")["color"], alpha=0.35, lw=0,
+                   label="SlowBurn, other settings")  # fmt: skip
+        fr = _pareto(cur)
+        ax.plot(fr.work_lost_whole_system_hours, fr.clean_recovery,
+                color=_style("slowburn")["color"], lw=1.4, alpha=0.8)  # fmt: skip
+    for pol in POLICY_ORDER:
+        if pol not in pts.index:
+            continue
+        r = pts.loc[pol]
+        st = _style(pol)
+        marker = "*" if pol == "slowburn" else ("D" if pol == "oracle" else "o")
+        label = POLICY_LABEL[pol] + (" (frozen setting)" if pol == "slowburn" else "")
+        ax.scatter(r.work_lost_whole_system_hours, r.clean_recovery, marker=marker, zorder=3,
+                   s=110 if marker == "*" else 40, color=st["color"], label=label)  # fmt: skip
+    if "work_lost_ideal_hours" in df:
+        ideal = df[df.policy == "oracle"].work_lost_ideal_hours.mean()
+        ax.axvline(ideal, color=MUTED, ls=":", lw=1.0, label="Ideal work lost (restore day s-1)")
+    ax.set_xlabel("Mean whole-system work lost (hours; unrecovered = all work since day 0)")
+    ax.set_ylabel("Mean clean recovery rate")
+    ax.set_ylim(-0.03, 1.03)
+    ax.legend(fontsize=6.8, loc="lower left", frameon=False)
+    ax.set_title(f"Recovery vs work lost, every grid cell ({split.upper()})", fontsize=9.5,
+                 loc="left", fontweight="bold")  # fmt: skip
+    n_mach = df.groupby(["rep", "attack_start"]).ngroups
+    fig.text(0.01, 0.01, f"{n_mach} {split} machines; up and left is better; SlowBurn curve = "
+             "penalty x assumed delay x backbone settings (operating point chosen on DEV)",
+             color=MUTED, fontsize=6.3)  # fmt: skip
+    fig.tight_layout(rect=(0, 0.03, 1, 1))
+    return _save(fig, stem)
+
+
+@figure("tradeoff")
+def tradeoff() -> list[Path]:
+    out = []
+    for path, stem, split in ((HEADLINE_CSV, "fig_tradeoff_test", "test"),
+                              (DEV_CSV, "fig_tradeoff_dev", "dev")):  # fmt: skip
+        if resolve_path(path).exists():
+            out += _tradeoff_figure(path, stem, split)
+    if not out:
+        raise FileNotFoundError(2, "no result CSV", HEADLINE_CSV)
+    return out
 
 
 @figure("table-theory")

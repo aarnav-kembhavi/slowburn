@@ -24,11 +24,11 @@ vault_calib_machines: 40
 hp:
   p_attack_within_window: 0.05
   prior_window_days: 60
-  penalty: 270.0
+  penalty: 90.0
   restore_quantile: 0.1        # quantile-restore ablation only
   assumed_discovery: {kind: uniform, max_days: 60}
   gate: 0.8                    # restore-time posterior gate (D29)
-  backbone: 0.0                # Tower of Hanoi backbone fraction (D30; DEV chose 0)
+  backbone: 0.25               # Tower of Hanoi backbone fraction (D30; D36 choice)
   null_pool: pooled            # fleet-level benign-rate prior (D31)
   restore_rule: verified
   restore_posterior: discovery  # restore gate conditions on the discovery day (D34)
@@ -48,3 +48,9 @@ sweep:
   attack_start: [112, 115, 118, 139]
   detect_prob: [1.0, 0.9, 0.5, 0.2, 0.0]
   benign_invalid_rate: [0.0, 0.001, 0.01, 0.05]
+
+# SlowBurn trade-off curve (reporting only; the operating point above is the DEV choice, D36)
+tradeoff:
+  penalty: [30.0, 90.0, 270.0]
+  assumed_discovery_max_days: [30, 60, 90]
+  backbone: [0.0, 0.25, 0.5]

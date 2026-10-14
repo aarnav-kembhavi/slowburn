@@ -90,3 +90,27 @@ def retention_stage2(df: pd.DataFrame, tie: float = 0.005) -> tuple[pd.DataFrame
         work_lost_whole_system_hours=("work_lost_whole_system_hours", "mean"),
         n=("clean_recovery", "size"))  # fmt: skip
     return board.sort_values("clean_recovery", ascending=False), _pick(board, tie)
+
+
+FIXED_SCHEDULES = ("keep_last_n", "gfs", "tower_of_hanoi", "threshold_vault")
+
+
+def retention_stage2_constrained(
+    df2: pd.DataFrame, df1: pd.DataFrame, stage1_choice: tuple, tie: float = 0.005
+) -> tuple[pd.DataFrame, tuple, float]:
+    """Rule D36 (replaces D30 stage 2; deviation logged): maximise SlowBurn's mean clean
+    recovery subject to its mean whole-system work lost not exceeding the best fixed schedule's
+    (lowest mean work lost among keep-last-N, GFS, ToH, threshold vault at the stage-1 choice);
+    ties within ``tie`` go to lower work lost. Returns (board, choice, work-lost cap)."""
+    if set(df1.split) != {"dev"} or set(df2.split) != {"dev"}:
+        raise ValueError("tuning must use DEV machines only")
+    p, g = stage1_choice
+    base = df1[(df1.hp_p_attack_within_window == p) & (df1.hp_gate == g)
+               & df1.policy.isin(FIXED_SCHEDULES)]  # fmt: skip
+    cap = float(base.groupby("policy").work_lost_whole_system_hours.mean().min())
+    board, _ = retention_stage2(df2, tie)
+    board = board.assign(feasible=board.work_lost_whole_system_hours <= cap)
+    feas = board[board.feasible]
+    if feas.empty:
+        raise ValueError("no SlowBurn setting meets the work-lost constraint")
+    return board, _pick(feas, tie), cap

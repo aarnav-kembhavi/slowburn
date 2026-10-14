@@ -46,7 +46,22 @@ def test_registry_and_unknown_name():
         "table-theory",
         "table-grid",
         "grid-heatmap",
+        "tradeoff",
         "auroc",
     } <= set(REGISTRY)
     with pytest.raises(ValueError, match="unknown figure"):
         generate("nope")
+
+
+def test_tradeoff_points_and_pareto():
+    from slowburn.bench.figures import _pareto, tradeoff_points
+
+    rows = []
+    for P, rec, wl in [(30, 0.5, 100.0), (90, 0.8, 200.0), (270, 0.7, 300.0), (500, 1.0, 900.0)]:
+        rows.append({"policy": "slowburn_curve", "hp_penalty": P, "hp_assumed_discovery_max": 60,
+                     "hp_backbone": 0.0, "clean_recovery": rec,
+                     "work_lost_whole_system_hours": wl})  # fmt: skip
+    rows.append({"policy": "gfs", "clean_recovery": 0.6, "work_lost_whole_system_hours": 150.0})
+    pts, cur = tradeoff_points(pd.DataFrame(rows))
+    assert list(pts.index) == ["gfs"] and len(cur) == 4
+    assert _pareto(cur).hp_penalty.tolist() == [30, 90, 500]  # 270 is dominated by 90
