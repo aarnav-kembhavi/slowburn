@@ -160,3 +160,56 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   alpha in {0.05, 0.01} (the lower suspicious level applied to the old statistic too, for
   fairness) and the file-level calibrated statistic at alpha in {0.05, 0.01} (0.005 is below the
   file-level floor plus margin). Ties within 0.01 go to the file statistic, then the smaller alpha.
+
+### 2026-10-14 (evening): changes after the dev result that contradicted the claim (team decision B, extended)
+
+- **D29 Restore-time verification replaces the fixed 10% quantile (team decision).** Rule
+  (`slowburn/store/restore.py: verified_restore`): walk kept snapshots newest first, skipping any
+  with posterior P(start > j | evidence, attack happened) below a gate tau; verify each candidate
+  by running the detector on its file versions written on or after L (the posterior's 0.001
+  quantile; versions older than L are treated as clean); restore from the first candidate with no
+  flagged version; if none verifies (or none passes the gate) fall back to the oldest kept
+  snapshot. Files changed on or after max(j_r + 1, L) are restored to their j_r version.
+  Conservative choices made without asking: (a) **the detector is deterministic**, so re-scanning
+  a version returns the flag it got when written; a missed damaged version stays missed and a
+  benign validation failure stays flagged (no free second look). (b) scan_eps = 0.001 is fixed,
+  not tuned. (c) The fallback is the oldest kept snapshot (most likely clean). (d) The gate is
+  needed for blind detectors: without it, at detection probability 0 every snapshot "verifies"
+  and the newest (dirty) one is restored.
+  **The DP's loss equals this rule's expected loss exactly** under the DP's information (its
+  planning posterior in place of the discovery posterior) and reliable verification: newest kept
+  j < min(s, g + 1), where g is the newest day passing the gate, plus the fallback case where no
+  kept snapshot passes the gate. Checked against an independent per-start evaluation of the rule
+  and against brute force (`tests/test_retention_dp.py`). Where verification misses or falsely
+  rejects, realized restores differ from the DP's model; this is reported per row
+  (`restore_matches_dp_model`), with `snapshots_scanned` and `files_scanned`.
+- **D30 Hybrid retention and pre-registered tuning rule v3 (DEV only, set before running).**
+  SlowBurn = Tower of Hanoi backbone on R = round(f x K) slots + exact DP on the other K - R slots
+  (`PosteriorDP(backbone=f)`); its held set always contains the R-media ToH set, so Theorem 2(a)
+  holds with K replaced by R (Theorem 2(c), docs/theory.md, NEEDS HUMAN REVIEW). Prior-only is the
+  same hybrid without evidence. Tuning on the pre-registered scenario grid (D32), 10 dev machines
+  per (attack start, detection probability, benign rate) cell, every K and delay:
+  Stage 1 (shared restore + prior), scored on mean clean recovery over ALL snapshot baselines
+  except the oracle: P(attack within 60 d) in {0.01, 0.05, 0.2} x gate tau in {0.5, 0.8, 0.95},
+  with penalty 90, assumed discovery uniform to 60 d, f = 0.25.
+  Stage 2 (SlowBurn's own knobs), stage-1 values fixed, scored on SlowBurn's mean clean recovery:
+  penalty in {30, 90, 270} days x assumed discovery max in {30, 60, 90} days x backbone fraction
+  f in {0, 0.25, 0.5}. Ties within 0.005 go to lower mean whole-system work lost. This keeps the
+  form of D27 (decided before seeing any grid result).
+- **D31 Fleet-pooled benign flag rate (team decision).** The benign flag rate gets a Beta prior
+  fitted by method of moments on attack-free DEV calibration machines of the same deployment
+  (same detector and benign failure rate; the `vault_calib` family, 40 machines), concentration
+  capped at 10^4 when the spread is binomial, plus a Jeffreys half count. Each machine's warm-up
+  then updates it (hierarchical shrinkage). The per-machine Jeffreys version is kept as the
+  ablation (`null_pool: per_machine`). Pooling is per deployment, not across benign rates: a
+  fleet runs one detector in one environment.
+- **D32 Pre-registered scenario grid (team decision; recorded in configs/frozen.yaml as
+  `scenario_grid` before any dev tuning on it).** K in {4, 6, 8, 12} x discovery delay in
+  {7, 14, 30, 45, 60} x attack start 112 + o, o in {0, 3, 6, 27} (112 = 4 x 28 is both a weekly
+  and a monthly GFS boundary: o = 0 is GFS's best case, o = 6 puts GFS's weekly representative on
+  the start day, o = 27 puts the monthly one on it), crossed with detection probability
+  {1, 0.9, 0.5, 0.2, 0} x benign failure rate {0, 0.001, 0.01, 0.05}; 30 test machines per cell.
+  Report every cell and, per policy, the average and worst cell for clean recovery and
+  whole-system work lost, with the oracle-ideal work lost alongside every policy. Conservative
+  choices: 112 days of history so Theorem 2's s >= 2d holds up to d = 56; other scenario
+  parameters unchanged from the earlier headline.

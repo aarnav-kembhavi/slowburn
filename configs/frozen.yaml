@@ -14,6 +14,59 @@ params:
     max_days: 60
   budget: 8
   prior_window_days: 60
+  scenario_grid:
+    budgets:
+    - 4
+    - 6
+    - 8
+    - 12
+    discovery_delay:
+    - 7
+    - 14
+    - 30
+    - 45
+    - 60
+    attack_start:
+    - 112
+    - 115
+    - 118
+    - 139
+    detect_prob:
+    - 1.0
+    - 0.9
+    - 0.5
+    - 0.2
+    - 0.0
+    benign_invalid_rate:
+    - 0.0
+    - 0.001
+    - 0.01
+    - 0.05
+    scenario:
+      n_files: 40
+      file_types:
+      - txt
+      - csv
+      - bin
+      - docx
+      - zip
+      - png
+      - jpg
+      - mp3
+      - zlib
+      - lzma
+      file_kib:
+      - 16
+      - 96
+      edits_per_day: 4.0
+      attack_files_per_day: 0.5
+      damage_model: striped
+      damage_fraction: 0.1
+    warmup_days: 14
+    test_reps: 30
+    report: report every cell; per policy the average over cells and the worst cell
+      of mean clean recovery and mean whole-system work lost, oracle-ideal work lost
+      alongside
 history:
 - date: '2026-10-14'
   commit: f2e19ec
@@ -39,3 +92,8 @@ history:
   - prior_window_days
   - restore_quantile
   note: rule D27 on configs\tune_retention.yaml
+- date: '2026-10-14'
+  commit: 188a3d7
+  set:
+  - scenario_grid
+  note: pre-registered scenario grid from configs\headline.yaml

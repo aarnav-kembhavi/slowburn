@@ -93,12 +93,25 @@ def _tune_retention(cfg: dict) -> None:
 
 
 def _retention(cfg: dict) -> None:
-    from slowburn.bench.retention_experiment import run_retention_experiment
+    from slowburn.bench.retention_experiment import (
+        cell_table,
+        grid_summary,
+        run_retention_experiment,
+    )
 
     df = run_retention_experiment(cfg)
-    d = df[df.discovery_delay == int(cfg.get("headline_delay", 14))]
-    print(d.pivot_table(index=["detect_prob", "benign_invalid_rate"], columns="policy",
-                        values="clean_recovery").round(3).to_string())  # fmt: skip
+    if "budgets" in cfg:
+        print(grid_summary(cell_table(df)).to_string())
+    else:
+        print(df.pivot_table(index=["detect_prob", "benign_invalid_rate"], columns="policy",
+                             values="clean_recovery").to_string())  # fmt: skip
+
+
+def _preregister_grid(cfg: dict) -> None:
+    from slowburn.bench.retention_experiment import preregister_grid
+
+    grid = preregister_grid(cfg)
+    print(f"pre-registered scenario grid in configs/frozen.yaml: {grid}")
 
 
 def _theory_check(cfg: dict) -> None:
@@ -119,6 +132,7 @@ COMMANDS = {
     "tune-retention": _tune_retention,
     "theory-check": _theory_check,
     "retention": _retention,
+    "preregister-grid": _preregister_grid,
 }
 
 

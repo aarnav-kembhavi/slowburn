@@ -117,6 +117,36 @@ evidence) carries **no proven worst-case guarantee**: it minimises expected loss
 assumed prior and discovery distribution. Its behaviour is compared against ToH empirically, and
 under a misspecified prior in the sensitivity sweep.
 
+**Theorem 2(c) (the hybrid inherits the guarantee). NEEDS HUMAN REVIEW.** Let SlowBurn's hybrid
+reserve R >= 2 of its K slots for a ToH backbone with R media and let the DP choose the other
+K - R slots among the held snapshots (any rule whatsoever). If the backbone is computed each day
+by the ToH rule on the hybrid's held set with budget R, then at every day the hybrid holds a
+superset of what a stand-alone R-media ToH would hold. Hence for d = 0, and for
+1 <= d <= 2^(R-2) - 1 with s >= 2d, the hybrid **holds** a clean snapshot with W <= 3d.
+
+*Proof.* Induction on the day. On day 0 both hold {0}. Suppose before day t the hybrid's held
+set H contains the stand-alone ToH set T. ToH(R) on T ∪ {t} keeps, per medium level k, the
+newest held day of that level (top level: tz >= R - 1), plus today. For each level, the newest
+day of that level in H ∪ {t} equals the newest in T ∪ {t}: the newest day of level k up to t is
+held by ToH (it never deletes the newest day of a level), so it is in T ⊆ H, and nothing newer of
+level k exists. So the backbone computed on H ∪ {t} equals ToH's new set, which the hybrid keeps
+(forced in the DP), and the induction holds. The guarantee then follows from Theorem 2(a) with K
+replaced by R, because a superset contains the clean snapshot that Theorem 2(a) exhibits, and
+the newest clean held snapshot can only be newer. ∎
+
+*Scope (restore, not just retention).* Theorem 2(c) is about what is **held**. The verified
+restore (D29) reaches that snapshot when verification is reliable on the dirty kept snapshots
+newer than it (each holds at least one damaged version that the detector flags) and the posterior
+gate does not exclude it (gate tau = 0, or P(start > j) >= tau for that snapshot). With a blind
+detector the gate is what protects against restoring a dirty snapshot, and then the restore can
+land on an older held snapshot than the theorem's; the held-set guarantee still bounds what an
+operator with a perfect check could recover. We do not claim more.
+
+*Checks.* `tests/test_theory.py::test_theorem_2c_*` and `slowburn theory-check`
+(`hybrid_guarantee.csv`): the hybrid replayed for (K, R) in {(6,3), (8,4), (12,6), (12,4)} over
+300 days with random daily posteriors, asserting the superset property every day and
+W <= max(1, 3d) for every (t, d) within Theorem 2(a)'s conditions for R.
+
 *Checks.* `tests/test_theory.py`: (a) ToH replayed for K in {4, 5, 6, 8} over 600 days, every
 (s, d) satisfying the conditions, asserting a clean snapshot and W <= max(1, 3d), with the
 observed worst ratio max W / (3d) reported (tightness); (b) the minimum number of useful ages
@@ -157,3 +187,12 @@ on non-discovery uses the assumed delay distribution, which may be misspecified.
 120 random instances (random posteriors, candidate sets, budgets; penalty in {none, 5, 50}),
 plus hand-computed losses and the directional checks (heavy penalty never keeps a newer oldest
 snapshot; a certain start keeps day s - 1).
+
+**Theorem 3 extension (D29, D30).** The same DP stays exact when (i) the loss is that of the
+verified restore with posterior gate tau (starts later than g + 1 are charged as restoring from
+the newest kept day <= g, plus a separate branch for sets with no kept day <= g, where the
+fallback snapshot is the oldest kept day), and (ii) some days are forced (the hybrid's backbone)
+and do not count against the budget (the DP may not skip a forced day). Checked against brute
+force for random posteriors, gates in {0, 0.5, 0.9} and random forced sets
+(`tests/test_retention_dp.py::test_gated_forced_dp_matches_brute_force`), and the gated loss
+against an independent per-start evaluation of the restore rule. NEEDS HUMAN REVIEW.

@@ -194,7 +194,7 @@ ALL_POLICIES = (*SNAPSHOT_POLICIES, "amoeba_style")
 def budgets_of(cfg: dict, task: RetentionTask, hp: dict) -> list[int]:
     if "budget" in task.params:
         return [int(task.params["budget"])]
-    return [int(k) for k in cfg.get("budgets", [hp["budget"]])]
+    return [int(k) for k in (cfg["budgets"] if "budgets" in cfg else [hp["budget"]])]
 
 
 def start_posteriors(trace: MachineTrace, hp: dict, warmup: int, null_prior, cache: dict):
@@ -405,9 +405,66 @@ def build_tasks(cfg: dict, split: str, log=print) -> list[RetentionTask]:
     return tasks
 
 
+GRID_CELL = ["budget", "discovery_delay", "attack_start", "detect_prob", "benign_invalid_rate"]
+REPORT_RULE = (
+    "report every cell; per policy the average over cells and the worst cell of mean "
+    "clean recovery and mean whole-system work lost, oracle-ideal work lost alongside"
+)
+
+
+def scenario_grid_of(cfg: dict) -> dict:
+    """The scenario grid a run evaluates (compared with frozen.yaml's scenario_grid on test)."""
+    sw = cfg.get("sweep", {})
+    return {
+        "budgets": [int(k) for k in cfg["budgets"]],
+        "discovery_delay": [int(d) for d in cfg["discovery_delay"]],
+        "attack_start": [int(x) for x in sw.get("attack_start", [cfg["scenario"]["attack_start"]])],
+        "detect_prob": [float(x) for x in sw.get("detect_prob", [])],
+        "benign_invalid_rate": [float(x) for x in sw.get("benign_invalid_rate", [])],
+        "scenario": {k: v for k, v in cfg["scenario"].items() if k != "attack_start"},
+        "warmup_days": int(cfg["warmup_days"]),
+        "test_reps": int(cfg["reps"]),
+        "report": REPORT_RULE,
+    }
+
+
+def preregister_grid(cfg: dict, path: str = "configs/frozen.yaml") -> dict:
+    from slowburn.bench.registry import update_frozen
+
+    grid = scenario_grid_of(cfg)
+    update_frozen({"scenario_grid": grid}, path=path,
+                  note=f"pre-registered scenario grid from {cfg.get('_config_path')}")  # fmt: skip
+    return grid
+
+
+def cell_table(df: pd.DataFrame) -> pd.DataFrame:
+    """Mean clean recovery and work lost per grid cell and policy, oracle-ideal alongside."""
+    g = df.groupby([*GRID_CELL, "policy"])
+    return g.agg(clean_recovery=("clean_recovery", "mean"),
+                 work_lost_whole_system_hours=("work_lost_whole_system_hours", "mean"),
+                 work_lost_selective_file_hours=("work_lost_selective_file_hours", "mean"),
+                 work_lost_ideal_hours=("work_lost_ideal_hours", "mean"),
+                 snapshots_scanned=("snapshots_scanned", "mean"),
+                 n=("clean_recovery", "size")).reset_index()  # fmt: skip
+
+
+def grid_summary(cells: pd.DataFrame) -> pd.DataFrame:
+    """Per policy: average over cells and worst cell (lowest recovery / highest work lost)."""
+    out = cells.groupby("policy").agg(
+        cells=("clean_recovery", "size"),
+        recovery_avg=("clean_recovery", "mean"), recovery_worst=("clean_recovery", "min"),
+        work_lost_avg=("work_lost_whole_system_hours", "mean"),
+        work_lost_worst=("work_lost_whole_system_hours", "max"),
+        ideal_work_lost_avg=("work_lost_ideal_hours", "mean"))  # fmt: skip
+    return out.sort_values("recovery_avg", ascending=False)
+
+
 def run_retention_experiment(cfg: dict, log=print) -> pd.DataFrame:
     split = cfg.get("split", "dev")
-    frozen = check_split_allowed(split, cfg["hp"])
+    run_params = dict(cfg["hp"])
+    if "budgets" in cfg:
+        run_params["scenario_grid"] = scenario_grid_of(cfg)
+    frozen = check_split_allowed(split, run_params, cfg.get("frozen_path", "configs/frozen.yaml"))
     if split == "test":
         cfg = {**cfg, "hp": {**cfg["hp"], **{k: v for k, v in frozen.items() if k in cfg["hp"]}}}
     out = resolve_path(cfg["output_dir"])
@@ -425,6 +482,10 @@ def run_retention_experiment(cfg: dict, log=print) -> pd.DataFrame:
         if col in df:
             df[col] = pd.to_numeric(df[col])
     df.to_csv(out / "retention_results.csv", index=False)
+    if "budgets" in cfg:
+        cells = cell_table(df)
+        cells.to_csv(out / "cells.csv", index=False)
+        grid_summary(cells).to_csv(out / "grid_summary.csv")
     log(f"  {len(tasks)} machines, {len(df)} rows, {time.perf_counter() - t0:.1f}s")
     return df
 
@@ -494,5 +555,6 @@ def run_retention_tuning(cfg: dict, log=print) -> dict:
         "scan_eps": float(base.get("scan_eps", 0.001)),
     }
     update_frozen(chosen, note=f"rule D30 on {cfg.get('_config_path')}",
-                  path=cfg.get("frozen_path", "configs/frozen.yaml"))  # fmt: skip
+                  path=cfg.get("frozen_path", "configs/frozen.yaml"),
+                  remove=("budget",))  # fmt: skip
     return {"stage1": board1, "stage2": board2, "chosen": chosen}

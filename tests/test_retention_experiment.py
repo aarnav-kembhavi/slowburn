@@ -119,3 +119,37 @@ def test_retention_rules_refuse_test_split():
         retention_stage1(df)
     with pytest.raises(ValueError, match="DEV"):
         retention_stage2(df)
+
+
+def test_scenario_grid_gate_and_summaries(cfg, tmp_path):
+    import pandas as pd
+    import yaml
+
+    from slowburn.bench.registry import FrozenGateError
+    from slowburn.bench.retention_experiment import (
+        cell_table,
+        grid_summary,
+        preregister_grid,
+        scenario_grid_of,
+    )
+
+    fpath = tmp_path / "f.yaml"
+    preregister_grid(cfg, path=str(fpath))
+    doc = yaml.safe_load(fpath.read_text())
+    assert doc["params"]["scenario_grid"] == scenario_grid_of(cfg)
+    doc["frozen"] = True
+    doc["params"].update(cfg["hp"])
+    fpath.write_text(yaml.safe_dump(doc))
+    other = {**cfg, "split": "test", "budgets": [4], "frozen_path": str(fpath),
+             "output_dir": str(tmp_path / "o")}  # fmt: skip
+    with pytest.raises(FrozenGateError, match="scenario_grid"):
+        run_retention_experiment(other, log=lambda *a: None)
+    df = pd.DataFrame({"budget": [4, 4, 4, 4], "discovery_delay": [3, 3, 10, 10],
+                       "attack_start": 12, "detect_prob": 1.0, "benign_invalid_rate": 0.0,
+                       "policy": ["a", "b", "a", "b"], "clean_recovery": [1, 0, 0, 1],
+                       "work_lost_whole_system_hours": [10, 20, 30, 40],
+                       "work_lost_selective_file_hours": 0, "work_lost_ideal_hours": 5,
+                       "snapshots_scanned": 1})  # fmt: skip
+    summ = grid_summary(cell_table(df))
+    assert summ.loc["a", "recovery_worst"] == 0 and summ.loc["a", "work_lost_worst"] == 30
+    assert summ.loc["b", "recovery_avg"] == 0.5 and summ.loc["a", "cells"] == 2
