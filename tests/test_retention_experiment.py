@@ -25,7 +25,10 @@ def test_cells_are_paired_across_evidence_parameters(cfg):
     assert task_cache_key(1, a) != task_cache_key(1, b)
     ta, tb = simulate(cfg, a), simulate(cfg, b)
     assert ta.snapshots == tb.snapshots  # identical churn and attack
-    assert ta.histories == tb.histories
+    strip = lambda h: {f: (x.change_days, x.damaged_day) for f, x in h.items()}  # noqa: E731
+    assert strip(ta.histories) == strip(tb.histories)
+    # flags are per version: every damaged version is flagged when detect_prob = 1
+    assert all(x.damaged_day in x.flagged_days for x in ta.histories.values() if x.damaged_day)
     flags_a = sum(o.k for o in ta.obs)
     assert flags_a == sum(1 for h in ta.histories.values() if h.damaged_day is not None)
 
@@ -40,9 +43,13 @@ def test_retention_experiment_rows(results, cfg):
     df = results
     n_cells = 4
     n_policies = 8  # 7 snapshot policies + amoeba_style
-    assert len(df) == n_cells * cfg["reps"] * len(cfg["discovery_delay"]) * n_policies
+    n_rows = n_cells * cfg["reps"] * len(cfg["discovery_delay"]) * n_policies
+    assert len(df) == n_rows * len(cfg["budgets"])
     snap = df[df.policy != "amoeba_style"]
-    assert (snap.snapshots_retained <= cfg["hp"]["budget"]).all()
+    assert (snap.snapshots_retained <= snap.budget).all()
+    assert set(df.budget) == set(cfg["budgets"])
+    assert (df.work_lost_ideal_hours > 0).all()
+    assert (snap.snapshots_scanned >= 0).all()
     assert df.clean_recovery.isin([0, 1]).all()
     assert (df.residual_damaged_files >= 0).all()
 
@@ -52,7 +59,7 @@ def test_oracle_always_recovers_and_keep_last_n_obeys_proposition_1(results, cfg
     oracle = df[df.policy == "oracle"]
     assert (oracle.clean_snapshot_retained == 1).all()
     kln = df[df.policy == "keep_last_n"]
-    late = kln[kln.discovery_delay >= cfg["hp"]["budget"] - 1]
+    late = kln[kln.discovery_delay >= kln.budget - 1]
     assert (late.clean_snapshot_retained == 0).all()  # Proposition 1
 
 
@@ -73,16 +80,21 @@ def test_retention_tuning_two_stage(cfg, tmp_path):
         "frozen_path": str(tmp_path / "f.yaml"),
         "reps": 1,
         "tuning": {
-            "stage1": {"p_attack_within_window": [0.01, 0.2], "restore_quantile": [0.05, 0.25]},
-            "stage2": {"penalty": [30.0, 120.0], "assumed_discovery_max_days": [30]},
+            "stage1": {"p_attack_within_window": [0.01, 0.2], "gate": [0.5, 0.9]},
+            "stage2": {
+                "penalty": [30.0, 120.0],
+                "assumed_discovery_max_days": [30],
+                "backbone": [0.0, 0.4],
+            },
         },
     }
     res = run_retention_tuning(tcfg, log=lambda *a: None)
-    assert len(res["stage1"]) == 4 and len(res["stage2"]) == 2
+    assert len(res["stage1"]) == 4 and len(res["stage2"]) == 4
     frozen = yaml.safe_load((tmp_path / "f.yaml").read_text())
     assert frozen["frozen"] is False
     assert frozen["params"]["penalty"] in (30.0, 120.0)
     assert frozen["params"]["p_attack_within_window"] in (0.01, 0.2)
+    assert frozen["params"]["gate"] in (0.5, 0.9) and frozen["params"]["backbone"] in (0.0, 0.4)
 
 
 def test_retention_rules_refuse_test_split():
@@ -97,7 +109,8 @@ def test_retention_rules_refuse_test_split():
             "clean_recovery": [1],
             "work_lost_whole_system_hours": [1.0],
             "hp_p_attack_within_window": [0.01],
-            "hp_restore_quantile": [0.1],
+            "hp_gate": [0.5],
+            "hp_backbone": [0.0],
             "hp_penalty": [60.0],
             "hp_assumed_discovery_max": [30],
         }

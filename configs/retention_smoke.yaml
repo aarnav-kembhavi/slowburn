@@ -7,6 +7,7 @@ workers: 1
 
 warmup_days: 7
 discovery_delay: [3, 10]
+budgets: [4, 5]
 reps: 2
 amoeba_train_machines: 3
 vault_calib_machines: 4
@@ -16,8 +17,13 @@ hp:                       # retention hyperparameters (chosen on DEV; frozen bef
   p_attack_within_window: 0.01
   prior_window_days: 60
   penalty: 60.0           # asymmetric loss when no clean snapshot survives (days); null = symmetric
-  restore_quantile: 0.1
+  restore_quantile: 0.1   # only used by the quantile-restore ablation
   assumed_discovery: {kind: uniform, max_days: 30}
+  gate: 0.5               # restore-time posterior gate (D29)
+  backbone: 0.4           # fraction of the budget for the Tower of Hanoi backbone (D30)
+  null_pool: pooled       # fleet-level benign-rate prior (D31); per_machine = ablation
+  restore_rule: verified
+  scan_eps: 0.001
 
 scenario:
   n_files: 12

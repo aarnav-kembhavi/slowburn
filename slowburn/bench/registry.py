@@ -83,16 +83,22 @@ def _git_commit() -> str:
 
 
 def update_frozen(updates: dict[str, Any], note: str, freeze: bool = False,
-                  path: str | Path = FROZEN_PATH) -> dict[str, Any]:  # fmt: skip
-    """Record hyperparameters chosen on dev (with provenance). Refuses to edit a frozen file."""
+                  path: str | Path = FROZEN_PATH, remove=()) -> dict[str, Any]:  # fmt: skip
+    """Record hyperparameters chosen on dev (with provenance). Refuses to edit a frozen file.
+    ``remove``: keys that no longer apply (recorded in the history entry)."""
     current = load_frozen(path)
     if current.get("frozen", False):
         raise FrozenGateError(f"{path} is frozen; unfreezing must be a deliberate manual edit")
     params = dict(current.get("params", {}) or {})
     params.update(updates)
+    for k in remove:
+        params.pop(k, None)
     history = list(current.get("history", []) or [])
-    history.append({"date": dt.date.today().isoformat(), "commit": _git_commit(),
-                    "set": sorted(updates), "note": note})  # fmt: skip
+    entry = {"date": dt.date.today().isoformat(), "commit": _git_commit(),
+             "set": sorted(updates), "note": note}  # fmt: skip
+    if remove:
+        entry["removed"] = sorted(remove)
+    history.append(entry)
     doc = {"frozen": bool(freeze), "params": params, "history": history}
     with resolve_path(path).open("w", encoding="utf-8", newline="\n") as fh:
         fh.write("# Hyperparameters chosen on DEV machines only. Written by "

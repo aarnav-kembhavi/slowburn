@@ -27,7 +27,7 @@ from slowburn.inference.changepoint import (
     hazard_from_window,
 )
 from slowburn.inference.daily import make_aggregator
-from slowburn.inference.obsmodels import BetaBinomialExceedance
+from slowburn.inference.obsmodels import BetaBinomialExceedance, fit_pooled_null_prior
 from slowburn.inference.pipeline import AbstractFileDetector
 from slowburn.retention.amoeba import AmoebaStyle, Write, fit_weights
 from slowburn.retention.base import (
@@ -42,7 +42,13 @@ from slowburn.retention.base import (
 from slowburn.retention.dp import discovery_survival, retention_posterior
 from slowburn.sim.damage import RandomDamageSource
 from slowburn.sim.scenario import Scenario, ScenarioConfig
-from slowburn.store.restore import FileHistory, selective_restore, snapshots_scanned
+from slowburn.store.restore import (
+    HOURS_PER_DAY,
+    FileHistory,
+    selective_restore,
+    snapshots_scanned,
+    verified_restore,
+)
 from slowburn.utils.config import resolve_path
 from slowburn.utils.seed import child_rng
 
@@ -86,14 +92,24 @@ class MachineTrace:
     chunk_size: int
 
 
+def trace_days(cfg: dict, start: int | None) -> int:
+    """Days to simulate: through the latest discovery day. Attack-free machines run as long as
+    the latest attack start in the config (base value or sweep) plus the longest delay."""
+    delays = [int(d) for d in cfg["discovery_delay"]]
+    if start is None:
+        starts = [cfg["scenario"].get("attack_start")]
+        starts += list(cfg.get("sweep", {}).get("attack_start", []))
+        start = max(int(x) for x in starts if x is not None)
+    return int(start) + max(delays) + 1
+
+
 def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
     seed = int(cfg["seed"])
     key = task_seed_key(seed, task)
     p = task.params
     scen_params = {k: v for k, v in p.items() if k in SCENARIO_FIELDS}
-    delays = [int(d) for d in cfg["discovery_delay"]]
     start = scen_params.get("attack_start")
-    n_days = int(cfg["scenario"]["attack_start"]) + max(delays) + 1
+    n_days = trace_days(cfg, start)
     scen = Scenario(ScenarioConfig.from_dict({**scen_params, "days": n_days,
                                               "content": "tokens"}))  # fmt: skip
     det = AbstractFileDetector(float(p.get("detect_prob", 0.0)), child_rng(*key, "detector"))
@@ -101,13 +117,16 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
     snapshots, obs, writes = [], [], []
     versions: dict[str, tuple] = {}
     change_days: dict[str, list[int]] = {}
+    flagged_days: dict[str, set[int]] = {}
     recent_changes: list[int] = []
     for day in scen.run(child_rng(*key), RandomDamageSource(child_rng(*key, "damage")),
                         child_rng(*key, "benign_invalid")):  # fmt: skip
         snapshots.append(frozenset(c for chunks in day.files.values() for c in chunks))
         scores = det.score_day(day)
         obs.append(agg(scores))
-        flagged = {f for f, pv in zip(scores.file_ids, scores.pvals, strict=True) if pv == 0}
+        flagged = {f for f, pv in scores.file_pvals.items() if pv == 0}
+        for f in flagged:
+            flagged_days.setdefault(f, set()).add(day.day)
         files_today = day.changed_files
         mean_recent = np.mean(recent_changes[-7:]) if recent_changes else len(files_today)
         day_writes = []
@@ -126,7 +145,9 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
         if day.day > 0:
             recent_changes.append(len(files_today))
         writes.append(day_writes)
-    histories = {f: FileHistory(tuple(d), scen.damaged_on.get(f)) for f, d in change_days.items()}
+    histories = {f: FileHistory(tuple(d), scen.damaged_on.get(f),
+                                frozenset(flagged_days.get(f, ())))
+                 for f, d in change_days.items()}  # fmt: skip
     return MachineTrace(start, n_days, snapshots, obs, histories, writes, scen.cfg.chunk_size)
 
 
@@ -134,14 +155,22 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
 
 
 def make_policies(hp: dict, vault_threshold: float) -> dict:
+    """Fresh policy objects (some keep state). ``slowburn_*`` entries are ablations."""
+    gate, bb, P = float(hp.get("gate", 0.0)), float(hp.get("backbone", 0.0)), hp["penalty"]
     return {
         "keep_last_n": KeepLastN(),
         "gfs": GFS(),
         "tower_of_hanoi": TowerOfHanoi(),
         "threshold_vault": ThresholdVault(vault_threshold),
-        "prior_only": PosteriorDP(hp["penalty"], use_evidence=False),
-        "slowburn": PosteriorDP(hp["penalty"], use_evidence=True),
+        "prior_only": PosteriorDP(P, use_evidence=False, gate=gate, backbone=bb),
+        "slowburn": PosteriorDP(P, use_evidence=True, gate=gate, backbone=bb),
         "oracle": Oracle(),
+        # ablations (Tier 2 F): no backbone; DP loss ignoring the restore gate; symmetric loss
+        "slowburn_no_backbone": PosteriorDP(P, gate=gate, name="slowburn_no_backbone"),
+        "slowburn_ungated_loss": PosteriorDP(
+            P, gate=0.0, backbone=bb, name="slowburn_ungated_loss"
+        ),  # fmt: skip
+        "slowburn_symmetric": PosteriorDP(None, gate=gate, backbone=bb, name="slowburn_symmetric"),
     }
 
 
@@ -151,14 +180,37 @@ def _unique_bytes(trace: MachineTrace, days) -> int:
 
 
 def evaluate_machine_retention(cfg: dict, task: RetentionTask) -> list[dict]:
-    """Simulate one machine and evaluate every policy at every discovery delay."""
+    """Simulate one machine and evaluate every policy at every budget and discovery delay."""
     t0 = time.perf_counter()
     trace = simulate(cfg, task)
     sim_s = time.perf_counter() - t0
-    return evaluate_trace(cfg, task, trace, cfg["hp"], ALL_POLICIES, sim_s)
+    names = cfg.get("policies", ALL_POLICIES)
+    return evaluate_trace(cfg, task, trace, cfg["hp"], names, sim_s)
 
 
 ALL_POLICIES = (*SNAPSHOT_POLICIES, "amoeba_style")
+
+
+def budgets_of(cfg: dict, task: RetentionTask, hp: dict) -> list[int]:
+    if "budget" in task.params:
+        return [int(task.params["budget"])]
+    return [int(k) for k in cfg.get("budgets", [hp["budget"]])]
+
+
+def start_posteriors(trace: MachineTrace, hp: dict, warmup: int, null_prior, cache: dict):
+    """Evidence and prior-only start posteriors after every day (cached per hazard / null)."""
+    h = hazard_from_window(float(hp["p_attack_within_window"]), int(hp["prior_window_days"]))
+    pooled = hp.get("null_pool", "pooled") == "pooled" and null_prior is not None
+    key = (h, pooled)
+    if key not in cache:
+        n = trace.n_days
+        obs_model = BetaBinomialExceedance(null_prior=tuple(null_prior) if pooled else None)
+        model = SingleChangepoint(obs_model, h, warmup)
+        cache[key] = (
+            model.posterior_path(trace.obs, list(range(1, n + 1))),  # T = t + 1 days
+            {T: np.exp(geometric_log_prior(T, h, warmup)) for T in range(1, n + 1)},
+        )
+    return cache[key]
 
 
 def evaluate_trace(
@@ -172,99 +224,109 @@ def evaluate_trace(
 ) -> list[dict]:
     """Evaluate the given policies on a simulated machine under hyperparameters ``hp``."""
     p = task.params
-    warmup, K = int(cfg["warmup_days"]), int(p.get("budget", hp["budget"]))
-    h = hazard_from_window(float(hp["p_attack_within_window"]), int(hp["prior_window_days"]))
+    warmup = int(cfg["warmup_days"])
     S = discovery_survival(
         hp["assumed_discovery"]["kind"], int(hp["assumed_discovery"]["max_days"])
     )
     delays = [int(d) for d in cfg["discovery_delay"]]
     start = trace.start
     n = trace.n_days
+    rule = hp.get("restore_rule", "verified")
+    gate, scan_eps = float(hp.get("gate", 0.0)), float(hp.get("scan_eps", 0.001))
 
     t1 = time.perf_counter()
     cache = posterior_cache if posterior_cache is not None else {}
-    if h not in cache:
-        model = SingleChangepoint(BetaBinomialExceedance(), h, warmup)
-        cache[h] = (
-            model.posterior_path(trace.obs, list(range(1, n + 1))),  # T = t + 1 days
-            {T: np.exp(geometric_log_prior(T, h, warmup)) for T in range(1, n + 1)},
-        )
-    path, prior = cache[h]
+    path, prior = start_posteriors(trace, hp, warmup, p.get("null_prior"), cache)
     infer_s = time.perf_counter() - t1
 
     stat = np.array([o.value for o in trace.obs])
-    all_pol = make_policies(hp, float(p.get("vault_threshold", 0.0)))
-    policies = {k: v for k, v in all_pol.items() if k in policy_names}
-    held = {name: {} for name in policies}
-    kept_at = {name: {} for name in policies}
-    dp_s = 0.0
+    Ks = budgets_of(cfg, task, hp)
+    snap_names = [nm for nm in policy_names if nm != "amoeba_style"]
+    pols = {K: {nm: pol for nm, pol in make_policies(hp, float(p.get("vault_threshold", 0.0)))
+                .items() if nm in snap_names} for K in Ks}  # fmt: skip
+    held = {(K, nm): {} for K in Ks for nm in pols[K]}
+    kept_at = {(K, nm): {} for K in Ks for nm in pols[K]}
+    dp_s, dp_calls = 0.0, 0
     disc_days = {d: start + d for d in delays}
     for t in range(n):
         T = t + 1
         rpi = retention_posterior(path[T], t, S)
         ppi = retention_posterior(prior[T], t, S)
-        for name, pol in policies.items():
-            held[name][t] = t
-            ctx = RetentionContext(day=t, snapshot_days=dict(held[name]), budget=K,
-                                   daily_stat=stat[: t + 1], start_posterior=path[T],
-                                   retention_pi=rpi, prior_retention_pi=ppi,
-                                   oracle_start=start)  # fmt: skip
-            t2 = time.perf_counter()
-            keep = pol.decide(ctx)
-            if name == "slowburn":
-                dp_s += time.perf_counter() - t2
-            held[name] = {sid: held[name][sid] for sid in keep}
-            if t in disc_days.values():
-                kept_at[name][t] = sorted(held[name].values())
+        for K in Ks:
+            for nm, pol in pols[K].items():
+                hk = held[(K, nm)]
+                hk[t] = t
+                ctx = RetentionContext(day=t, snapshot_days=dict(hk), budget=K,
+                                       daily_stat=stat[: t + 1], start_posterior=path[T],
+                                       retention_pi=rpi, prior_retention_pi=ppi,
+                                       oracle_start=start)  # fmt: skip
+                t2 = time.perf_counter()
+                keep = pol.decide(ctx)
+                if nm == "slowburn":
+                    dp_s += time.perf_counter() - t2
+                    dp_calls += 1
+                held[(K, nm)] = {sid: hk[sid] for sid in keep}
+                if t in disc_days.values():
+                    kept_at[(K, nm)][t] = sorted(held[(K, nm)].values())
 
-    amoeba = None
-    if "amoeba_style" in policy_names and "amoeba_weights" in p:
-        amoeba = AmoebaStyle(np.asarray(p["amoeba_weights"], float))
     amoeba_rec = {}
-    for t in range(n):
-        if amoeba is not None:
-            last_k = list(range(max(0, t - K + 1), t + 1))
-            budget = _unique_bytes(trace, last_k) - len(trace.snapshots[t]) * trace.chunk_size
-            amoeba.step(trace.writes[t], max(budget, 0))
-            if t in disc_days.values():
-                amoeba_rec[t] = amoeba.recover(trace.histories, t)
+    if "amoeba_style" in policy_names and "amoeba_weights" in p:
+        for K in Ks:
+            amoeba = AmoebaStyle(np.asarray(p["amoeba_weights"], float))
+            for t in range(n):
+                last_k = list(range(max(0, t - K + 1), t + 1))
+                budget = _unique_bytes(trace, last_k) - len(trace.snapshots[t]) * trace.chunk_size
+                amoeba.step(trace.writes[t], max(budget, 0))
+                if t in disc_days.values():
+                    amoeba_rec[(K, t)] = amoeba.recover(trace.histories, t)
 
-    base = {k: v for k, v in p.items() if k != "amoeba_weights"}
+    base = {k: v for k, v in p.items() if k not in ("amoeba_weights", "null_prior", "budget")}
     hp_cols = {"hp_p_attack_within_window": hp["p_attack_within_window"],
-               "hp_penalty": hp["penalty"], "hp_restore_quantile": hp["restore_quantile"],
-               "hp_assumed_discovery_max": hp["assumed_discovery"]["max_days"]}  # fmt: skip
+               "hp_penalty": hp["penalty"], "hp_gate": gate,
+               "hp_backbone": float(hp.get("backbone", 0.0)),
+               "hp_assumed_discovery_max": hp["assumed_discovery"]["max_days"],
+               "hp_null_pool": hp.get("null_pool", "pooled"), "hp_restore_rule": rule,
+               "hp_restore_quantile": hp.get("restore_quantile")}  # fmt: skip
     rows = []
-    for d, td in disc_days.items():
-        post = path[td + 1]
-        klast = list(range(max(0, td - K + 1), td + 1))
-        klast_bytes = _unique_bytes(trace, klast)
-        common = {**base, **hp_cols, "split": task.split, "rep": task.rep, "discovery_delay": d,
-                  "true_start": start, "budget": K,
-                  "n_files_damaged": sum(h_.damaged_day is not None and h_.damaged_day <= td
-                                         for h_ in trace.histories.values()),
-                  "benign_source": "synthetic", "damage_source": "abstract_token",
-                  "evidence": f"abstract_q{p.get('detect_prob')}",
-                  "p_started_at_discovery": float(1 - post[-1]),
-                  "sim_s": sim_s, "infer_ms_per_day": 1000 * infer_s / n,
-                  "dp_ms_per_day": 1000 * dp_s / n}  # fmt: skip
-        for name in policies:
-            kept = kept_at[name][td]
-            r = selective_restore(kept, post, td, trace.histories, start, hp["restore_quantile"])
-            ub = _unique_bytes(trace, kept)
-            rows.append({**common, "policy": name, **r,
-                         "snapshots_retained": len(kept), "retained_unique_bytes": ub,
-                         "storage_vs_keep_last_n": ub / klast_bytes if klast_bytes else np.nan,
-                         "clean_snapshot_retained": int(any(j < start for j in kept)),
-                         "snapshots_scanned": snapshots_scanned(kept, start, r["restore_point"]),
-                         "oldest_retained_age": td - min(kept)})  # fmt: skip
-        if amoeba is not None:
-            rec = amoeba_rec[td]
-            total = rec["backup_bytes"] + len(trace.snapshots[td]) * trace.chunk_size
-            rows.append({**common, "policy": "amoeba_style", **rec,
-                         "snapshots_retained": None, "retained_unique_bytes": total,
-                         "storage_vs_keep_last_n": total / klast_bytes if klast_bytes else np.nan,
-                         "clean_snapshot_retained": None, "snapshots_scanned": None,
-                         "oldest_retained_age": None})  # fmt: skip
+    for K in Ks:
+        for d, td in disc_days.items():
+            post = path[td + 1]
+            klast = list(range(max(0, td - K + 1), td + 1))
+            klast_bytes = _unique_bytes(trace, klast)
+            common = {**base, **hp_cols, "split": task.split, "rep": task.rep,
+                      "discovery_delay": d, "true_start": start, "budget": K,
+                      "start_offset_month": start % 28, "start_offset_week": start % 7,
+                      "n_files_damaged": sum(h_.damaged_day is not None and h_.damaged_day <= td
+                                             for h_ in trace.histories.values()),
+                      # best achievable (oracle) work lost: restore from day s - 1
+                      "work_lost_ideal_hours": (td - (start - 1)) * HOURS_PER_DAY,
+                      "benign_source": "synthetic", "damage_source": "abstract_token",
+                      "evidence": f"abstract_q{p.get('detect_prob')}",
+                      "p_started_at_discovery": float(1 - post[-1]),
+                      "sim_s": sim_s, "infer_ms_per_day": 1000 * infer_s / n,
+                      "dp_ms_per_decision": 1000 * dp_s / max(dp_calls, 1)}  # fmt: skip
+            for nm in pols[K]:
+                kept = kept_at[(K, nm)][td]
+                if rule == "verified":
+                    r = verified_restore(kept, post, td, trace.histories, start, gate, scan_eps)
+                else:
+                    r = selective_restore(kept, post, td, trace.histories, start,
+                                          float(hp["restore_quantile"]))  # fmt: skip
+                    r["snapshots_scanned"] = snapshots_scanned(kept, start, r["restore_point"])
+                ub = _unique_bytes(trace, kept)
+                rows.append({**common, "policy": nm, **r,
+                             "snapshots_retained": len(kept), "retained_unique_bytes": ub,
+                             "storage_vs_keep_last_n": ub / klast_bytes if klast_bytes else np.nan,
+                             "clean_snapshot_retained": int(any(j < start for j in kept)),
+                             "oldest_retained_age": td - min(kept)})  # fmt: skip
+            if (K, td) in amoeba_rec:
+                rec = amoeba_rec[(K, td)]
+                total = rec["backup_bytes"] + len(trace.snapshots[td]) * trace.chunk_size
+                rows.append({**common, "policy": "amoeba_style", **rec,
+                             "snapshots_retained": None, "retained_unique_bytes": total,
+                             "storage_vs_keep_last_n": total / klast_bytes if klast_bytes
+                             else np.nan, "clean_snapshot_retained": None,
+                             "snapshots_scanned": None, "oldest_retained_age": None})  # fmt: skip
     return rows
 
 
@@ -279,17 +341,29 @@ def fit_amoeba_weights(cfg: dict, setting: dict, split: str, n_machines: int) ->
     return fit_weights(writes)
 
 
-def vault_threshold(cfg: dict, setting: dict, split: str, n_machines: int,
-                    fa: float = 0.05) -> float:  # fmt: skip
-    """Fixed line for the threshold vault: the (1 - fa) quantile, over attack-free calibration
-    machines, of the largest daily flagged-file fraction after warm-up."""
+def attack_free_calibration(cfg: dict, setting: dict, split: str, n_machines: int,
+                            fa: float = 0.05) -> tuple[float, tuple[float, float]]:  # fmt: skip
+    """From attack-free calibration machines (separate DEV family):
+    * the threshold vault's fixed line: the (1 - fa) quantile of the largest daily flagged-file
+      fraction after warm-up;
+    * the fleet-level Beta prior on the benign flag rate (D31), from each machine's flagged and
+      changed file totals after warm-up."""
     warmup = int(cfg["warmup_days"])
-    peaks = []
+    peaks, ks, ns = [], [], []
     for r in range(n_machines):
         clean = {**setting, "attack_start": None}
         trace = simulate(cfg, RetentionTask(split, "vault_calib", clean, r))
-        peaks.append(max([o.value for o in trace.obs[warmup:]], default=0.0))
-    return float(np.quantile(peaks, 1 - fa, method="higher"))
+        after = trace.obs[warmup:]
+        peaks.append(max([o.value for o in after], default=0.0))
+        ks.append(sum(o.k for o in after))
+        ns.append(sum(o.n for o in after))
+    thr = float(np.quantile(peaks, 1 - fa, method="higher"))
+    return thr, fit_pooled_null_prior(np.array(ks), np.array(ns))
+
+
+def vault_threshold(cfg: dict, setting: dict, split: str, n_machines: int,
+                    fa: float = 0.05) -> float:  # fmt: skip
+    return attack_free_calibration(cfg, setting, split, n_machines, fa)[0]
 
 
 # ---- driver -----------------------------------------------------------------------------
@@ -310,24 +384,23 @@ def build_tasks(cfg: dict, split: str, log=print) -> list[RetentionTask]:
 
     grid = expand_sweep(cfg["scenario"], cfg.get("sweep", {}))
     calib_split = "dev"  # calibration steps always use dev machines (separate families)
-    weights, thresholds = {}, {}
+    calib = {}
     for setting in grid:
-        ev_key = (setting.get("detect_prob"), setting.get("benign_invalid_rate"),
-                  setting.get("budget"))  # fmt: skip
-        if ev_key not in weights:
-            weights[ev_key] = fit_amoeba_weights(
+        ev_key = (setting.get("detect_prob"), setting.get("benign_invalid_rate"))
+        if ev_key not in calib:
+            w = fit_amoeba_weights(
                 cfg, setting, calib_split, int(cfg.get("amoeba_train_machines", 8))
             )
-            thresholds[ev_key] = vault_threshold(
-                cfg, setting, calib_split, int(cfg.get("vault_calib_machines", 40))
-            )
-    log(f"  calibrated AMOEBA weights and vault thresholds for {len(weights)} evidence settings")
+            n_cal = int(cfg.get("vault_calib_machines", 40))
+            thr, prior = attack_free_calibration(cfg, setting, calib_split, n_cal)
+            calib[ev_key] = (w, thr, prior)
+    log(f"  calibrated AMOEBA weights, vault thresholds and fleet null priors for {len(calib)} "
+        "evidence settings")  # fmt: skip
     tasks = []
     for setting in grid:
-        ev_key = (setting.get("detect_prob"), setting.get("benign_invalid_rate"),
-                  setting.get("budget"))  # fmt: skip
-        params = {**setting, "amoeba_weights": tuple(map(float, weights[ev_key])),
-                  "vault_threshold": thresholds[ev_key]}  # fmt: skip
+        w, thr, prior = calib[(setting.get("detect_prob"), setting.get("benign_invalid_rate"))]
+        params = {**setting, "amoeba_weights": tuple(map(float, w)), "vault_threshold": thr,
+                  "null_prior": tuple(map(float, prior))}  # fmt: skip
         tasks += [RetentionTask(split, "eval", params, r) for r in range(int(cfg["reps"]))]
     return tasks
 
@@ -384,9 +457,9 @@ def _stage(cfg, tasks, combos, policies, out, name, log):
 
 
 def run_retention_tuning(cfg: dict, log=print) -> dict:
-    """Pre-registered two-stage DEV tuning (D27); records the choices in configs/frozen.yaml."""
+    """Pre-registered two-stage DEV tuning (D30); records the choices in configs/frozen.yaml."""
     from slowburn.bench.registry import update_frozen
-    from slowburn.bench.tune import retention_stage1, retention_stage2
+    from slowburn.bench.tune import SHARED_STAGE_POLICIES, retention_stage1, retention_stage2
 
     if cfg.get("split", "dev") != "dev":
         raise ValueError("retention tuning must run on the dev split")
@@ -394,29 +467,32 @@ def run_retention_tuning(cfg: dict, log=print) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     tasks = build_tasks(cfg, "dev", log)
     base, grid = dict(cfg["hp"]), cfg["tuning"]
-    combos1 = [{**base, "p_attack_within_window": p, "restore_quantile": q}
+    combos1 = [{**base, "p_attack_within_window": p, "gate": g}
                for p in grid["stage1"]["p_attack_within_window"]
-               for q in grid["stage1"]["restore_quantile"]]  # fmt: skip
-    from slowburn.bench.tune import SHARED_STAGE_POLICIES
-
+               for g in grid["stage1"]["gate"]]  # fmt: skip
     df1 = _stage(cfg, tasks, combos1, SHARED_STAGE_POLICIES, out, "stage1", log)
-    board1, (p_best, q_best) = retention_stage1(df1)
+    board1, (p_best, g_best) = retention_stage1(df1)
     board1.to_csv(out / "stage1_scoreboard.csv")
-    combos2 = [{**base, "p_attack_within_window": p_best, "restore_quantile": q_best,
-                "penalty": P, "assumed_discovery": {**base["assumed_discovery"], "max_days": m}}
+    combos2 = [{**base, "p_attack_within_window": p_best, "gate": g_best, "penalty": P,
+                "assumed_discovery": {**base["assumed_discovery"], "max_days": m},
+                "backbone": bb}
                for P in grid["stage2"]["penalty"]
-               for m in grid["stage2"]["assumed_discovery_max_days"]]  # fmt: skip
+               for m in grid["stage2"]["assumed_discovery_max_days"]
+               for bb in grid["stage2"]["backbone"]]  # fmt: skip
     df2 = _stage(cfg, tasks, combos2, ("slowburn",), out, "stage2", log)
-    board2, (P_best, m_best) = retention_stage2(df2)
+    board2, (P_best, m_best, bb_best) = retention_stage2(df2)
     board2.to_csv(out / "stage2_scoreboard.csv")
     chosen = {
         "p_attack_within_window": float(p_best),
-        "restore_quantile": float(q_best),
+        "gate": float(g_best),
         "penalty": float(P_best),
         "assumed_discovery": {**base["assumed_discovery"], "max_days": int(m_best)},
-        "budget": int(base["budget"]),
+        "backbone": float(bb_best),
         "prior_window_days": int(base["prior_window_days"]),
+        "null_pool": base.get("null_pool", "pooled"),
+        "restore_rule": base.get("restore_rule", "verified"),
+        "scan_eps": float(base.get("scan_eps", 0.001)),
     }
-    update_frozen(chosen, note=f"rule D27 on {cfg.get('_config_path')}",
+    update_frozen(chosen, note=f"rule D30 on {cfg.get('_config_path')}",
                   path=cfg.get("frozen_path", "configs/frozen.yaml"))  # fmt: skip
     return {"stage1": board1, "stage2": board2, "chosen": chosen}

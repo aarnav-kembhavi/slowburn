@@ -74,3 +74,54 @@ def test_snapshots_scanned():
     assert snapshots_scanned([13, 20], true_start=12) is None
     with pytest.raises(TypeError):
         snapshots_scanned()
+
+
+# ---- D29: restore-time verification ------------------------------------------------------
+
+from slowburn.store.restore import p_clean, verified_restore  # noqa: E402
+
+VHIST = {
+    "a": FileHistory((0, 3, 12), damaged_day=12, flagged_days=frozenset({12})),  # detected
+    "b": FileHistory((0, 14), damaged_day=14),  # damaged on 14, MISSED by the detector
+    "c": FileHistory((0, 11, 13), None),
+    "d": FileHistory((0, 2), None),
+}
+
+
+def test_p_clean():
+    post = _post(20, {10: 0.25, 12: 0.25})
+    assert p_clean(post, [9, 10, 11, 12, 20]).tolist() == [1.0, 0.5, 0.5, 0.0, 0.0]
+
+
+def test_verification_skips_snapshot_with_flagged_version():
+    post = _post(20, {12: 0.5, 14: 0.5})  # diffuse
+    r = verified_restore([5, 10, 13, 20], post, 20, VHIST, true_start=12, gate=0.0)
+    # 20 and 13 hold a's flagged day-12 version -> rejected; 10 verifies
+    assert r["restore_point"] == 10 and r["verified"] == 1 and r["snapshots_scanned"] == 3
+    assert r["clean_recovery"] == 1 and r["restore_matches_dp_model"] == 1
+
+
+def test_missed_damage_passes_verification():
+    hist = {**VHIST, "a": FileHistory((0, 3), None)}  # only b's missed damage remains
+    post = _post(20, {14: 1.0})
+    r = verified_restore([5, 10, 15, 20], post, 20, hist, true_start=14, gate=0.0)
+    assert r["restore_point"] == 20 and r["clean_recovery"] == 0  # deterministic miss
+    assert r["restore_matches_dp_model"] == 0  # the DP assumed reliable verification
+
+
+def test_gate_skips_unlikely_clean_snapshots_and_fallback():
+    hist = {**VHIST, "a": FileHistory((0, 3), None)}
+    post = _post(20, {8: 0.5, 14: 0.5})
+    r = verified_restore([5, 10, 15, 20], post, 20, hist, true_start=14, gate=0.9)
+    assert r["gate_candidates"] == 1 and r["restore_point"] == 5  # only day 5 has P_clean 1
+    r = verified_restore([10, 15, 20], post, 20, hist, true_start=14, gate=0.9)
+    assert r["gate_candidates"] == 0 and r["verified"] == 0 and r["restore_point"] == 10
+
+
+def test_benign_flag_causes_false_rejection():
+    hist = {"c": FileHistory((0, 11, 13), None, flagged_days=frozenset({13}))}
+    post = _post(20, {15: 1.0})
+    r = verified_restore([5, 12, 14, 20], post, 20, hist, true_start=15, gate=0.5, scan_eps=0.0)
+    # 14 holds c's flagged day-13 version (benign validation failure) -> rejected; 12 verifies
+    assert r["snapshots_scanned"] == 2 and r["restore_point"] == 12
+    assert r["restore_point_clean"] == 1 and r["restore_matches_dp_model"] == 0

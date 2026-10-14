@@ -7,7 +7,7 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from slowburn.retention.base import TowerOfHanoi, replay
+from slowburn.retention.base import PosteriorDP, TowerOfHanoi, replay
 
 
 def toh_guarantee_table(K: int, n_days: int = 600) -> pd.DataFrame:
@@ -26,6 +26,35 @@ def toh_guarantee_table(K: int, n_days: int = 600) -> pd.DataFrame:
             bound = 1 if d == 0 else 3 * d
             rows.append({"K": K, "t": t, "d": d, "s": s, "clean": bool(clean), "W": W,
                          "bound": bound, "within_bound": bool(clean) and W <= bound})  # fmt: skip
+    return pd.DataFrame(rows)
+
+
+def hybrid_guarantee_table(K: int, R: int, n_days: int = 300, seed: int = 0,
+                           gate: float = 0.5) -> pd.DataFrame:  # fmt: skip
+    """Theorem 2(c) check: replay the hybrid (R-media Tower of Hanoi backbone + DP on K - R
+    slots) under random daily posteriors; record whether its held set contains the R-media ToH
+    set and, for every (t, d) within Theorem 2(a)'s conditions for R, whether a clean snapshot
+    with W <= 3d is held."""
+    rng = np.random.default_rng(seed)
+    toh = replay(TowerOfHanoi(), n_days, R)
+
+    def extra(day):
+        w = rng.dirichlet(np.full(day + 1, rng.uniform(0.1, 2.0))) * rng.uniform(0.05, 1.0)
+        return {"retention_pi": w, "prior_retention_pi": w}
+
+    hyb = replay(PosteriorDP(30.0, gate=gate, backbone=R / K), n_days, K, extra)
+    rows = []
+    for t in range(n_days):
+        superset = toh[t] <= hyb[t]
+        for d in range(0, 2 ** (R - 2)):
+            s = t - d
+            if s < 1 or (d >= 1 and s < 2 * d):
+                continue
+            clean = [j for j in hyb[t] if j < s]
+            W = (t - max(clean)) if clean else None
+            bound = 1 if d == 0 else 3 * d
+            rows.append({"K": K, "R": R, "t": t, "d": d, "superset": superset,
+                         "within_bound": bool(clean) and W <= bound})  # fmt: skip
     return pd.DataFrame(rows)
 
 
@@ -64,7 +93,14 @@ def theory_report(out_dir) -> dict[str, pd.DataFrame]:
             m = min_ages_brute(D, c)
             lb.append({"c": c, "D": D, "min_useful_ages": m, "K_min_exhaustive": m + 1,
                        "K_lower_bound": lower_bound_K(D, c)})  # fmt: skip
-    res = {"toh_tightness": pd.DataFrame(tightness), "horizon_lower_bound": pd.DataFrame(lb)}
+    hyb = []
+    for K, R in ((6, 3), (8, 4), (12, 6), (12, 4)):
+        tab = hybrid_guarantee_table(K, R)
+        hyb.append({"K": K, "R": R, "cases": len(tab), "horizon_D": 2 ** (R - 2) - 1,
+                    "days_superset_violated": int((~tab.groupby("t").superset.first()).sum()),
+                    "bound_violations": int((~tab.within_bound).sum())})  # fmt: skip
+    res = {"toh_tightness": pd.DataFrame(tightness), "horizon_lower_bound": pd.DataFrame(lb),
+           "hybrid_guarantee": pd.DataFrame(hyb)}  # fmt: skip
     for name, df in res.items():
         df.to_csv(out / f"{name}.csv", index=False)
     return res

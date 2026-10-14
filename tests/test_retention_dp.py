@@ -86,3 +86,55 @@ def test_discovery_survival_shapes():
         assert S(0) == pytest.approx(1.0)
         assert S(30) == pytest.approx(0.0)
         assert np.all(np.diff(S(np.arange(31))) <= 1e-12)
+
+
+# ---- D29: gated restore rule and forced (backbone) days ---------------------------------
+
+
+def _restore_rule_loss(keep, pi, penalty, gate):
+    """Independent per-start evaluation of the verified restore rule with reliable verification:
+    walk kept snapshots newest first among those with P(clean) >= gate, take the first clean
+    one; if there is none, fall back to the oldest kept snapshot."""
+    pi = np.asarray(pi, float)
+    total = pi.sum()
+    kept = sorted(keep)
+    loss = 0.0
+    for s in range(len(pi)):
+        if pi[s] == 0:
+            continue
+        gated = [j for j in kept if gate <= 0 or pi[j + 1 :].sum() / total >= gate - 1e-12]
+        clean = [j for j in gated if j < s]
+        j_r = max(clean) if clean else kept[0]
+        loss += pi[s] * ((s - 1 - j_r) if j_r < s else penalty)
+    return loss
+
+
+@pytest.mark.parametrize("gate", [0.0, 0.3, 0.6, 0.9, 0.99])
+@pytest.mark.parametrize("seed", range(12))
+def test_gated_expected_loss_equals_the_restore_rule(seed, gate):
+    rng = np.random.default_rng(100 + seed)
+    T = int(rng.integers(6, 16))
+    pi = _random_pi(rng, T)
+    keep = sorted(rng.choice(T, size=int(rng.integers(1, 6)), replace=False))
+    assert expected_loss(keep, pi, 25.0, gate) == pytest.approx(
+        _restore_rule_loss(keep, pi, 25.0, gate), abs=1e-12
+    )
+
+
+@pytest.mark.parametrize("gate", [0.0, 0.5, 0.9])
+@pytest.mark.parametrize("seed", range(20))
+def test_gated_forced_dp_matches_brute_force(seed, gate):
+    rng = np.random.default_rng(500 + seed)
+    T = int(rng.integers(6, 14))
+    pi = _random_pi(rng, T)
+    cand = sorted(rng.choice(T, size=int(rng.integers(3, min(T, 9) + 1)), replace=False))
+    n_forced = int(rng.integers(0, 3))
+    forced = sorted(rng.choice(cand, size=n_forced, replace=False)) if n_forced else []
+    if rng.random() < 0.5 and cand[-1] not in forced:
+        forced = sorted([*forced, cand[-1]])  # the hybrid's backbone always holds today
+    K = int(rng.integers(1, len(cand) + 1))
+    chosen = dp_select(cand, pi, K, 30.0, forced=forced, gate=gate)
+    best, _ = brute_force_select(cand, pi, K, 30.0, forced=forced, gate=gate)
+    assert expected_loss(chosen, pi, 30.0, gate) == pytest.approx(best, abs=1e-12)
+    assert set(forced) <= set(chosen) and cand[-1] in chosen
+    assert len(set(chosen) - set(forced)) <= K

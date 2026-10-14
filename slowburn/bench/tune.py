@@ -67,12 +67,12 @@ def _pick(board: pd.DataFrame, tie: float) -> tuple:
 
 
 def retention_stage1(df: pd.DataFrame, tie: float = 0.005) -> tuple[pd.DataFrame, tuple]:
-    """Rule D27 stage 1: (p_attack_within_window, restore_quantile) maximising mean clean
-    recovery over all snapshot baselines except the oracle."""
+    """Rule D30 stage 1: (p_attack_within_window, restore gate) maximising mean clean recovery
+    over all snapshot baselines except the oracle, averaged over every scenario-grid cell."""
     if set(df.split) != {"dev"}:
         raise ValueError("tuning must use DEV machines only")
     d = df[df.policy.isin(SHARED_STAGE_POLICIES)]
-    board = d.groupby(["hp_p_attack_within_window", "hp_restore_quantile"]).agg(
+    board = d.groupby(["hp_p_attack_within_window", "hp_gate"]).agg(
         clean_recovery=("clean_recovery", "mean"),
         work_lost_whole_system_hours=("work_lost_whole_system_hours", "mean"),
         n=("clean_recovery", "size"))  # fmt: skip
@@ -80,12 +80,12 @@ def retention_stage1(df: pd.DataFrame, tie: float = 0.005) -> tuple[pd.DataFrame
 
 
 def retention_stage2(df: pd.DataFrame, tie: float = 0.005) -> tuple[pd.DataFrame, tuple]:
-    """Rule D27 stage 2: (penalty, assumed discovery max days) maximising SlowBurn's mean clean
-    recovery."""
+    """Rule D30 stage 2: (penalty, assumed discovery max days, backbone fraction) maximising
+    SlowBurn's mean clean recovery over every scenario-grid cell."""
     if set(df.split) != {"dev"}:
         raise ValueError("tuning must use DEV machines only")
     d = df[df.policy == "slowburn"]
-    board = d.groupby(["hp_penalty", "hp_assumed_discovery_max"]).agg(
+    board = d.groupby(["hp_penalty", "hp_assumed_discovery_max", "hp_backbone"]).agg(
         clean_recovery=("clean_recovery", "mean"),
         work_lost_whole_system_hours=("work_lost_whole_system_hours", "mean"),
         n=("clean_recovery", "size"))  # fmt: skip

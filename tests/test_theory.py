@@ -44,3 +44,13 @@ def test_theorem_2b_lower_bound_never_exceeds_exhaustive_minimum(c):
         k_min = min_ages_brute(D, c) + 1  # + today's snapshot
         assert k_min >= lower_bound_K(D, c) - 1e-9
         assert k_min <= np.ceil(lower_bound_K(D, c)) + 1  # and the bound is tight to within 1
+
+
+@pytest.mark.parametrize("K,R", [(6, 3), (8, 4), (12, 6)])
+def test_theorem_2c_hybrid_inherits_tower_of_hanoi_guarantee(K, R):
+    from slowburn.bench.theory_checks import hybrid_guarantee_table
+
+    tab = hybrid_guarantee_table(K, R, n_days=200, seed=K)
+    assert len(tab) > 100
+    assert tab.superset.all()  # the hybrid always holds the R-media ToH set
+    assert tab.within_bound.all()  # hence Theorem 2(a) with K -> R

@@ -63,14 +63,42 @@ def _quantile_points(n: int) -> np.ndarray:
     return (np.arange(n) + 0.5) / n
 
 
+def fit_pooled_null_prior(k: np.ndarray, n: np.ndarray, max_conc: float = 1e4) -> tuple:
+    """Fleet-level Beta(a0, b0) prior on a machine's benign flag rate (decision D31).
+
+    ``k[i], n[i]``: flagged and scored totals of attack-free DEV machine i. Method of moments
+    for the between-machine spread: Var(k_i / n_i) = m (1 - m) / n_i + between-machine variance;
+    the concentration is capped at ``max_conc`` when the spread is binomial or less. A Jeffreys
+    half count is added to both parameters so a zero rate stays a proper prior.
+    """
+    k, n = np.asarray(k, float), np.asarray(n, float)
+    keep = n > 0
+    k, n = k[keep], n[keep]
+    if not len(n):
+        return 0.5, 0.5
+    m = k.sum() / n.sum()
+    within = float(np.mean(m * (1 - m) / n))
+    between = float(np.var(k / n, ddof=1)) - within if len(n) > 1 else 0.0
+    conc = max_conc if between <= 0 else float(np.clip(m * (1 - m) / between - 1, 1.0, max_conc))
+    return float(m * conc + 0.5), float((1 - m) * conc + 0.5)
+
+
 class BetaBinomialExceedance:
-    """Daily exceedance counts k_t out of n_t changed chunks (statistic ``exceed``)."""
+    """Daily exceedance counts k_t out of n_t changed chunks (statistic ``exceed``), or flagged
+    files out of changed files (``file_exceed``).
+
+    ``null_prior=(a0, b0)``: fleet-level Beta prior on the benign rate pooled across DEV machines
+    (hierarchical, D31); the machine's own warm-up updates it. ``None``: per-machine Jeffreys
+    prior (warm-up only; kept as an ablation).
+    """
 
     # overdispersion cannot be estimated from two weeks of warm-up; broad log-uniform grid
     RHO_GRID = (0.002, 0.006, 0.02, 0.06, 0.15)
 
     def __init__(self, n_effect: int = 6, activity: Sequence[float] = ACTIVITY_GRID,
-                 n_null: int = 9, min_rate: float = 1e-3):  # fmt: skip
+                 n_null: int = 9, min_rate: float = 1e-3,
+                 null_prior: tuple[float, float] | None = None):  # fmt: skip
+        self.null_prior = null_prior
         self.n_effect = n_effect
         self.activity = tuple(activity)
         self.n_null = n_null
@@ -84,8 +112,9 @@ class BetaBinomialExceedance:
         # warm-up posterior of the benign rate, with the sample size shrunk by the design effect
         n_bar = float(n[n > 0].mean()) if (n > 0).any() else 1.0
         deff = 1.0 + (n_bar - 1.0) * rho
-        a = k.sum() / deff + 0.5
-        b = (n.sum() - k.sum()) / deff + 0.5
+        a0, b0 = self.null_prior if self.null_prior is not None else (0.5, 0.5)
+        a = k.sum() / deff + a0
+        b = (n.sum() - k.sum()) / deff + b0
         self.null_rates = np.clip(
             stats.beta.ppf(_quantile_points(self.n_null), a, b), self.min_rate, 0.5
         )

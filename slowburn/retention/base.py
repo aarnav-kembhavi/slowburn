@@ -7,7 +7,7 @@ normal backup practice). Deleted snapshots never come back, so every policy is o
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Protocol
 
 import numpy as np
@@ -146,13 +146,28 @@ class ThresholdVault:
         return set(self.vault) | set(rolling[: ctx.budget - len(self.vault)])
 
 
+def backbone_size(budget: int, fraction: float) -> int:
+    """Slots reserved for the Tower of Hanoi backbone: round(fraction * budget), in [0, budget]."""
+    return int(min(budget, max(0, round(fraction * budget))))
+
+
 class PosteriorDP:
     """The SlowBurn retention decision: exact per-decision DP on the start posterior conditioned
-    on "not discovered yet". ``use_evidence=False`` is the prior-only (blind) policy."""
+    on "not discovered yet". ``use_evidence=False`` is the prior-only (blind) policy.
 
-    def __init__(self, penalty: float | None, use_evidence: bool = True, name: str | None = None):
+    ``gate``: the shared restore's posterior gate; the DP's loss is that of the verified restore
+    rule exactly (retention.dp, D29). ``backbone``: fraction of the budget reserved for a Tower
+    of Hanoi backbone with R = round(backbone * K) media (hybrid, D30); the DP allocates the other
+    K - R slots around it. Its held set always contains the R-media Tower of Hanoi set, so it
+    inherits Theorem 2(a) with K replaced by R (docs/theory.md, Theorem 2(c)).
+    """
+
+    def __init__(self, penalty: float | None, use_evidence: bool = True, name: str | None = None,
+                 gate: float = 0.0, backbone: float = 0.0):  # fmt: skip
         self.penalty = penalty
         self.use_evidence = use_evidence
+        self.gate = gate
+        self.backbone = backbone
         self.name = name or ("slowburn" if use_evidence else "prior_only")
 
     def decide(self, ctx: RetentionContext) -> set[int]:
@@ -160,7 +175,15 @@ class PosteriorDP:
         if pi is None:
             raise ValueError(f"{self.name} needs a retention posterior in the context")
         days = sorted(ctx.snapshot_days.values())
-        keep_days = dp_select(days, pi, ctx.budget, self.penalty, keep_newest=True)
+        R = backbone_size(ctx.budget, self.backbone)
+        forced = []
+        if R >= 1:
+            bb = TowerOfHanoi().decide(replace(ctx, budget=R))
+            forced = sorted(ctx.snapshot_days[sid] for sid in bb)
+            if R == ctx.budget:
+                return bb
+        keep_days = dp_select(days, pi, ctx.budget - R, self.penalty, keep_newest=True,
+                              forced=forced, gate=self.gate)  # fmt: skip
         return _ids_for_days(ctx, keep_days)
 
 
