@@ -240,6 +240,11 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   oldest snapshot. Fix: the restore posterior is P(s | evidence) x P(delay = t - s) under the
   same assumed delay distribution the DP uses (`retention.dp.discovery_posterior`), for every
   policy (shared restore). The unconditioned version is kept as an ablation
-  (`restore_posterior: evidence`). On 12 DEV machines (q in {0, 0.9}, b = 0.01, starts 112/139)
-  prior-only's clean recovery went from always-fallback to 0.65 (GFS 0.558-0.575). The full D30
-  tuning was re-run from scratch after this fix.
+  (`restore_posterior: evidence`). The full D30 tuning was re-run from scratch after this fix.
+  **Correction (2026-10-15):** an earlier version of this entry said D34 raised prior-only's
+  recovery on 12 DEV machines to 0.65. That was wrong: on the same 12 machines prior-only was
+  already 0.65 before D33/D34, and its restore points are identical in all three runs (mean
+  114.4125; per-budget recovery 0.3 / 0.5 / 0.5 / 1.0 for K = 4 / 6 / 8 / 12 in every run). D33
+  and D34 change which candidates pass the gate, not where prior-only restores from: its deficit
+  comes from its retention, not from the restore. D34 is kept because it makes the restore
+  consistent with the DP's model, not because it changed this result.

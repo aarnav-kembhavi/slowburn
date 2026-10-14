@@ -1,6 +1,6 @@
 # Hyperparameters chosen on DEV machines only. Written by slowburn.bench.registry.update_frozen;
 # do not hand-edit values. Test-split runs require frozen: true.
-frozen: false
+frozen: true
 params:
   daily_statistic: file_exceed
   daily_statistic_params:
@@ -8,11 +8,10 @@ params:
   observation_model: betabinom
   p_attack_within_window: 0.05
   restore_quantile: 0.1
-  penalty: 30.0
+  penalty: 270.0
   assumed_discovery:
     kind: uniform
     max_days: 60
-  budget: 8
   prior_window_days: 60
   scenario_grid:
     budgets:
@@ -67,6 +66,12 @@ params:
     report: report every cell; per policy the average over cells and the worst cell
       of mean clean recovery and mean whole-system work lost, oracle-ideal work lost
       alongside
+  gate: 0.8
+  backbone: 0.0
+  null_pool: pooled
+  restore_rule: verified
+  restore_posterior: discovery
+  scan_eps: 0.001
 history:
 - date: '2026-10-14'
   commit: f2e19ec
@@ -97,3 +102,24 @@ history:
   set:
   - scenario_grid
   note: pre-registered scenario grid from configs\headline.yaml
+- date: '2026-10-15'
+  commit: 0ff0668
+  set:
+  - assumed_discovery
+  - backbone
+  - gate
+  - null_pool
+  - p_attack_within_window
+  - penalty
+  - prior_window_days
+  - restore_posterior
+  - restore_rule
+  - scan_eps
+  note: rule D30 on configs\tune_retention.yaml
+  removed:
+  - budget
+- date: '2026-10-15'
+  commit: 0ff0668
+  set: []
+  note: 'FROZEN after D30 v3 (post D33/D34) on DEV: stage 1 (p=0.05, gate=0.8), stage
+    2 (penalty 270, discovery max 60, backbone 0.0); scenario grid D32'
