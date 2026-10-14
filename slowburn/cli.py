@@ -83,11 +83,21 @@ def _tune_statistic(cfg: dict) -> None:
     print(f"chosen: {choice} -> configs/frozen.yaml (not frozen yet)")
 
 
+def _tune_retention(cfg: dict) -> None:
+    from slowburn.bench.retention_experiment import run_retention_tuning
+
+    res = run_retention_tuning(cfg)
+    print(res["stage1"].to_string())
+    print(res["stage2"].to_string())
+    print(f"chosen: {res['chosen']} -> configs/frozen.yaml (not frozen yet)")
+
+
 COMMANDS = {
     "bench": _bench,
     "detector": _detector,
     "inference": _inference,
     "tune-statistic": _tune_statistic,
+    "tune-retention": _tune_retention,
 }
 
 

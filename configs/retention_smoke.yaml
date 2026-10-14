@@ -1,0 +1,34 @@
+# Tiny retention run for tests (token mode, abstract detector).
+seed: 41
+experiment: retention_smoke
+output_dir: results/retention_smoke
+split: dev
+workers: 1
+
+warmup_days: 7
+discovery_delay: [3, 10]
+reps: 2
+amoeba_train_machines: 3
+vault_calib_machines: 4
+
+hp:                       # retention hyperparameters (chosen on DEV; frozen before test runs)
+  budget: 5
+  p_attack_within_window: 0.01
+  prior_window_days: 60
+  penalty: 60.0           # asymmetric loss when no clean snapshot survives (days); null = symmetric
+  restore_quantile: 0.1
+  assumed_discovery: {kind: uniform, max_days: 30}
+
+scenario:
+  n_files: 12
+  file_types: [txt, zip, jpg, lzma]
+  file_kib: [16, 48]
+  edits_per_day: 3.0
+  attack_start: 12
+  attack_files_per_day: 1.0
+  damage_model: striped
+  damage_fraction: 0.1
+
+sweep:
+  detect_prob: [1.0, 0.0]
+  benign_invalid_rate: [0.0, 0.05]

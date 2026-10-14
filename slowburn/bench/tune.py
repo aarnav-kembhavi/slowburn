@@ -52,3 +52,39 @@ def statistic_rule(
 def _alpha_of(name: str) -> float:
     m = re.search(r"a([0-9.]+)$", name)
     return float(m.group(1)) if m else np.nan
+
+
+SHARED_STAGE_POLICIES = ("keep_last_n", "gfs", "tower_of_hanoi", "threshold_vault",
+                         "prior_only", "slowburn")  # fmt: skip
+
+
+def _pick(board: pd.DataFrame, tie: float) -> tuple:
+    best = board.clean_recovery.max()
+    near = board[board.clean_recovery >= best - tie]
+    return near.sort_values("work_lost_whole_system_hours").index[0]
+
+
+def retention_stage1(df: pd.DataFrame, tie: float = 0.005) -> tuple[pd.DataFrame, tuple]:
+    """Rule D27 stage 1: (p_attack_within_window, restore_quantile) maximising mean clean
+    recovery over all snapshot baselines except the oracle."""
+    if set(df.split) != {"dev"}:
+        raise ValueError("tuning must use DEV machines only")
+    d = df[df.policy.isin(SHARED_STAGE_POLICIES)]
+    board = d.groupby(["hp_p_attack_within_window", "hp_restore_quantile"]).agg(
+        clean_recovery=("clean_recovery", "mean"),
+        work_lost_whole_system_hours=("work_lost_whole_system_hours", "mean"),
+        n=("clean_recovery", "size"))  # fmt: skip
+    return board.sort_values("clean_recovery", ascending=False), _pick(board, tie)
+
+
+def retention_stage2(df: pd.DataFrame, tie: float = 0.005) -> tuple[pd.DataFrame, tuple]:
+    """Rule D27 stage 2: (penalty, assumed discovery max days) maximising SlowBurn's mean clean
+    recovery."""
+    if set(df.split) != {"dev"}:
+        raise ValueError("tuning must use DEV machines only")
+    d = df[df.policy == "slowburn"]
+    board = d.groupby(["hp_penalty", "hp_assumed_discovery_max"]).agg(
+        clean_recovery=("clean_recovery", "mean"),
+        work_lost_whole_system_hours=("work_lost_whole_system_hours", "mean"),
+        n=("clean_recovery", "size"))  # fmt: skip
+    return board.sort_values("clean_recovery", ascending=False), _pick(board, tie)

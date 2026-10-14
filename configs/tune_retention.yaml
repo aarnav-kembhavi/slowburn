@@ -1,0 +1,43 @@
+# DEV tuning of retention hyperparameters (pre-registered rule D27), same scenario as the headline.
+seed: 101
+experiment: tune_retention
+output_dir: results/tune_retention
+split: dev                # hyperparameters are chosen on DEV only (rule D27)
+workers: 5
+
+warmup_days: 14
+discovery_delay: [3, 7, 14, 21, 30]
+headline_delay: 14
+reps: 10
+amoeba_train_machines: 8
+vault_calib_machines: 40
+
+hp:
+  budget: 8
+  p_attack_within_window: 0.01
+  prior_window_days: 60
+  penalty: 60.0
+  restore_quantile: 0.1
+  assumed_discovery: {kind: uniform, max_days: 30}
+
+scenario:
+  n_files: 40
+  file_types: [txt, csv, bin, docx, zip, png, jpg, mp3, zlib, lzma]
+  file_kib: [16, 96]
+  edits_per_day: 4.0
+  attack_start: 30
+  attack_files_per_day: 0.5
+  damage_model: striped
+  damage_fraction: 0.1
+
+sweep:
+  detect_prob: [1.0, 0.9, 0.5, 0.2, 0.0]
+  benign_invalid_rate: [0.0, 0.001, 0.01, 0.05]
+
+tuning:
+  stage1:                       # shared restore stage: scored on ALL snapshot baselines
+    p_attack_within_window: [0.005, 0.01, 0.05, 0.2]
+    restore_quantile: [0.01, 0.05, 0.1, 0.25]
+  stage2:                       # SlowBurn's own knobs, stage-1 values fixed
+    penalty: [30.0, 60.0, 120.0]
+    assumed_discovery_max_days: [30, 45, 60]

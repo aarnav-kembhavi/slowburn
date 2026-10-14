@@ -1,0 +1,88 @@
+"""C / Theorem 3 numerical check: the DP is exactly optimal per decision (brute force)."""
+
+import numpy as np
+import pytest
+
+from slowburn.retention.dp import (
+    brute_force_select,
+    discovery_survival,
+    dp_select,
+    expected_loss,
+    retention_posterior,
+)
+
+
+def _random_pi(rng, T, started_mass=None):
+    w = rng.dirichlet(np.full(T, rng.uniform(0.2, 2.0)))
+    m = rng.uniform(0.05, 1.0) if started_mass is None else started_mass
+    return w * m  # remaining mass = not started
+
+
+def test_expected_loss_hand_computed():
+    pi = np.zeros(10)
+    pi[5] = 0.5  # attack started on day 5 with prob 0.5
+    pi[2] = 0.2
+    # keep {1, 4, 9}: s=2 -> newest clean 1 -> loss 0; s=5 -> newest clean 4 -> loss 0
+    assert expected_loss([1, 4, 9], pi, penalty=100.0) == pytest.approx(0.0)
+    # keep {3, 9}: s=2 -> no clean -> 100; s=5 -> 5-1-3 = 1
+    assert expected_loss([3, 9], pi, penalty=100.0) == pytest.approx(0.2 * 100 + 0.5 * 1)
+    # symmetric: no clean at s=2 costs s = 2
+    assert expected_loss([3, 9], pi, penalty=None) == pytest.approx(0.2 * 2 + 0.5 * 1)
+
+
+@pytest.mark.parametrize("penalty", [None, 5.0, 50.0])
+@pytest.mark.parametrize("seed", range(40))
+def test_dp_matches_brute_force(seed, penalty):
+    rng = np.random.default_rng(seed)
+    T = int(rng.integers(6, 14))
+    pi = _random_pi(rng, T)
+    cand = sorted(rng.choice(T, size=int(rng.integers(3, min(T, 9) + 1)), replace=False))
+    K = int(rng.integers(1, len(cand) + 1))
+    chosen = dp_select(cand, pi, K, penalty)
+    best, _ = brute_force_select(cand, pi, K, penalty)
+    assert expected_loss(chosen, pi, penalty) == pytest.approx(best, abs=1e-12)
+    assert len(chosen) <= K and cand[-1] in chosen and set(chosen) <= set(cand)
+
+
+def test_dp_without_keep_newest_matches_brute_force():
+    rng = np.random.default_rng(7)
+    for _ in range(20):
+        pi = _random_pi(rng, 10)
+        cand = list(range(10))
+        chosen = dp_select(cand, pi, 3, 20.0, keep_newest=False)
+        best, _ = brute_force_select(cand, pi, 3, 20.0, keep_newest=False)
+        assert expected_loss(chosen, pi, 20.0) == pytest.approx(best, abs=1e-12)
+
+
+def test_dp_keeps_snapshot_just_before_a_certain_start():
+    pi = np.zeros(20)
+    pi[12] = 1.0
+    assert 11 in dp_select(list(range(20)), pi, 2, penalty=100.0)
+
+
+def test_heavy_penalty_pushes_retention_older():
+    rng = np.random.default_rng(3)
+    pi = _random_pi(rng, 30, started_mass=0.5)
+    cand = list(range(30))
+    light = dp_select(cand, pi, 4, penalty=None)
+    heavy = dp_select(cand, pi, 4, penalty=1000.0)
+    assert min(heavy) <= min(light)
+
+
+def test_retention_posterior_conditions_on_no_discovery():
+    post = np.r_[np.full(11, 0.05), 0.45]  # days 0..10 then not-started
+    S = discovery_survival("uniform", 5)
+    pi = retention_posterior(post, 10, S)
+    assert np.all(pi[:6] == 0)  # starts >= 5 days ago would already have been discovered
+    assert pi[10] > pi[7] > 0
+    assert pi.sum() < 1  # 'not started' keeps the rest
+    with pytest.raises(ValueError):
+        retention_posterior(post[:-1], 10, S)
+
+
+def test_discovery_survival_shapes():
+    for kind in ("uniform", "geometric"):
+        S = discovery_survival(kind, 30)
+        assert S(0) == pytest.approx(1.0)
+        assert S(30) == pytest.approx(0.0)
+        assert np.all(np.diff(S(np.arange(31))) <= 1e-12)

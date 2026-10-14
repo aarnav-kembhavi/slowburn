@@ -129,3 +129,19 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   failures), so rate comparisons are paired.
 - **D26 Benign validation failures are drawn per clean changed file per day**, from an auxiliary
   random stream; with rate 0 every earlier result is reproduced exactly.
+- **D27 Pre-registered retention tuning rule (DEV only), set before running.** Machines: the
+  headline scenario and grid (detection probability {1, 0.9, 0.5, 0.2, 0} x benign failure rate
+  {0, 0.001, 0.01, 0.05}), 10 dev machines per cell, all discovery delays {3, 7, 14, 21, 30}.
+  Stage 1, shared restore stage: choose (P(attack within 60 d) in {0.005, 0.01, 0.05, 0.2},
+  restore quantile in {0.01, 0.05, 0.1, 0.25}) maximising mean clean recovery averaged over ALL
+  snapshot baselines except the oracle (keep-last-N, GFS, Tower of Hanoi, threshold vault,
+  prior-only, SlowBurn), with penalty 60 and assumed discovery uniform up to 30 days. Stage 2,
+  SlowBurn's own knobs: with stage-1 values fixed, choose (penalty in {30, 60, 120} days, assumed
+  discovery max in {30, 45, 60} days) maximising SlowBurn's mean clean recovery. Ties within
+  0.005 go to lower mean whole-system work lost. Prior-only shares the chosen penalty and
+  horizon (it is the same DP without evidence). Budget K = 8 is a scenario choice, swept in F.
+- **D28 Retention design choices.** Today's snapshot is always kept (normal practice). The restore
+  stage is shared by every policy (same evidence posterior at discovery, same quantile rule), so
+  retention is the only variable. AMOEBA-style uses the same shared evidence as its EVID term and
+  an equal incremental-bytes budget (keep-last-K's unique history bytes). Unrecovered runs score
+  whole-system work lost as everything since day 0 (conservative).
