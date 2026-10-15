@@ -806,3 +806,24 @@ the team; Tier 2 not started.
 SlowBurn 4.0 / 0.977 / 1834.926, 6.0 / 0.972 / 1841.820, 8.0 / 0.936 / 1832.562, 12.0 / 0.961 /
 1530.732; prior-only 4.0 / 1.000 / 1970.400, 6.0 / 0.979 / 1819.140, 8.0 / 0.978 / 1718.244,
 12.0 / 0.957 / 1580.850. Same pattern as the TEST rerun.
+
+## 2026-10-16: Timing-prior misspecification sweep (DEV only, reporting), 800 machines x 9 priors
+
+`results/sweep_prior/sweep_summary.csv` (frozen hyperparameters; only the assumed attack-timing
+prior replaced; mean over every grid cell; clean recovery / whole-system work lost h):
+frozen_geometric: prior-only 0.978437 / 1772.1585, SlowBurn 0.961313 / 1760.0100, GFS 0.640750
+/ 2076.0630, ToH 0.593000 / 2387.7150 (reproduces the DEV rerun exactly).
+flat: 0.978437 / 1746.9285, 0.959625 / 1764.7230, GFS 0.640250 / 2076.4815, ToH 0.593000 /
+2386.6590. matched (normal, center 121, sd 12): 1.000000 / 1409.5800, 0.981875 / 1370.4930,
+GFS 0.646062 / 2003.3205, ToH 0.611062 / 2310.0015. earlier_30: 0.968250 / 1813.5885,
+0.993313 / 1587.6960, GFS 0.650000 / 2083.7610, ToH 0.612500 / 2457.9480. earlier_60: 1.000000
+/ 2192.9250, 0.999875 / 2132.0370, GFS 0.650000 / 2113.0875, ToH 0.612500 / 2540.1720.
+later_30: 0.754125 / 1528.6230, 0.848187 / 1428.9075, GFS 0.531438 / 2225.2365, ToH 0.500750 /
+2423.1360. later_60: 0.361938 / 2171.4180, 0.621125 / 1755.8670, GFS 0.418125 / 2437.7610, ToH
+0.375625 / 2632.7985. narrow (sd 3): 0.873188 / 1327.2930, 0.853625 / 1347.3915, GFS 0.564937 /
+2131.8255, ToH 0.568063 / 2355.0840. wide (sd 48): 0.979437 / 1812.3540, 0.962063 / 1834.9725,
+GFS 0.644687 / 2057.1420, ToH 0.598125 / 2363.9820.
+GFS and ToH change with the prior only through the shared verified restore (its gate uses the
+posterior); their retention is prior-free (clean snapshot retained 0.650 / 0.6125 throughout).
+The frozen prior is NOT the generating distribution (constant hazard, P(start within 60 d) =
+0.05, vs a certain start at day 112 + o); it behaves like the flat prior.
