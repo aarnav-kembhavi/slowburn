@@ -1,5 +1,19 @@
 # STATUS (updated daily)
 
+## 2026-10-16 (night): systems paper, no fixed date (D42)
+
+**Schedule:** no deadline; phases P0-P7 (OPEN_QUESTIONS D42). Tonight: P0 done; P1 simulator v2
+done and the new DEV set generated; baseline numbers per world done; method v2 stage A running.
+
+**Done tonight (tests pass, ruff clean, committed):** gate day logged per restore (v1 rerun
+row-identical); v1 TEST marked spent; prototype appendix; generating worlds (uniform, early,
+late, bursty); byte budgets; worst-case timing grid; assumed-delay sweep; new DEV (seed 202);
+method v2 options (blind-detector weight, adaptive gate) with selection rules fixed before runs.
+
+**Needs the team:** D50 (claim (3) not reproduced on v2 DEV); dataset and restic paths and disk
+caps (placeholders in the plan); review of real-product baseline sources once P3 starts;
+docs/theory.md review.
+
 ## 2026-10-16
 
 **On track: yes, for the new freeze date of 20 October** (experiments), writing 21-25 October.
