@@ -764,3 +764,36 @@ tower_of_hanoi 0.597542 / 0.0, 2379.6550 / 4776.0; prior_only 0.575000 / 0.0, 21
 3461.9340 / 4776.0; keep_last_n 0.050000 / 0.0, 3512.3390 / 4776.0.
 Prior-only (0.575) does NOT match GFS (0.644) on test, as on DEV. Per-cell tests:
 `results/headline/paired_tests.csv`. Figures: `paper/generated/` (`slowburn fig all`).
+
+## 2026-10-15: D37 bug fix (K = 12) and full TEST grid RERUN, 2400 test machines, 1728000 rows
+
+Fix (commit e2668b1): retention deletes only when held + today > K; tie-break smallest largest
+gap, then delete newest. No hyperparameter retuned; frozen.yaml unchanged; same seed and
+machines (every baseline's numbers identical to the first run). Run time 14817.8 s.
+`results/headline_v2/grid_summary.csv` (clean recovery avg / worst; whole-system work lost avg /
+worst, h; oracle-ideal avg 772.8 h): keep_first 0.999687 / 0.966667, 3647.0510 / 4776.0; oracle
+0.999687 / 0.966667, 776.5100 / 1555.2; prior_only 0.980708 / 0.0, 1758.8845 / 4776.0;
+slowburn 0.967187 / 0.0, 1743.0375 / 4776.0; gfs 0.643750 / 0.0, 2072.2055 / 4776.0;
+tower_of_hanoi 0.597542 / 0.0, 2379.6550 / 4776.0; amoeba_style 0.151396 / 0.0;
+threshold_vault 0.068521 / 0.0, 3461.9340 / 4776.0; keep_last_n 0.050000 / 0.0, 3512.3390 /
+4776.0. First run for comparison: slowburn 0.932583 / 1368.8045 h, prior_only 0.575000 /
+2112.9000 h.
+
+Per K (`results/headline_v2/k12_fix_by_budget.csv`; kept / recovery / work lost h), first run ->
+rerun: SlowBurn K=4 2.0 / 0.894 / 1336.254 -> 4.0 / 0.980 / 1824.662; K=6 3.0 / 0.959 /
+1295.804 -> 6.0 / 0.976 / 1806.296; K=8 3.0 / 0.959 / 1295.804 -> 8.0 / 0.953 / 1788.930; K=12
+4.0 / 0.918 / 1547.356 -> 12.0 / 0.960 / 1552.262. Prior-only K=4 2.0 / 0.300 / 2917.200 ->
+4.0 / 1.000 / 1959.960; K=6 3.0 / 0.500 / 2248.800 -> 6.0 / 0.983 / 1800.612; K=8 3.0 / 0.500 /
+2248.800 -> 8.0 / 0.979 / 1706.436; K=12 4.0 / 1.000 / 1036.800 -> 12.0 / 0.961 / 1568.530.
+
+After the fix a clean snapshot is retained in every case (clean_snapshot_retained = 1.0 for
+SlowBurn and prior-only at every K); all remaining failures are the verified restore choosing a
+dirty snapshot that passes verification, at low detection probability and 45-60 day delays
+(prior-only at delay 60: 1.000 / 0.913 / 0.895 / 0.806 for K = 4 / 6 / 8 / 12; SlowBurn at q =
+0: 0.902 / 0.891 / 0.825 / 0.873). Work lost by q (0 / 0.2 / 0.5 / 0.9 / 1): SlowBurn 1978.5 /
+1786.0 / 1706.3 / 1628.4 / 1616.0 h; prior-only 1842.3 / 1781.6 / 1742.4 / 1714.6 / 1713.6 h.
+
+**CONTRADICTS THE DRAFT CLAIM:** prior-only (no detector) now beats every fixed schedule and
+has higher mean clean recovery than SlowBurn (0.981 vs 0.967) at similar work lost (1758.9 vs
+1743.0 h). Evidence lowers work lost at q >= 0.5 but lowers recovery at q <= 0.2. Reported to
+the team; Tier 2 not started.
