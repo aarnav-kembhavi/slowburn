@@ -55,6 +55,35 @@ def uniform_log_prior(T: int, warmup: int = 0) -> np.ndarray:
     return lp
 
 
+def timing_log_prior(T: int, spec: dict, warmup: int = 0) -> np.ndarray:
+    """log P(start = d) for d < T and log P(not started by T) for an assumed attack-timing
+    prior given as a spec (misspecification sweep, Tier 2 F):
+
+    ``{"kind": "geometric", "hazard": h}``: the frozen constant-hazard prior;
+    ``{"kind": "uniform"}``: flat over post-warm-up days and "not started";
+    ``{"kind": "gaussian", "center": c, "sd": s, "p_attack": p}``: total attack probability p
+    spread as a discretised normal over absolute post-warm-up days (normalised over
+    [warmup, warmup + 2000)), the rest "never".
+    """
+    kind = spec["kind"]
+    if kind == "geometric":
+        return geometric_log_prior(T, float(spec["hazard"]), warmup)
+    if kind == "uniform":
+        return uniform_log_prior(T, warmup)
+    if kind != "gaussian":
+        raise ValueError(f"unknown timing prior {kind!r}")
+    c, sd, p = float(spec["center"]), float(spec["sd"]), float(spec["p_attack"])
+    w = min(warmup, T)
+    days = np.arange(warmup, warmup + 2000)
+    logf = -0.5 * ((days - c) / sd) ** 2
+    logf = logf - logsumexp(logf) + np.log(p)
+    lp = np.full(T + 1, -np.inf)
+    n = T - w
+    lp[w:T] = logf[:n]
+    lp[T] = np.log(max(1.0 - float(np.exp(logf[:n]).sum()), 1e-300))
+    return lp
+
+
 def single_changepoint_posterior(
     ll0: np.ndarray,
     ll1: np.ndarray,
@@ -91,9 +120,9 @@ class SingleChangepoint:
     name = "single_cp"
 
     def __init__(self, obs_model, hazard: float, warmup: int, use_data: bool = True,
-                 prior: str = "geometric"):  # fmt: skip
-        if prior not in ("geometric", "uniform"):
-            raise ValueError("prior must be 'geometric' or 'uniform'")
+                 prior: str | dict = "geometric"):  # fmt: skip
+        if not isinstance(prior, dict) and prior not in ("geometric", "uniform"):
+            raise ValueError("prior must be 'geometric', 'uniform' or a timing_log_prior spec")
         self.obs_model = obs_model
         self.hazard = hazard
         self.warmup = warmup
@@ -101,6 +130,8 @@ class SingleChangepoint:
         self.prior = prior  # "uniform" = "suspicion only" ablation (no timing prior)
 
     def log_prior(self, T: int) -> np.ndarray:
+        if isinstance(self.prior, dict):
+            return timing_log_prior(T, self.prior, self.warmup)
         if self.prior == "uniform":
             return uniform_log_prior(T, self.warmup)
         return geometric_log_prior(T, self.hazard, self.warmup)

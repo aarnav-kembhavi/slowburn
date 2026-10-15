@@ -36,6 +36,7 @@ ties towards the smaller set, which deleted zero-marginal-value snapshots while 
 from __future__ import annotations
 
 import itertools
+import math
 from collections.abc import Sequence
 
 import numpy as np
@@ -52,7 +53,11 @@ class _Sums:
 
     def _idx(self, x: float) -> int:
         """Number of start days <= x (x may be fractional, negative or beyond the end)."""
-        return int(np.clip(np.floor(x) + 1, 0, self.n))
+        if x >= self.n:
+            return self.n  # also +inf
+        if x < 0:
+            return 0  # also -inf
+        return min(math.floor(x) + 1, self.n)
 
     def mass_le(self, a: float) -> float:
         return float(self.s0[self._idx(a)])
@@ -116,20 +121,31 @@ def _ungated_loss(j: list[int], S: _Sums, penalty: float | None) -> float:
     return cost + S.gap_cost(j[-1], np.inf)
 
 
+class _LossEval:
+    """``expected_loss`` for many sets under one posterior and gate (prefix sums built once)."""
+
+    def __init__(self, pi: np.ndarray, penalty: float | None, gate: float):
+        self.penalty = penalty
+        self.g = gate_day(pi, gate)
+        self.S = _Sums(pi)
+        self.Sg = _Sums(gated_pi(pi, self.g))
+        # gated_pi charges starts s > g + 1 as if s = g + 1; add back their constant (s - 1 - g)
+        self.shift = self.S.gap_cost(int(self.g), np.inf) if np.isfinite(self.g) else 0.0
+
+    def __call__(self, j: list[int]) -> float:
+        """Loss of the sorted, non-empty set ``j``."""
+        if j[0] > self.g:  # no kept snapshot passes the gate: fallback to the oldest kept one
+            return self.S.no_clean_cost(j[0], self.penalty) + self.S.gap_cost(j[0], np.inf)
+        return _ungated_loss(j, self.Sg, self.penalty) + self.shift
+
+
 def expected_loss(keep: Sequence[int], pi: np.ndarray, penalty: float | None,
                   gate: float = 0.0) -> float:  # fmt: skip
     """Expected loss of keeping the snapshot days ``keep`` under start posterior ``pi``, for the
     restore rule with posterior gate ``gate`` and reliable verification (module docstring)."""
     if not len(keep):
         raise ValueError("keep must not be empty")
-    j = sorted(keep)
-    g = gate_day(pi, gate)
-    if j[0] > g:  # no kept snapshot passes the gate: fallback to the oldest kept snapshot
-        S = _Sums(pi)
-        return S.no_clean_cost(j[0], penalty) + S.gap_cost(j[0], np.inf)
-    # gated_pi charges starts s > g + 1 as if s = g + 1; add back their constant (s - 1 - g)
-    shift = _Sums(pi).gap_cost(int(g), np.inf) if np.isfinite(g) else 0.0
-    return _ungated_loss(j, _Sums(gated_pi(pi, g)), penalty) + shift
+    return _LossEval(pi, penalty, gate)(sorted(keep))
 
 
 def _tol(a: float, b: float) -> float:
@@ -218,12 +234,13 @@ def _chain_dp(c, is_f, cost1, n_exact, first_f, ends, init, trans, tail, max_ste
 def _single_deletion(c, fset, pi, penalty, gate, keep_newest):
     """Fast path when exactly one snapshot must go (the online case: K held + today): evaluate
     ``selection_key`` for every eligible removal. Same minimiser as the DP (tested)."""
+    loss = _LossEval(pi, penalty, gate)
     best, arg = (np.inf, 0, 0), None
     for x in c:
         if x in fset or (keep_newest and x == c[-1]):
             continue
         J = [y for y in c if y != x]
-        key = selection_key(J, pi, penalty, gate)
+        key = (loss(J), max_gap(J), int(sum(J)))  # = selection_key(J, pi, penalty, gate)
         if _better(key, best):
             best, arg = key, J
     return arg

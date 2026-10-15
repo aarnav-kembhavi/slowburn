@@ -1,0 +1,66 @@
+# Tier 2 F, DEV ONLY: attack-timing prior misspecification sweep (reporting, nothing retuned).
+# Frozen hyperparameters (configs/frozen.yaml) with the assumed timing prior replaced.
+# Generating distribution in the simulator: on every machine the attack starts with certainty on
+# day 112 + o, o in {0, 3, 6, 27} (one value per grid cell), so across the grid the start is
+# uniform on {112, 115, 118, 139}: mean 121, range 112-139. The frozen prior is NOT this
+# distribution: it is a constant daily hazard after the 14-day warm-up with P(start within 60
+# days) = 0.05 and the rest "not started". Gaussian variants put 0.99 of the mass on a
+# discretised normal over absolute days (the rest "never").
+seed: 101
+experiment: sweep_prior
+output_dir: results/sweep_prior
+split: dev                # DEV counterpart of the headline grid (same machines as tuning)
+workers: 5
+
+warmup_days: 14
+# PRE-REGISTERED SCENARIO GRID (also recorded in configs/frozen.yaml as scenario_grid):
+# budget K x discovery delay x attack-start offset vs the GFS block boundaries.
+# attack_start = 112 + o, o in {0, 3, 6, 27}: 112 = 4 x 28 is a monthly AND weekly boundary.
+#   o = 0: day s-1 is GFS's weekly and monthly representative (best case for GFS)
+#   o = 3: mid-week;  o = 6: the weekly representative is day s itself (worst week position)
+#   o = 27: the monthly representative is day s itself (worst month position)
+discovery_delay: [7, 14, 30, 45, 60]
+budgets: [4, 6, 8, 12]
+reps: 10
+amoeba_train_machines: 8
+vault_calib_machines: 40
+
+hp:
+  p_attack_within_window: 0.05
+  prior_window_days: 60
+  penalty: 90.0
+  restore_quantile: 0.1        # quantile-restore ablation only
+  assumed_discovery: {kind: uniform, max_days: 60}
+  gate: 0.8                    # restore-time posterior gate (D29)
+  backbone: 0.25               # Tower of Hanoi backbone fraction (D30; D36 choice)
+  null_pool: pooled            # fleet-level benign-rate prior (D31)
+  restore_rule: verified
+  restore_posterior: discovery  # restore gate conditions on the discovery day (D34)
+  scan_eps: 0.001
+
+scenario:
+  n_files: 40
+  file_types: [txt, csv, bin, docx, zip, png, jpg, mp3, zlib, lzma]
+  file_kib: [16, 96]
+  edits_per_day: 4.0
+  attack_start: 112
+  attack_files_per_day: 0.5
+  damage_model: striped
+  damage_fraction: 0.1
+
+sweep:
+  attack_start: [112, 115, 118, 139]
+  detect_prob: [1.0, 0.9, 0.5, 0.2, 0.0]
+  benign_invalid_rate: [0.0, 0.001, 0.01, 0.05]
+
+policies: [slowburn, prior_only, gfs, tower_of_hanoi]
+variants:
+  - {name: frozen_geometric, hp: {}}
+  - {name: flat, hp: {timing_prior: {name: flat, kind: uniform}}}
+  - {name: matched, hp: {timing_prior: {name: matched, kind: gaussian, center: 121, sd: 12, p_attack: 0.99}}}
+  - {name: earlier_30, hp: {timing_prior: {name: earlier_30, kind: gaussian, center: 91, sd: 12, p_attack: 0.99}}}
+  - {name: earlier_60, hp: {timing_prior: {name: earlier_60, kind: gaussian, center: 61, sd: 12, p_attack: 0.99}}}
+  - {name: later_30, hp: {timing_prior: {name: later_30, kind: gaussian, center: 151, sd: 12, p_attack: 0.99}}}
+  - {name: later_60, hp: {timing_prior: {name: later_60, kind: gaussian, center: 181, sd: 12, p_attack: 0.99}}}
+  - {name: narrow, hp: {timing_prior: {name: narrow, kind: gaussian, center: 121, sd: 3, p_attack: 0.99}}}
+  - {name: wide, hp: {timing_prior: {name: wide, kind: gaussian, center: 121, sd: 48, p_attack: 0.99}}}

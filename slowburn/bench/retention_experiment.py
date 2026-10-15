@@ -23,8 +23,8 @@ from slowburn.bench.parallel import run_tasks
 from slowburn.bench.registry import check_split_allowed, machine_key
 from slowburn.inference.changepoint import (
     SingleChangepoint,
-    geometric_log_prior,
     hazard_from_window,
+    timing_log_prior,
 )
 from slowburn.inference.daily import make_aggregator
 from slowburn.inference.obsmodels import BetaBinomialExceedance, fit_pooled_null_prior
@@ -230,14 +230,17 @@ def start_posteriors(trace: MachineTrace, hp: dict, warmup: int, null_prior, cac
     """Evidence and prior-only start posteriors after every day (cached per hazard / null)."""
     h = hazard_from_window(float(hp["p_attack_within_window"]), int(hp["prior_window_days"]))
     pooled = hp.get("null_pool", "pooled") == "pooled" and null_prior is not None
-    key = (h, pooled)
+    tp = hp.get("timing_prior")  # misspecification sweep only; None = the frozen geometric prior
+    spec = dict(tp) if tp else {"kind": "geometric", "hazard": h}
+    spec.pop("name", None)
+    key = (h, pooled, repr(sorted(spec.items())))
     if key not in cache:
         n = trace.n_days
         obs_model = BetaBinomialExceedance(null_prior=tuple(null_prior) if pooled else None)
-        model = SingleChangepoint(obs_model, h, warmup)
+        model = SingleChangepoint(obs_model, h, warmup, prior=spec)
         cache[key] = (
             model.posterior_path(trace.obs, list(range(1, n + 1))),  # T = t + 1 days
-            {T: np.exp(geometric_log_prior(T, h, warmup)) for T in range(1, n + 1)},
+            {T: np.exp(timing_log_prior(T, spec, warmup)) for T in range(1, n + 1)},
         )
     return cache[key]
 
@@ -313,6 +316,8 @@ def evaluate_trace(
     hp_cols = {"hp_p_attack_within_window": hp["p_attack_within_window"],
                "hp_penalty": hp["penalty"], "hp_gate": gate,
                "hp_backbone": float(hp.get("backbone", 0.0)),
+               "hp_timing_prior": (hp.get("timing_prior") or {}).get("name", "frozen_geometric"),
+               "variant": hp.get("_variant", ""),
                "hp_assumed_discovery_max": hp["assumed_discovery"]["max_days"],
                "hp_null_pool": hp.get("null_pool", "pooled"), "hp_restore_rule": rule,
                "hp_restore_quantile": hp.get("restore_quantile"),
@@ -615,3 +620,40 @@ def apply_constrained_stage2(cfg: dict, stage1_choice: tuple, freeze: bool = Tru
                   note=f"rule D36 (deviation from D30 stage 2, see OPEN_QUESTIONS) on "
                   f"{out}: work-lost cap {cap:.3f} h (best fixed schedule on DEV)")  # fmt: skip
     return {"board": board, "chosen": chosen, "cap": cap}
+
+
+# ---- DEV sweeps (Tier 2 F: reporting, never tuning) --------------------------------------
+
+
+def sweep_summary(df: pd.DataFrame, by=()) -> pd.DataFrame:
+    """Mean clean recovery and whole-system work lost per sweep variant and policy (and ``by``),
+    averaged over every grid cell, with GFS and Tower of Hanoi alongside for reference."""
+    keys = ["variant", "policy", *by]
+    return (df.groupby(keys)
+            .agg(recovery=("clean_recovery", "mean"),
+                 work_lost_h=("work_lost_whole_system_hours", "mean"),
+                 clean_retained=("clean_snapshot_retained", "mean"),
+                 rows=("clean_recovery", "size"))
+            .reset_index())  # fmt: skip
+
+
+def run_dev_sweep(cfg: dict, log=print) -> pd.DataFrame:
+    """Evaluate the frozen hyperparameters with each variant in ``cfg['variants']`` (a name plus
+    hp overrides) on the same DEV machines. Reporting only: nothing is chosen or frozen."""
+    if cfg.get("split", "dev") != "dev":
+        raise ValueError("sweeps run on the dev split only")
+    from slowburn.bench.registry import load_frozen
+
+    out = resolve_path(cfg["output_dir"])
+    out.mkdir(parents=True, exist_ok=True)
+    frozen = load_frozen(cfg.get("frozen_path", "configs/frozen.yaml")).get("params", {})
+    base = {**cfg["hp"], **{k: v for k, v in frozen.items() if k in cfg["hp"]}}
+    tasks = build_tasks(cfg, "dev", log)
+    combos = [{**base, **v["hp"], "_variant": v["name"]} for v in cfg["variants"]]
+    policies = tuple(cfg.get("policies", ("slowburn", "prior_only", "gfs", "tower_of_hanoi")))
+    df = _stage(cfg, tasks, combos, policies, out, "sweep", log)
+    summ = sweep_summary(df)
+    summ.to_csv(out / "sweep_summary.csv", index=False)
+    sweep_summary(df, ("budget",)).to_csv(out / "sweep_by_budget.csv", index=False)
+    sweep_summary(df, ("detect_prob",)).to_csv(out / "sweep_by_q.csv", index=False)
+    return summ

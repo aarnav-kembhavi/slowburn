@@ -107,6 +107,12 @@ def _retention(cfg: dict) -> None:
                              values="clean_recovery").to_string())  # fmt: skip
 
 
+def _dev_sweep(cfg: dict) -> None:
+    from slowburn.bench.retention_experiment import run_dev_sweep
+
+    print(run_dev_sweep(cfg).to_string(index=False))
+
+
 def _preregister_grid(cfg: dict) -> None:
     from slowburn.bench.retention_experiment import preregister_grid
 
@@ -132,6 +138,7 @@ COMMANDS = {
     "tune-retention": _tune_retention,
     "theory-check": _theory_check,
     "retention": _retention,
+    "dev-sweep": _dev_sweep,
     "preregister-grid": _preregister_grid,
 }
 
