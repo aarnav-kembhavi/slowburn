@@ -893,3 +893,68 @@ retained, by 11.02 days (median 12), and its gate admits the true start day in 1
 (prior-only: 0.7976). The restore point lies inside SlowBurn's gate in 1.0 of those rows (mean
 restore_p_clean 0.8932). The D40 explanation is now measured, not inferred. Prototype appendix:
 `paper/sections/appendix_prototype.tex`.
+
+## 2026-10-16 (night): P1 simulator v2 and the new DEV baseline (D45-D47, D50)
+
+`configs/dev_v2.yaml` -> `results/dev_v2` (seed 202; 4 worlds x 15 evidence cells x 40 reps =
+2400 machines, 552000 rows, 1805.7 s, 5 workers). Byte-budget multipliers (keep-last-N footprint
+/ day-0 size, 40 attack-free calibration machines): 14 d 1.7450643130492298, 30 d
+2.66980547090922, 90 d 6.146835909945129. Attack starts drawn (40 per world): uniform mean 136.2
+(28-278), early 86.3 (28-203), late 217.9 (82-279), bursty 189.3 (93-271). Oracle-ideal work lost
+772.8 h in every world. Generated: `world_summary.csv`, `world_by_{budget,detect_prob,
+discovery_delay}.csv`.
+
+**Count budgets (K = 4, 6, 8, 12 pooled; all evidence cells and delays), clean recovery / work lost (h):**
+
+| world | prior-only | SlowBurn | GFS | Tower of Hanoi | keep last N | keep first | oracle |
+|---|---|---|---|---|---|---|---|
+| uniform | 0.979083 / 1687.168 | 0.9795 / 1642.93 | 0.563583 / 2488.84 | 0.545833 / 2514.428 | 0.05 / 3860.052 | 0.999833 / 4013.152 | 0.999833 / 777.354 |
+| early | 0.9815 / 1544.374 | 0.976917 / 1517.21 | 0.61125 / 1781.774 | 0.52075 / 1982.586 | 0.049917 / 2720.888 | 0.999833 / 2818.846 | 0.999833 / 776.85 |
+| late | 0.97575 / 1860.822 | 0.977 / 1756.486 | 0.534417 / 3474.616 | 0.585917 / 3368.278 | 0.05 / 5721.132 | 1.0 / 5974.12 | 1.0 / 776.382 |
+| bursty | 0.986 / 1794.414 | 0.985417 / 1661.258 | 0.574083 / 2937.988 | 0.5935 / 3000.572 | 0.05 / 5069.048 | 0.999917 / 5288.478 | 0.999917 / 776.91 |
+| all | 0.980583 / 1721.6945 | 0.979708 / 1644.471 | 0.570833 / 2670.8045 | 0.5615 / 2716.466 | 0.049979 / 4342.78 | 0.999896 / 4523.649 | 0.999896 / 776.874 |
+
+12000 rows per world and policy. Clean snapshot retained: prior-only and SlowBurn 1.0 in every
+world; GFS 0.53625-0.615; Tower of Hanoi 0.5325-0.60375; keep last N 0.05.
+
+**Byte budgets (14, 30, 90 days of keep-last-N storage pooled), clean recovery / work lost (h):**
+
+| world | prior-only | SlowBurn | GFS | Tower of Hanoi | keep last N | oracle |
+|---|---|---|---|---|---|---|
+| uniform | 0.645667 / 2290.544 | 0.667222 / 2193.576 | 0.522222 / 2548.669333 | 0.520111 / 2518.618667 | 0.491778 / 2553.848 | 0.759889 / 1695.485333 |
+| early | 0.618 / 1897.754667 | 0.659667 / 1753.114667 | 0.553667 / 1864.770667 | 0.505667 / 1993.149333 | 0.486778 / 1969.456 | 0.761556 / 1404.682667 |
+| late | 0.621 / 3144.352 | 0.646222 / 2942.778667 | 0.49 / 3642.186667 | 0.495889 / 3664.706667 | 0.474444 / 3646.621333 | 0.749222 / 2228.050667 |
+| bursty | 0.603 / 2916.170667 | 0.658667 / 2651.530667 | 0.523111 / 3116.872 | 0.513556 / 3212.165333 | 0.484778 / 3250.032 | 0.754778 / 2019.992 |
+| all | 0.621917 / 2562.205333 | 0.657944 / 2385.25 | 0.52225 / 2793.124667 | 0.508806 / 2847.16 | 0.484444 / 2854.989333 | 0.756361 / 1837.052667 |
+
+By byte budget (uniform world): 14 d prior-only 0.21, SlowBurn 0.214667, GFS 0.17, ToH 0.16,
+keep last N 0.2, oracle 0.41; 30 d 0.804 / 0.882667 / 0.489333 / 0.464333 / 0.409 / 0.999;
+90 d 0.923 / 0.904333 / 0.907333 / 0.936 / 0.866333 / 0.870667 (other worlds in
+`world_by_budget.csv`). At 14 days even the oracle cannot keep the day-(s-1) snapshot next to
+today's in most cases (the pair costs ~1.9x the day-0 size under the simulated churn). At 90 days
+the oracle (0.870667) is below Tower of Hanoi (0.936): the oracle's ~36 newest snapshots put
+more damaged candidates inside the restore gate (restore-time failures; the oracle's retention
+knows the start, its restore does not).
+
+**q = 0 restore-time failure (count budgets), SlowBurn vs prior-only:** uniform 0.069583 vs
+0.047917; early 0.085833 vs 0.054167; late 0.08125 vs 0.0625; bursty 0.060833 vs 0.0425;
+pooled 0.074375 vs 0.051770833. The excess (0.0182 to 0.0317) is above the pre-registered 1-point
+margin in every world: the v1 failure persists in simulator v2. Measured gate at q = 0: SlowBurn
+gate - start mean -10.7367 / -8.4917 / -11.1533 / -11.425 d (uniform / early / late / bursty) vs
+prior-only -17.155 / -15.54 / -18.8 / -18.8; gate admits the start day 0.34 / 0.3617 / 0.3467 /
+0.3333 vs 0.2 in every world.
+
+**Versus the old simulator (v1 DEV, benign rates 0 / .01 / .05 only, all q):** prior-only 0.979667 /
+1787.298 h, SlowBurn 0.964167 / 1786.894, GFS 0.642417 / 2079.484, Tower of Hanoi 0.594833 /
+2404.872, keep last N 0.05 / 3512.314. In v2: SlowBurn's recovery gap to prior-only shrinks
+(-0.000875 vs -0.0155), SlowBurn's work lost falls below prior-only's in every world (by 27.164 to
+133.156 h), and GFS / Tower of Hanoi lose 0.0716 / 0.0333 recovery (v1's start offsets included
+GFS's best case o = 0). Work lost stays ~2.1-2.3x the oracle for SlowBurn.
+
+**Headline claim (3) on v2 DEV (D50, reported, claim NOT changed):** with the policy's flat
+timing assumption fixed and the generating world varied, no world makes prior-only collapse (its
+recovery is 0.97575-0.986 in all four), so detector evidence adds no recovery: SlowBurn minus
+prior-only = +0.000417 (uniform), -0.004583 (early), +0.00125 (late), -0.000583 (bursty). Evidence
+lowers work lost in every world (by 27.164-133.156 h) and raises recovery under byte budgets
+(+0.021555 to +0.055667). The v1 robustness result (60 days late: prior-only 0.362 vs SlowBurn
+0.621) came from a concentrated prior placed 60 days late, which the v2 design no longer has.
