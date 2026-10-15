@@ -385,3 +385,40 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   gate; -1 if none) and `restore_p_clean` (that probability at the chosen restore point; below
   the gate only on the fallback when no candidate verifies). Restore failures are explained from
   these measured values, not from restore points.
+- **D45 Simulator v2: generating worlds (P1, decisions made for the team, 2026-10-16).** Each
+  machine draws its own attack start from a world on a stream keyed by (seed, split, world, rep),
+  so all evidence cells of a world are paired. Window [28, 280] (two weeks after the 14-day
+  warm-up to week 40); conservative choice: wide enough that no schedule's block structure lines
+  up with it, short enough that traces stay near the v1 length. Worlds: `uniform`; `early` =
+  28 + floor(253 * Beta(1, 3)) (mean ~ day 91); `late` = Beta(3, 1) (mean ~ day 217); `bursty` =
+  one of three campaign centres plus Normal(0, 3 d) jitter, centres [99, 139, 267] drawn ONCE
+  from child_rng(202, "bursty_centres") on [40, 268] (not hand-picked). The policy's timing
+  assumption stays the v1 constant-hazard prior (P(start within 60 d) = 0.05 after warm-up),
+  which equals none of the worlds. New DEV seed 202 (v1 DEV 101; v1 TEST spent). Evidence grid
+  q in {1, .9, .5, .2, 0} x benign rate in {0, .01, .05} (v1's 0.001 level dropped to afford 40
+  starts per world); 40 reps per world. Policies in the v2 DEV baseline: prior-only, SlowBurn,
+  GFS, Tower of Hanoi, keep last N, keep first, oracle. Threshold vault and AMOEBA-style are left
+  out of the v2 DEV baseline for now (not requested for tonight; AMOEBA needs per-cell training
+  machines); they return in the P5 grid.
+- **D46 Byte budgets (P1, decisions made for the team, 2026-10-16).** Retained storage = unique
+  bytes of the kept snapshots (token chunks live on contiguous day intervals, so this is exact
+  and O(1) per pair; tested against set unions). A byte budget is enforced with each policy's OWN
+  deletion rule, one deletion at a time with a count budget of (held - 1); no policy is
+  byte-aware (byte-aware planning would be a method change for P4). Levels: the storage that
+  keep-last-N needs for N = 14, 30, 90 days of history, as a multiple of the machine's day-0 size,
+  calibrated as the median over 40 attack-free DEV calibration machines and days after warm-up.
+  First choice (keep-last-4/8/12 footprints, 1.14x/1.40x/1.62x) was discarded before any
+  evaluation run: under the simulator's churn (~5% of bytes new per day; any snapshot a month old
+  plus today's ~1.9x the day-0 size) no policy could keep anything older than 2-3 weeks, so the
+  grid would only measure that. keep_first is count-only (it cannot meet a byte budget below
+  |first U today|). Oracle fixed to always keep today's snapshot (at count budget 1 it kept only
+  the pinned day; count budgets >= 2 are unchanged). NOTE: the synthetic churn is high relative
+  to real home-directory traces; P2 (FSL Homes) is where realistic churn enters.
+- **D47 Worst-case timing grid and assumed-delay sweep (P1, 2026-10-16).** Worst case: starts
+  112..143 (every residue mod 7, 28 and 32) x delays {7, 14, 30, 45, 60}, q in {1, .5, 0},
+  benign 0.01, 5 reps per start; per policy, budget and q the worst (start, delay) cell of mean
+  recovery (and of mean work lost) next to the grid mean (`worst_case_timing.csv`). Simulation
+  parameters only. Assumed-delay sweep (reporting only, `configs/dev_v2_delay.yaml`): the
+  policy's assumed discovery-delay distribution uniform on 1..{14, 30, 60 (frozen), 90, 120} and
+  geometric with mean 30 (truncated at 60), true delays 7-60, all four worlds, q in
+  {1, .5, .2, 0}, benign 0.01.

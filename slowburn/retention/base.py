@@ -216,9 +216,9 @@ class Oracle:
     def decide(self, ctx: RetentionContext) -> set[int]:
         s = ctx.oracle_start
         newest_first = sorted(ctx.snapshot_days, key=ctx.snapshot_days.get, reverse=True)
-        keep: list[int] = []
-        if s is not None:
-            pin = [sid for sid, d in ctx.snapshot_days.items() if d == s - 1]
+        keep: list[int] = [newest_first[0]]  # today's snapshot is always kept (contract)
+        if s is not None and ctx.budget >= 2:
+            pin = [sid for sid, d in ctx.snapshot_days.items() if d == s - 1 and sid not in keep]
             keep += pin
         for sid in newest_first:
             if len(keep) >= ctx.budget:

@@ -90,6 +90,13 @@ class BetaBinomialExceedance:
     ``null_prior=(a0, b0)``: fleet-level Beta prior on the benign rate pooled across DEV machines
     (hierarchical, D31); the machine's own warm-up updates it. ``None``: per-machine Jeffreys
     prior (warm-up only; kept as an ablation).
+
+    ``blind_weight`` (method v2, uncertain detector sensitivity): prior probability that the
+    detector cannot see this attack at all. The attack-regime likelihood gets one extra effect
+    component equal to the benign likelihood (effect 0) with this weight; the usual effect grid
+    shares the rest. Days without flags then count as evidence against an earlier start only in
+    proportion to the posterior belief that the detector can see damage, which rises once flags
+    above the benign rate appear. 0 reproduces the v1 model exactly.
     """
 
     # overdispersion cannot be estimated from two weeks of warm-up; broad log-uniform grid
@@ -97,8 +104,12 @@ class BetaBinomialExceedance:
 
     def __init__(self, n_effect: int = 6, activity: Sequence[float] = ACTIVITY_GRID,
                  n_null: int = 9, min_rate: float = 1e-3,
-                 null_prior: tuple[float, float] | None = None):  # fmt: skip
+                 null_prior: tuple[float, float] | None = None,
+                 blind_weight: float = 0.0):  # fmt: skip
+        if not 0.0 <= blind_weight < 1.0:
+            raise ValueError("blind_weight must be in [0, 1)")
         self.null_prior = null_prior
+        self.blind_weight = blind_weight
         self.n_effect = n_effect
         self.activity = tuple(activity)
         self.n_null = n_null
@@ -144,7 +155,11 @@ class BetaBinomialExceedance:
             ],
             axis=1,
         )
-        return ll0, ll1, _uniform_logw(ll0.shape[1]), _uniform_logw(ll1.shape[2])
+        logw1 = _uniform_logw(ll1.shape[2])
+        if self.blind_weight > 0:
+            ll1 = np.concatenate([ll1, ll0[:, :, None]], axis=2)  # effect 0: detector blind
+            logw1 = np.r_[logw1 + np.log1p(-self.blind_weight), np.log(self.blind_weight)]
+        return ll0, ll1, _uniform_logw(ll0.shape[1]), logw1
 
 
 class GaussianWeekday:

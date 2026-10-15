@@ -40,6 +40,7 @@ from slowburn.retention.base import (
     ThresholdVault,
     TowerOfHanoi,
 )
+from slowburn.retention.bytes import ByteIndex, enforce_byte_budget
 from slowburn.retention.dp import (
     discovery_posterior,
     discovery_survival,
@@ -47,6 +48,7 @@ from slowburn.retention.dp import (
 )
 from slowburn.sim.damage import RandomDamageSource
 from slowburn.sim.scenario import Scenario, ScenarioConfig
+from slowburn.sim.worlds import world_start
 from slowburn.store.restore import (
     HOURS_PER_DAY,
     FileHistory,
@@ -59,6 +61,8 @@ from slowburn.utils.seed import child_rng
 
 SNAPSHOT_POLICIES = ("keep_last_n", "keep_first", "gfs", "tower_of_hanoi", "threshold_vault",
                      "prior_only", "slowburn", "oracle")  # fmt: skip
+# keep_first cannot meet a byte budget below |first U today| (D46): count budgets only
+COUNT_ONLY = frozenset({"keep_first"})
 # act only through auxiliary streams -> excluded from the machine seed key (paired machines)
 PAIRED_KEYS = frozenset({"detect_prob", "benign_invalid_rate"})
 SCENARIO_FIELDS = set(ScenarioConfig.__dataclass_fields__)
@@ -79,8 +83,14 @@ def task_seed_key(seed: int, task: RetentionTask) -> tuple:
 
 
 def task_cache_key(seed: int, task: RetentionTask) -> tuple:
-    return (*task_seed_key(seed, task),
-            *sorted((k, v) for k, v in task.params.items() if k in PAIRED_KEYS))  # fmt: skip
+    # the world name labels the rows: two worlds can draw the same start for one rep (identical
+    # machine), but their cached rows must stay apart
+    world = (("world", task.params["world"]),) if "world" in task.params else ()
+    return (
+        *task_seed_key(seed, task),
+        *sorted((k, v) for k, v in task.params.items() if k in PAIRED_KEYS),
+        *world,
+    )
 
 
 # ---- simulation -------------------------------------------------------------------------
@@ -233,10 +243,12 @@ def start_posteriors(trace: MachineTrace, hp: dict, warmup: int, null_prior, cac
     tp = hp.get("timing_prior")  # misspecification sweep only; None = the frozen geometric prior
     spec = dict(tp) if tp else {"kind": "geometric", "hazard": h}
     spec.pop("name", None)
-    key = (h, pooled, repr(sorted(spec.items())))
+    blind = float(hp.get("blind_weight", 0.0))  # method v2 (D48); 0 = v1
+    key = (h, pooled, repr(sorted(spec.items())), blind)
     if key not in cache:
         n = trace.n_days
-        obs_model = BetaBinomialExceedance(null_prior=tuple(null_prior) if pooled else None)
+        obs_model = BetaBinomialExceedance(null_prior=tuple(null_prior) if pooled else None,
+                                           blind_weight=blind)  # fmt: skip
         model = SingleChangepoint(obs_model, h, warmup, prior=spec)
         cache[key] = (
             model.posterior_path(trace.obs, list(range(1, n + 1))),  # T = t + 1 days
@@ -272,38 +284,54 @@ def evaluate_trace(
     infer_s = time.perf_counter() - t1
 
     stat = np.array([o.value for o in trace.obs])
-    Ks = budgets_of(cfg, task, hp)
+    # budget keys: ("count", K) caps the number of snapshots; ("bytes", K) caps unique bytes at
+    # the calibrated keep-last-K footprint times this machine's day-0 size (D46)
+    Ks = [("count", K) for K in budgets_of(cfg, task, hp)]
+    bmult = {int(k): float(v) for k, v in (p.get("byte_budget_mult") or {}).items()}
+    index = ByteIndex(trace.snapshots, trace.chunk_size) if bmult else None
+    Ks += [("bytes", K) for K in sorted(bmult)]
+    budget_bytes = {K: bmult[K] * index.size(0) for K in bmult} if bmult else {}
     snap_names = [nm for nm in policy_names if nm != "amoeba_style"]
-    pols = {K: {nm: pol for nm, pol in make_policies(hp, float(p.get("vault_threshold", 0.0)))
-                .items() if nm in snap_names} for K in Ks}  # fmt: skip
-    held = {(K, nm): {} for K in Ks for nm in pols[K]}
-    kept_at = {(K, nm): {} for K in Ks for nm in pols[K]}
+    pols = {bk: {nm: pol for nm, pol in make_policies(hp, float(p.get("vault_threshold", 0.0)))
+                 .items() if nm in snap_names and (bk[0] == "count" or nm not in COUNT_ONLY)}
+            for bk in Ks}  # fmt: skip
+    held = {(bk, nm): {} for bk in Ks for nm in pols[bk]}
+    kept_at = {(bk, nm): {} for bk in Ks for nm in pols[bk]}
     dp_s, dp_calls = 0.0, 0
     disc_days = {d: start + d for d in delays}
     for t in range(n):
         T = t + 1
         rpi = retention_posterior(path[T], t, S)
         ppi = retention_posterior(prior[T], t, S)
-        for K in Ks:
-            for nm, pol in pols[K].items():
-                hk = held[(K, nm)]
+        for bk in Ks:
+            kind, K = bk
+            for nm, pol in pols[bk].items():
+                hk = held[(bk, nm)]
                 hk[t] = t
-                ctx = RetentionContext(day=t, snapshot_days=dict(hk), budget=K,
-                                       daily_stat=stat[: t + 1], start_posterior=path[T],
-                                       retention_pi=rpi, prior_retention_pi=ppi,
-                                       oracle_start=start)  # fmt: skip
+
+                def decide(h, k, pol=pol, t=t, T=T, rpi=rpi, ppi=ppi):
+                    ctx = RetentionContext(day=t, snapshot_days=h, budget=k,
+                                           daily_stat=stat[: t + 1], start_posterior=path[T],
+                                           retention_pi=rpi, prior_retention_pi=ppi,
+                                           oracle_start=start)  # fmt: skip
+                    return pol.decide(ctx)
+
                 t2 = time.perf_counter()
-                keep = pol.decide(ctx)
-                if nm == "slowburn":
+                if kind == "count":
+                    keep = decide(dict(hk), K)
+                    new = {sid: hk[sid] for sid in keep}
+                else:
+                    new = enforce_byte_budget(hk, budget_bytes[K], index, decide)
+                if nm == "slowburn" and kind == "count":
                     dp_s += time.perf_counter() - t2
                     dp_calls += 1
-                held[(K, nm)] = {sid: hk[sid] for sid in keep}
+                held[(bk, nm)] = new
                 if t in disc_days.values():
-                    kept_at[(K, nm)][t] = sorted(held[(K, nm)].values())
+                    kept_at[(bk, nm)][t] = sorted(new.values())
 
     amoeba_rec = {}
     if "amoeba_style" in policy_names and "amoeba_weights" in p:
-        for K in Ks:
+        for K in [K for kind, K in Ks if kind == "count"]:
             amoeba = AmoebaStyle(np.asarray(p["amoeba_weights"], float))
             for t in range(n):
                 last_k = list(range(max(0, t - K + 1), t + 1))
@@ -312,24 +340,32 @@ def evaluate_trace(
                 if t in disc_days.values():
                     amoeba_rec[(K, t)] = amoeba.recover(trace.histories, t)
 
-    base = {k: v for k, v in p.items() if k not in ("amoeba_weights", "null_prior", "budget")}
+    base = {
+        k: v
+        for k, v in p.items()
+        if k not in ("amoeba_weights", "null_prior", "budget", "byte_budget_mult")
+    }
     hp_cols = {"hp_p_attack_within_window": hp["p_attack_within_window"],
                "hp_penalty": hp["penalty"], "hp_gate": gate,
                "hp_backbone": float(hp.get("backbone", 0.0)),
                "hp_timing_prior": (hp.get("timing_prior") or {}).get("name", "frozen_geometric"),
                "variant": hp.get("_variant", ""),
+               "hp_blind_weight": float(hp.get("blind_weight", 0.0)),
                "hp_assumed_discovery_max": hp["assumed_discovery"]["max_days"],
                "hp_null_pool": hp.get("null_pool", "pooled"), "hp_restore_rule": rule,
                "hp_restore_quantile": hp.get("restore_quantile"),
                "hp_restore_posterior": hp.get("restore_posterior", "discovery")}  # fmt: skip
     rows = []
-    for K in Ks:
+    for bk in Ks:
+        kind, K = bk
         for d, td in disc_days.items():
             post = path[td + 1]
             klast = list(range(max(0, td - K + 1), td + 1))
             klast_bytes = _unique_bytes(trace, klast)
             common = {**base, **hp_cols, "split": task.split, "rep": task.rep,
                       "discovery_delay": d, "true_start": start, "budget": K,
+                      "budget_kind": kind, "budget_bytes": budget_bytes.get(K, np.nan)
+                      if kind == "bytes" else np.nan,
                       "start_offset_month": start % 28, "start_offset_week": start % 7,
                       "n_files_damaged": sum(h_.damaged_day is not None and h_.damaged_day <= td
                                              for h_ in trace.histories.values()),
@@ -340,8 +376,8 @@ def evaluate_trace(
                       "p_started_at_discovery": float(1 - post[-1]),
                       "sim_s": sim_s, "infer_ms_per_day": 1000 * infer_s / n,
                       "dp_ms_per_decision": 1000 * dp_s / max(dp_calls, 1)}  # fmt: skip
-            for nm, pol in pols[K].items():
-                kept = kept_at[(K, nm)][td]
+            for nm, pol in pols[bk].items():
+                kept = kept_at[(bk, nm)][td]
                 # a posterior-DP policy restores with the posterior it plans with (D33): the
                 # blind policy's DP loss assumes a prior-gated restore, so its gate uses the prior
                 rpost = post if getattr(pol, "use_evidence", True) else prior[td + 1]
@@ -359,7 +395,7 @@ def evaluate_trace(
                              "storage_vs_keep_last_n": ub / klast_bytes if klast_bytes else np.nan,
                              "clean_snapshot_retained": int(any(j < start for j in kept)),
                              "oldest_retained_age": td - min(kept)})  # fmt: skip
-            if (K, td) in amoeba_rec:
+            if kind == "count" and (K, td) in amoeba_rec:
                 rec = amoeba_rec[(K, td)]
                 total = rec["backup_bytes"] + len(trace.snapshots[td]) * trace.chunk_size
                 rows.append({**common, "policy": "amoeba_style", **rec,
@@ -382,14 +418,18 @@ def fit_amoeba_weights(cfg: dict, setting: dict, split: str, n_machines: int) ->
 
 
 def attack_free_calibration(cfg: dict, setting: dict, split: str, n_machines: int,
-                            fa: float = 0.05) -> tuple[float, tuple[float, float]]:  # fmt: skip
+                            fa: float = 0.05, byte_ks=()) -> tuple:  # fmt: skip
     """From attack-free calibration machines (separate DEV family):
     * the threshold vault's fixed line: the (1 - fa) quantile of the largest daily flagged-file
       fraction after warm-up;
     * the fleet-level Beta prior on the benign flag rate (D31), from each machine's flagged and
-      changed file totals after warm-up."""
+      changed file totals after warm-up;
+    * for each K in ``byte_ks``, the byte-budget multiplier (D46): the median, over machines and
+      days after warm-up, of the unique bytes of the newest K snapshots divided by the machine's
+      day-0 snapshot size (the keep-last-K footprint)."""
     warmup = int(cfg["warmup_days"])
     peaks, ks, ns = [], [], []
+    foot: dict[int, list[float]] = {int(K): [] for K in byte_ks}
     for r in range(n_machines):
         clean = {**setting, "attack_start": None}
         trace = simulate(cfg, RetentionTask(split, "vault_calib", clean, r))
@@ -397,8 +437,14 @@ def attack_free_calibration(cfg: dict, setting: dict, split: str, n_machines: in
         peaks.append(max([o.value for o in after], default=0.0))
         ks.append(sum(o.k for o in after))
         ns.append(sum(o.n for o in after))
+        if foot:
+            idx = ByteIndex(trace.snapshots, trace.chunk_size)
+            for K in foot:
+                foot[K] += [idx.unique_bytes(range(t - K + 1, t + 1)) / idx.size(0)
+                            for t in range(warmup + K - 1, trace.n_days)]  # fmt: skip
     thr = float(np.quantile(peaks, 1 - fa, method="higher"))
-    return thr, fit_pooled_null_prior(np.array(ks), np.array(ns))
+    mult = {K: float(np.median(v)) for K, v in foot.items()}
+    return thr, fit_pooled_null_prior(np.array(ks), np.array(ns)), mult
 
 
 def vault_threshold(cfg: dict, setting: dict, split: str, n_machines: int,
@@ -420,32 +466,54 @@ def _run_task(task: RetentionTask) -> list[dict]:
 
 
 def build_tasks(cfg: dict, split: str, log=print) -> list[RetentionTask]:
+    """One task per (evidence/scenario setting, rep), or with ``worlds`` (simulator v2, D45) one
+    per (world, setting, rep) with the attack start drawn from the world for that rep."""
     from slowburn.bench.runner import expand_sweep
 
     grid = expand_sweep(cfg["scenario"], cfg.get("sweep", {}))
     calib_split = "dev"  # calibration steps always use dev machines (separate families)
+    need_amoeba = "amoeba_style" in cfg.get("policies", ALL_POLICIES)
+    byte_ks = [int(k) for k in cfg.get("byte_budgets", [])]
     calib = {}
     for setting in grid:
         ev_key = (setting.get("detect_prob"), setting.get("benign_invalid_rate"))
         if ev_key not in calib:
-            w = fit_amoeba_weights(
-                cfg, setting, calib_split, int(cfg.get("amoeba_train_machines", 8))
-            )
+            w = (fit_amoeba_weights(cfg, setting, calib_split,
+                                    int(cfg.get("amoeba_train_machines", 8)))
+                 if need_amoeba else None)  # fmt: skip
             n_cal = int(cfg.get("vault_calib_machines", 40))
-            thr, prior = attack_free_calibration(cfg, setting, calib_split, n_cal)
-            calib[ev_key] = (w, thr, prior)
-    log(f"  calibrated AMOEBA weights, vault thresholds and fleet null priors for {len(calib)} "
-        "evidence settings")  # fmt: skip
+            calib[ev_key] = (w, *attack_free_calibration(cfg, setting, calib_split, n_cal,
+                                                         byte_ks=byte_ks))  # fmt: skip
+    log(f"  calibrated vault thresholds, fleet null priors{' and AMOEBA weights' * need_amoeba}"
+        f" for {len(calib)} evidence settings")  # fmt: skip
+    if byte_ks:
+        mult = next(iter(calib.values()))[3]  # churn does not depend on the evidence setting
+        log(f"  byte-budget multipliers (keep-last-K footprint / day-0 size): {mult}")
+    worlds = cfg.get("worlds")
+    seed = int(cfg["seed"])
     tasks = []
     for setting in grid:
-        w, thr, prior = calib[(setting.get("detect_prob"), setting.get("benign_invalid_rate"))]
-        params = {**setting, "amoeba_weights": tuple(map(float, w)), "vault_threshold": thr,
-                  "null_prior": tuple(map(float, prior))}  # fmt: skip
-        tasks += [RetentionTask(split, "eval", params, r) for r in range(int(cfg["reps"]))]
+        w, thr, prior, mult = calib[(setting.get("detect_prob"),
+                                     setting.get("benign_invalid_rate"))]  # fmt: skip
+        params = {**setting, "vault_threshold": thr, "null_prior": tuple(map(float, prior))}
+        if w is not None:
+            params["amoeba_weights"] = tuple(map(float, w))
+        if mult:
+            params["byte_budget_mult"] = dict(mult)
+        if not worlds:
+            tasks += [RetentionTask(split, "eval", params, r) for r in range(int(cfg["reps"]))]
+            continue
+        for world in worlds:
+            tasks += [RetentionTask(split, "eval", {**params, "world": world["name"],
+                                                    "attack_start": world_start(seed, split,
+                                                                                world, r)}, r)
+                      for r in range(int(cfg["reps"]))]  # fmt: skip
     return tasks
 
 
-GRID_CELL = ["budget", "discovery_delay", "attack_start", "detect_prob", "benign_invalid_rate"]
+GRID_CELL = ["world", "budget_kind", "budget", "discovery_delay", "attack_start", "detect_prob",
+             "benign_invalid_rate"]  # fmt: skip
+CELL_DEFAULTS = {"world": "fixed_starts", "budget_kind": "count"}  # v1 result files
 REPORT_RULE = (
     "report every cell; per policy the average over cells and the worst cell of mean "
     "clean recovery and mean whole-system work lost, oracle-ideal work lost alongside"
@@ -480,7 +548,8 @@ def preregister_grid(cfg: dict, path: str = "configs/frozen.yaml") -> dict:
 def cell_table(df: pd.DataFrame) -> pd.DataFrame:
     """Mean clean recovery and work lost per grid cell and policy, oracle-ideal alongside
     (the SlowBurn trade-off-curve rows are excluded: they are not a policy)."""
-    g = df[df.policy != "slowburn_curve"].groupby([*GRID_CELL, "policy"])
+    df = df.assign(**{c: df.get(c, v) for c, v in CELL_DEFAULTS.items()})
+    g = df[df.policy != "slowburn_curve"].groupby([*GRID_CELL, "policy"], dropna=False)
     return g.agg(clean_recovery=("clean_recovery", "mean"),
                  work_lost_whole_system_hours=("work_lost_whole_system_hours", "mean"),
                  work_lost_selective_file_hours=("work_lost_selective_file_hours", "mean"),
@@ -498,6 +567,43 @@ def grid_summary(cells: pd.DataFrame) -> pd.DataFrame:
         work_lost_worst=("work_lost_whole_system_hours", "max"),
         ideal_work_lost_avg=("work_lost_ideal_hours", "mean"))  # fmt: skip
     return out.sort_values("recovery_avg", ascending=False)
+
+
+def world_summary(df: pd.DataFrame, by=()) -> pd.DataFrame:
+    """Simulator v2: per world, budget kind and policy (and ``by``), mean clean recovery, mean
+    whole-system work lost, oracle-ideal work lost and share with a clean snapshot retained,
+    pooled over every machine, evidence cell, budget and delay."""
+    df = df.assign(**{c: df.get(c, v) for c, v in CELL_DEFAULTS.items()})
+    keys = ["world", "budget_kind", "policy", *by]
+    return (df[df.policy != "slowburn_curve"].groupby(keys)
+            .agg(recovery=("clean_recovery", "mean"),
+                 work_lost_h=("work_lost_whole_system_hours", "mean"),
+                 ideal_work_lost_h=("work_lost_ideal_hours", "mean"),
+                 clean_retained=("clean_snapshot_retained", "mean"),
+                 rows=("clean_recovery", "size"))
+            .reset_index())  # fmt: skip
+
+
+def worst_case_timing(df: pd.DataFrame) -> pd.DataFrame:
+    """Worst-case timing over a grid of attack starts and discovery delays (simulation
+    parameters only, D47): per policy, budget and detection probability, the mean over timing
+    cells and the worst timing cell (lowest mean recovery; highest mean work lost), with the
+    start and delay of the worst recovery cell."""
+    df = df.assign(**{c: df.get(c, v) for c, v in CELL_DEFAULTS.items()})
+    key = ["budget_kind", "budget", "detect_prob", "policy"]
+    cells = (df.groupby([*key, "attack_start", "discovery_delay"])
+             .agg(recovery=("clean_recovery", "mean"),
+                  work_lost_h=("work_lost_whole_system_hours", "mean"))
+             .reset_index())  # fmt: skip
+    worst = cells.loc[cells.groupby(key).recovery.idxmin()].set_index(key)
+    out = cells.groupby(key).agg(recovery_avg=("recovery", "mean"),
+                                 recovery_worst=("recovery", "min"),
+                                 work_lost_avg=("work_lost_h", "mean"),
+                                 work_lost_worst=("work_lost_h", "max"),
+                                 timing_cells=("recovery", "size"))  # fmt: skip
+    out["worst_start"] = worst.attack_start
+    out["worst_delay"] = worst.discovery_delay
+    return out.reset_index()
 
 
 def run_retention_experiment(cfg: dict, log=print) -> pd.DataFrame:
@@ -527,6 +633,12 @@ def run_retention_experiment(cfg: dict, log=print) -> pd.DataFrame:
         cells = cell_table(df)
         cells.to_csv(out / "cells.csv", index=False)
         grid_summary(cells).to_csv(out / "grid_summary.csv")
+    if cfg.get("worlds"):
+        world_summary(df).to_csv(out / "world_summary.csv", index=False)
+        for by in ("budget", "detect_prob", "discovery_delay"):
+            world_summary(df, (by,)).to_csv(out / f"world_by_{by}.csv", index=False)
+    if cfg.get("worst_case_timing"):
+        worst_case_timing(df).to_csv(out / "worst_case_timing.csv", index=False)
     log(f"  {len(tasks)} machines, {len(df)} rows, {time.perf_counter() - t0:.1f}s")
     return df
 
@@ -628,7 +740,7 @@ def apply_constrained_stage2(cfg: dict, stage1_choice: tuple, freeze: bool = Tru
 def sweep_summary(df: pd.DataFrame, by=()) -> pd.DataFrame:
     """Mean clean recovery and whole-system work lost per sweep variant and policy (and ``by``),
     averaged over every grid cell, with GFS and Tower of Hanoi alongside for reference."""
-    keys = ["variant", "policy", *by]
+    keys = ["variant", *(["world"] if "world" in df else []), "policy", *by]
     return (df.groupby(keys)
             .agg(recovery=("clean_recovery", "mean"),
                  work_lost_h=("work_lost_whole_system_hours", "mean"),
@@ -656,4 +768,5 @@ def run_dev_sweep(cfg: dict, log=print) -> pd.DataFrame:
     summ.to_csv(out / "sweep_summary.csv", index=False)
     sweep_summary(df, ("budget",)).to_csv(out / "sweep_by_budget.csv", index=False)
     sweep_summary(df, ("detect_prob",)).to_csv(out / "sweep_by_q.csv", index=False)
+    sweep_summary(df, ("discovery_delay",)).to_csv(out / "sweep_by_delay.csv", index=False)
     return summ
