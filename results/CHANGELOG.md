@@ -797,3 +797,12 @@ dirty snapshot that passes verification, at low detection probability and 45-60 
 has higher mean clean recovery than SlowBurn (0.981 vs 0.967) at similar work lost (1758.9 vs
 1743.0 h). Evidence lowers work lost at q >= 0.5 but lowers recovery at q <= 0.2. Reported to
 the team; Tier 2 not started.
+
+## 2026-10-15: DEV grid rerun after D37 (reporting only, nothing retuned), 800 machines
+
+`results/headline_dev_v2/grid_summary.csv` (clean recovery avg; work lost avg h): prior_only
+0.978437 / 1772.1585; slowburn 0.961312 / 1760.0100; gfs 0.640750 / 2076.0630; tower_of_hanoi
+0.593000 / 2387.7150; oracle 0.999563 / 776.8230. Per K (kept / recovery / work lost h):
+SlowBurn 4.0 / 0.977 / 1834.926, 6.0 / 0.972 / 1841.820, 8.0 / 0.936 / 1832.562, 12.0 / 0.961 /
+1530.732; prior-only 4.0 / 1.000 / 1970.400, 6.0 / 0.979 / 1819.140, 8.0 / 0.978 / 1718.244,
+12.0 / 0.957 / 1580.850. Same pattern as the TEST rerun.
