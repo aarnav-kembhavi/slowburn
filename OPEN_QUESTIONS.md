@@ -286,3 +286,28 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   from the same attack-free machines, and AMOEBA-style is trained with labels on 8 attacked DEV
   machines of the same cell (it therefore sees that cell's detection probability through its
   training data, an advantage to the baseline).
+- **D37 BUG FIX after the first test run (team decision, 2026-10-15): K = 12 drop.** Diagnosis on
+  DEV (`results/headline_dev`, `python -m slowburn.bench.diag_k12`): SlowBurn and prior-only
+  kept 2.0 / 3.0 / 3.0 / 4.0 snapshots at K = 4 / 6 / 8 / 12; without a backbone every K gave
+  the same result (0.884 recovery, 1340.7 h), so K acted only through R = round(0.25 K). The DP
+  minimised over sets of AT MOST K and broke ties towards the smaller set, so snapshots newer
+  than the gate day (zero marginal value that day) were deleted while slots were free; only the
+  Tower of Hanoi backbone carried snapshots into the restorable range, and once the old anchor
+  was dropped nothing could replace it (K = 12, R = 3: no kept snapshot older than 6 days in the
+  replay). The team classified this as a BUG: the specified method (Algorithm 1, problem
+  statement) deletes only when the budget is exceeded, and "keep fewer on ties" was never
+  specified. Fix, as specified by the team: (1) nothing is deleted while |held + today| <= K;
+  otherwise exactly one snapshot is deleted, the one whose removal increases expected loss least
+  (DP); (2) ties broken by a rule fixed before the rerun: smallest largest gap between
+  consecutive kept snapshots, then delete the newest eligible snapshot (general case: smallest
+  sum of kept days). The DP handles the largest-gap key exactly by a threshold search (cap every
+  gap at G, minimise (loss, day sum), take the smallest G attaining the minimum loss); the online
+  one-deletion case evaluates the K candidate removals directly (same minimiser, tested).
+  Property worth stating: the gap rule measures gaps between kept snapshots only, not their span
+  back to the oldest, so among exactly tied sets it prefers tight clusters; in the online
+  one-deletion setting this deletes the snapshot in the densest region and the replay holds
+  evenly spaced sets. Regression tests: `tests/test_retention_fill.py`. No hyperparameter was
+  retuned; configs/frozen.yaml unchanged (its values were chosen on DEV with the buggy code,
+  which the appendix must say). The full frozen TEST grid is re-run into `results/headline_v2`;
+  the first run stays in `results/headline` and both go in the appendix. The myopic one-day
+  objective stays and is a stated limitation.

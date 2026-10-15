@@ -191,6 +191,8 @@ class PosteriorDP:
         pi = ctx.retention_pi if self.use_evidence else ctx.prior_retention_pi
         if pi is None:
             raise ValueError(f"{self.name} needs a retention posterior in the context")
+        if len(ctx.snapshot_days) <= ctx.budget:
+            return set(ctx.snapshot_days)  # delete only when the budget is exceeded (D37)
         days = sorted(ctx.snapshot_days.values())
         R = backbone_size(ctx.budget, self.backbone)
         forced = []
@@ -199,8 +201,9 @@ class PosteriorDP:
             forced = sorted(ctx.snapshot_days[sid] for sid in bb)
             if R == ctx.budget:
                 return bb
-        keep_days = dp_select(days, pi, ctx.budget - R, self.penalty, keep_newest=True,
-                              forced=forced, gate=self.gate)  # fmt: skip
+        # the free slots are whatever the backbone does not use, so |kept| = K exactly
+        keep_days = dp_select(days, pi, ctx.budget - len(forced), self.penalty,
+                              keep_newest=True, forced=forced, gate=self.gate)  # fmt: skip
         return _ids_for_days(ctx, keep_days)
 
 

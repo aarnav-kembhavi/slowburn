@@ -154,8 +154,26 @@ found by exhaustive search for small D and c in {2, 3, 4}, compared with the bou
 
 ## 4. Theorem 3 (per-decision optimality of the DP)
 
+**Retention rule (D37).** Snapshots are deleted only when the budget is exceeded: while
+|H| <= K the policy keeps H. When |H| > K the kept set has exactly K elements (backbone days
+always among them), chosen by the DP below. The original statement allowed |J| <= K; with
+ties broken towards smaller sets this deleted zero-value snapshots while slots were free (the
+K = 12 bug, OPEN_QUESTIONS D37). Ties among equal-loss sets are broken by a rule fixed in
+advance: the smallest largest gap max_i (j_(i+1) - j_i) between consecutive kept snapshots, then
+the smallest sum of kept days (with one deletion: delete the newest eligible snapshot). Losses
+are compared up to a relative tolerance of 1e-9.
+
+*Exactness of the tie-break.* The loss and the day sum are sums of terms over single elements
+and consecutive pairs, so the recursion below is exact for the lexicographic order (loss, day
+sum). The largest gap is not additive; it is handled by a threshold search: let ℓ*(G) be the
+minimum loss over sets with every gap <= G (the same recursion with longer steps forbidden).
+ℓ*(G) is non-increasing in G, so the smallest G with ℓ*(G) = ℓ*(∞) is found by binary search
+over the O(m²) candidate gaps, and the lexicographic (loss, day sum) optimum at that G is the
+tie-broken optimum. In the online setting |H| = K + 1, so exactly one deletion is needed and
+the implementation evaluates the K candidate removals directly (same minimiser).
+
 **Theorem 3.** Fix a day t, the held set H (including today's snapshot t), a budget K, a
-penalty P (or the symmetric loss) and π̃_t. Among all J ⊆ H with t ∈ J and |J| <= K,
+penalty P (or the symmetric loss) and π̃_t. Among all J ⊆ H with t ∈ J and |J| = min(K, |H|),
 `dp_select` returns a J that minimises the expected loss
 
     ℓ(J) = Σ_s π̃_t(s) L(s, J),
@@ -172,7 +190,7 @@ sum of terms that each depend on one element or on two consecutive elements of J
 f(i, n) be the minimum over n-element chains ending at the i-th candidate c_i of the cost up to
 c_i. Then f(i, 1) = P·Π(c_i) and f(i, n) = min_{h<i} f(h, n - 1) + C(c_h, c_i), because the
 cost of a chain is its prefix cost plus a term depending only on its last two elements
-(optimal substructure). The answer is min_{n<=K} f(m, n) + C(c_m, ∞) with c_m = t, which also
+(optimal substructure). The answer is f(m, K) + C(c_m, ∞) with c_m = t, which also
 enforces t ∈ J. Prefix sums make each C and Π O(1), giving O(m² K). ∎
 
 *Scope, stated exactly.* (i) The optimality is **myopic, per decision**: given the snapshots
@@ -182,6 +200,12 @@ day. It does not plan for future deletions or snapshots, and the sequence of suc
 work lost in whole-system terms, plus the penalty); the selective-restore stage and its
 posterior quantile are separate and are evaluated, not optimised, here. (iii) The conditioning
 on non-discovery uses the assumed delay distribution, which may be misspecified.
+
+*Check (D37).* `tests/test_retention_fill.py`: the kept count equals min(K, days elapsed) on
+every day of replays for K in {4, 6, 8, 12}, backbone in {0, 0.25, 0.5}, gate in {0, 0.8}; no
+snapshot is deleted on a day when held + today <= K; an anchor with zero marginal value is kept
+while a slot is free; and the DP returns the same set as an exhaustive tie-broken search on
+tie-rich posteriors (zero-mass regions, forced days, every budget) and in the one-deletion case.
 
 *Check.* `tests/test_retention_dp.py`: the DP's expected loss equals the exhaustive minimum on
 120 random instances (random posteriors, candidate sets, budgets; penalty in {none, 5, 50}),

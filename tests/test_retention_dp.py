@@ -39,9 +39,10 @@ def test_dp_matches_brute_force(seed, penalty):
     cand = sorted(rng.choice(T, size=int(rng.integers(3, min(T, 9) + 1)), replace=False))
     K = int(rng.integers(1, len(cand) + 1))
     chosen = dp_select(cand, pi, K, penalty)
-    best, _ = brute_force_select(cand, pi, K, penalty)
+    best, arg = brute_force_select(cand, pi, K, penalty)
     assert expected_loss(chosen, pi, penalty) == pytest.approx(best, abs=1e-12)
-    assert len(chosen) <= K and cand[-1] in chosen and set(chosen) <= set(cand)
+    assert chosen == arg  # same set under the D37 tie-break
+    assert len(chosen) == K and cand[-1] in chosen and set(chosen) <= set(cand)
 
 
 def test_dp_without_keep_newest_matches_brute_force():
@@ -50,8 +51,9 @@ def test_dp_without_keep_newest_matches_brute_force():
         pi = _random_pi(rng, 10)
         cand = list(range(10))
         chosen = dp_select(cand, pi, 3, 20.0, keep_newest=False)
-        best, _ = brute_force_select(cand, pi, 3, 20.0, keep_newest=False)
+        best, arg = brute_force_select(cand, pi, 3, 20.0, keep_newest=False)
         assert expected_loss(chosen, pi, 20.0) == pytest.approx(best, abs=1e-12)
+        assert chosen == arg and len(chosen) == 3
 
 
 def test_dp_keeps_snapshot_just_before_a_certain_start():
@@ -134,10 +136,11 @@ def test_gated_forced_dp_matches_brute_force(seed, gate):
         forced = sorted([*forced, cand[-1]])  # the hybrid's backbone always holds today
     K = int(rng.integers(1, len(cand) + 1))
     chosen = dp_select(cand, pi, K, 30.0, forced=forced, gate=gate)
-    best, _ = brute_force_select(cand, pi, K, 30.0, forced=forced, gate=gate)
+    best, arg = brute_force_select(cand, pi, K, 30.0, forced=forced, gate=gate)
     assert expected_loss(chosen, pi, 30.0, gate) == pytest.approx(best, abs=1e-12)
+    assert chosen == arg
     assert set(forced) <= set(chosen) and cand[-1] in chosen
-    assert len(set(chosen) - set(forced)) <= K
+    assert len(set(chosen) - set(forced)) == min(K, len(set(cand) - set(forced)))
 
 
 def test_discovery_posterior_uses_the_delay_pmf():
