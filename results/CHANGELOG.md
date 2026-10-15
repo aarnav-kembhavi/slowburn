@@ -938,7 +938,7 @@ knows the start, its restore does not).
 
 **q = 0 restore-time failure (count budgets), SlowBurn vs prior-only:** uniform 0.069583 vs
 0.047917; early 0.085833 vs 0.054167; late 0.08125 vs 0.0625; bursty 0.060833 vs 0.0425;
-pooled 0.074375 vs 0.051770833. The excess (0.0182 to 0.0317) is above the pre-registered 1-point
+pooled 0.074375 vs 0.051770833. The excess (0.018333 to 0.031666) is above the pre-registered 1-point
 margin in every world: the v1 failure persists in simulator v2. Measured gate at q = 0: SlowBurn
 gate - start mean -10.7367 / -8.4917 / -11.1533 / -11.425 d (uniform / early / late / bursty) vs
 prior-only -17.155 / -15.54 / -18.8 / -18.8; gate admits the start day 0.34 / 0.3617 / 0.3467 /
@@ -948,8 +948,8 @@ prior-only -17.155 / -15.54 / -18.8 / -18.8; gate admits the start day 0.34 / 0.
 1787.298 h, SlowBurn 0.964167 / 1786.894, GFS 0.642417 / 2079.484, Tower of Hanoi 0.594833 /
 2404.872, keep last N 0.05 / 3512.314. In v2: SlowBurn's recovery gap to prior-only shrinks
 (-0.000875 vs -0.0155), SlowBurn's work lost falls below prior-only's in every world (by 27.164 to
-133.156 h), and GFS / Tower of Hanoi lose 0.0716 / 0.0333 recovery (v1's start offsets included
-GFS's best case o = 0). Work lost stays ~2.1-2.3x the oracle for SlowBurn.
+133.156 h), and GFS / Tower of Hanoi lose 0.071584 / 0.033333 recovery (v1's start offsets included
+GFS's best case o = 0). SlowBurn's work lost is 1.953 (early) to 2.262 (late) times the oracle's.
 
 **Headline claim (3) on v2 DEV (D50, reported, claim NOT changed):** with the policy's flat
 timing assumption fixed and the generating world varied, no world makes prior-only collapse (its

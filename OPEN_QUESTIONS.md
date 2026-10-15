@@ -449,7 +449,8 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
 - **D50 Headline claim (3) not reproduced on v2 DEV (REPORTED, claim unchanged, needs the team;
   2026-10-16).** Under decision 1 (flat assumption fixed, worlds varied) prior-only recovers
   0.97575-0.986 in every world and SlowBurn's recovery differs by -0.004583 to +0.00125; evidence
-  still lowers work lost (27-133 h) and raises byte-budget recovery (+0.022 to +0.056). The v1
+  still lowers work lost (27.164-133.156 h) and raises byte-budget recovery (+0.021555 to
+  +0.055667). The v1
   result needs a concentrated, misplaced assumption. Conservative handling tonight: no claim
   edited; the pre-specified DEV runs continue (they do not depend on the claim); the team decides
   whether claim (3) is restated (e.g. "evidence lowers work lost and helps under tight storage"),
