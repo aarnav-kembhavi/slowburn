@@ -85,3 +85,44 @@ def test_adaptive_gate_leaves_prior_only_and_default_unchanged():
     assert a.loc[po, cols].equals(b.loc[po, cols])  # no detector: fixed gate, same restore
     assert (a.restore_gate == 0.8).all()
     assert (b.loc[~po, "restore_gate"] < 0.8).all()
+
+
+def _sweep_rows():
+    import pandas as pd
+
+    rows = []
+    # (variant, world, policy, q, recovery, vfail-ness via retained/recovery, work lost)
+    spec = {"a": {"slowburn": (0.30, 0.9, 10.0)}, "b": {"slowburn": (0.10, 0.95, 12.0)},
+            "c": {"slowburn": (0.12, 0.95, 11.0)}}  # fmt: skip
+    for v, pols in spec.items():
+        for w in ("u", "l"):
+            for pol, (q0fail, rec, wl) in {**pols, "prior_only": (0.10, 0.9, 10.0)}.items():
+                for q in (0.0, 1.0):
+                    n = 100
+                    k = int(round(q0fail * n)) if q == 0.0 else 0
+                    for i in range(n):
+                        fail = i < k
+                        ok = (not fail) and (i < k + rec * n or q == 0.0)
+                        rows.append({"split": "dev", "variant": v, "world": w, "policy": pol,
+                                     "detect_prob": q, "clean_snapshot_retained": 1,
+                                     "clean_recovery": int(ok),
+                                     "work_lost_whole_system_hours": wl})  # fmt: skip
+    return pd.DataFrame(rows)
+
+
+def test_stage_a_rule():
+    from slowburn.bench.method_v2 import select_stage_a
+
+    v, met, board = select_stage_a(_sweep_rows())
+    assert not board.loc["a", "eligible"] and board.loc["b", "eligible"]
+    assert not board.loc["c", "eligible"]  # q = 0 excess 0.02 > 0.01
+    assert met and v == "b"
+
+
+def test_stage_a_refuses_test_rows():
+    from slowburn.bench.method_v2 import select_stage_a
+
+    df = _sweep_rows()
+    df.loc[0, "split"] = "test"
+    with pytest.raises(ValueError, match="DEV"):
+        select_stage_a(df)
