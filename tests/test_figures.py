@@ -47,6 +47,7 @@ def test_registry_and_unknown_name():
         "table-grid",
         "grid-heatmap",
         "tradeoff",
+        "table-k12-fix",
         "auroc",
     } <= set(REGISTRY)
     with pytest.raises(ValueError, match="unknown figure"):
@@ -65,3 +66,17 @@ def test_tradeoff_points_and_pareto():
     pts, cur = tradeoff_points(pd.DataFrame(rows))
     assert list(pts.index) == ["gfs"] and len(cur) == 4
     assert _pareto(cur).hp_penalty.tolist() == [30, 90, 500]  # 270 is dominated by 90
+
+
+def test_by_budget_table(tmp_path):
+    from slowburn.bench.figures import by_budget
+
+    rows = [{"policy": pol, "budget": K, "snapshots_retained": K - 1, "clean_recovery": r,
+             "work_lost_whole_system_hours": 10.0 * K}
+            for pol in ("slowburn", "gfs", "keep_first")
+            for K in (4, 8) for r in (0.0, 1.0)]  # fmt: skip
+    p = tmp_path / "r.csv"
+    pd.DataFrame(rows).to_csv(p, index=False)
+    g = by_budget(str(p))
+    assert list(g.policy.astype(str)) == ["slowburn", "slowburn", "gfs", "gfs"]
+    assert g.recovery.tolist() == [0.5] * 4 and g.kept.tolist() == [3, 7, 3, 7]

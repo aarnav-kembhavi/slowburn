@@ -25,7 +25,9 @@ from slowburn.bench.stats import (
 from slowburn.utils.config import resolve_path
 
 GEN = "paper/generated"
-HEADLINE_CSV = "results/headline/retention_results.csv"
+# the headline is the D37 rerun (after the K = 12 bug fix); the first run is kept for the appendix
+HEADLINE_CSV = "results/headline_v2/retention_results.csv"
+HEADLINE_V1_CSV = "results/headline/retention_results.csv"
 POLICY_ORDER = ["slowburn", "prior_only", "tower_of_hanoi", "gfs", "keep_last_n",
                 "threshold_vault", "amoeba_style", "keep_first", "oracle"]  # fmt: skip
 POLICY_LABEL = {"slowburn": "SlowBurn", "prior_only": "Prior only (blind DP)",
@@ -71,7 +73,8 @@ def _style(policy: str) -> dict:
 
 GRID_CELL = ["budget", "discovery_delay", "attack_start", "detect_prob", "benign_invalid_rate"]
 FIXED = ["keep_last_n", "gfs", "tower_of_hanoi", "threshold_vault", "keep_first"]
-DEV_CSV = "results/headline_dev/retention_results.csv"
+DEV_CSV = "results/headline_dev_v2/retention_results.csv"
+DEV_V1_CSV = "results/headline_dev/retention_results.csv"
 
 
 def load_headline(path: str = HEADLINE_CSV, curve: bool = False) -> pd.DataFrame:
@@ -285,7 +288,7 @@ def significance_counts(t: pd.DataFrame, alpha: float = 0.05) -> pd.DataFrame:
 def table_stats() -> list[Path]:
     """Per grid cell tests (every cell in the CSV); the LaTeX table counts the cells."""
     t = paired_tests(load_headline(), GRID_CELL)
-    t.to_csv(resolve_path("results/headline/paired_tests.csv"), index=False)
+    t.to_csv(resolve_path(HEADLINE_CSV).parent / "paired_tests.csv", index=False)
     p = write_latex_table(significance_counts(t), _out("table_stats.tex"),
                           caption="SlowBurn vs each baseline: grid cells with a significant "
                           "difference (paired by machine; Holm across baselines within each "
@@ -362,6 +365,45 @@ def tradeoff() -> list[Path]:
             out += _tradeoff_figure(path, stem, split)
     if not out:
         raise FileNotFoundError(2, "no result CSV", HEADLINE_CSV)
+    return out
+
+
+K12_POLICIES = ["slowburn", "prior_only", "gfs", "tower_of_hanoi", "oracle"]
+
+
+def by_budget(path: str, policies=K12_POLICIES) -> pd.DataFrame:
+    """Per budget K and policy: mean snapshots kept at discovery, clean recovery and whole-system
+    work lost over every grid cell (the D37 before/after comparison)."""
+    cols = ["policy", "budget", "snapshots_retained", "clean_recovery",
+            "work_lost_whole_system_hours"]  # fmt: skip
+    df = pd.read_csv(resolve_path(path), usecols=cols)
+    df = df[df.policy.isin(policies)]
+    g = df.groupby(["policy", "budget"]).agg(
+        kept=("snapshots_retained", "mean"), recovery=("clean_recovery", "mean"),
+        work_lost_h=("work_lost_whole_system_hours", "mean"), rows=("clean_recovery", "size"),
+    ).reset_index()  # fmt: skip
+    g["policy"] = pd.Categorical(g.policy, policies, ordered=True)
+    return g.sort_values(["policy", "budget"]).reset_index(drop=True)
+
+
+@figure("table-k12-fix")
+def table_k12_fix() -> list[Path]:
+    """Appendix: SlowBurn and baselines per budget, first test run (bug) vs D37 rerun."""
+    out, frames = [], []
+    for run, path in (("first run (bug)", HEADLINE_V1_CSV), ("rerun (D37 fix)", HEADLINE_CSV)):
+        if resolve_path(path).exists():
+            frames.append(by_budget(path).assign(run=run))
+    if not frames:
+        raise FileNotFoundError(2, "no result CSV", HEADLINE_CSV)
+    tab = pd.concat(frames, ignore_index=True)
+    tab.to_csv(resolve_path(HEADLINE_CSV).parent / "k12_fix_by_budget.csv", index=False)
+    tab["policy"] = tab.policy.astype(str).map(lambda x: POLICY_LABEL.get(x, x))
+    tab = tab[["run", "policy", "budget", "kept", "recovery", "work_lost_h"]]
+    out.append(write_latex_table(tab, _out("table_k12_fix.tex"), floatfmt="{:.3f}",
+                                 caption="Per budget K, TEST grid: mean snapshots kept at "
+                                 "discovery, clean recovery and whole-system work lost (hours), "
+                                 "first test run (retention bug) and the D37 rerun",
+                                 label="tab:k12-fix"))  # fmt: skip
     return out
 
 
