@@ -991,3 +991,28 @@ a worst cell of 0.0, and SlowBurn's mean is below prior-only's at every K (K = 4
 0.9375; K = 6: 0.895 vs 0.98125; K = 8: 0.91125 vs 0.93875; K = 12: 0.86 vs 0.88125), again the
 q = 0 restore-time failure. Byte budget 30 d at q = 1: SlowBurn 0.99 (worst 0.8) vs prior-only
 0.71125 (worst 0.0), GFS 0.5175, Tower of Hanoi 0.45625, oracle 1.0.
+
+## 2026-10-16 (night): P1 assumed discovery-delay sweep on the v2 DEV seed (D47, reporting only)
+
+`configs/dev_v2_delay.yaml` -> `results/dev_v2_delay/sweep_{summary,by_budget,by_q,by_delay}.csv`:
+the policy's assumed delay distribution replaced, true delays 7-60, all four worlds, q in
+{1, .5, .2, 0}, benign 0.01, 40 reps, count budgets (3200 rows per variant, world and policy).
+Mean over the four worlds, clean recovery / work lost (h):
+
+| assumed delay | prior-only | SlowBurn | GFS | Tower of Hanoi |
+|---|---|---|---|---|
+| uniform 1-14 | 0.35125 / 3259.78125 | 0.348984 / 3265.760625 | 0.3575 / 3205.591875 | 0.271641 / 3558.894375 |
+| uniform 1-30 | 0.565703 / 2542.336875 | 0.566328 / 2506.275 | 0.486016 / 2856.3 | 0.382969 / 3079.68375 |
+| uniform 1-60 (frozen) | 0.973203 / 1732.39125 | 0.972109 / 1660.003125 | 0.571641 / 2671.13625 | 0.558906 / 2716.74375 |
+| uniform 1-90 | 1.0 / 2224.695 | 0.993672 / 2158.83 | 0.573359 / 2676.2175 | 0.571094 / 2783.30625 |
+| uniform 1-120 | 1.0 / 2816.5875 | 0.997109 / 2509.940625 | 0.573438 / 2677.5975 | 0.572656 / 2818.32375 |
+| geometric, mean 30, max 60 | 0.976406 / 1734.38625 | 0.962422 / 1668.3825 | 0.560859 / 2683.123125 | 0.547891 / 2732.859375 |
+
+By true delay, prior-only recovery: assumed 14 -> 1.0 / 0.75625 / 0.0 / 0.0 / 0.0 (true 7 / 14 /
+30 / 45 / 60); assumed 30 -> 1.0 / 1.0 / 0.828516 / 0.0 / 0.0; assumed 60 -> 1.0 / 1.0 / 1.0 / 1.0
+/ 0.866016; assumed 90 and 120 -> 1.0 at every true delay. An assumed maximum delay shorter than
+the true delay makes the restore gate trust snapshots taken after the attack started, and
+recovery collapses for every policy that shares the restore (GFS and Tower of Hanoi too). A
+longer assumption is safe for recovery and costs work lost (prior-only +492.30375 h at 90,
++1084.19625 h at 120, relative to 60). SlowBurn's work lost is below prior-only's for every
+assumption except uniform 1-14 (+5.979375 h).
