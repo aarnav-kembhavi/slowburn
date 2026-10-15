@@ -327,3 +327,32 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
 - **Limitations recorded (team, 2026-10-16):** myopic per-day objective; recovery not monotone
   in K (prior-only 1.000 -> 0.957 on DEV, SlowBurn dip at K = 8); verification errors (restore
   accepts a dirty snapshot the detector misses); conservative restore gate (D38).
+- **D39 Timing-prior misspecification sweep (DEV, reporting only, 2026-10-16).** The frozen prior
+  is NOT the simulator's generating distribution: the simulator starts every attack with
+  certainty on day 112 + o, o in {0, 3, 6, 27} (uniform on {112, 115, 118, 139} across the grid);
+  the frozen prior is a constant daily hazard after the warm-up with P(start within 60 d) = 0.05.
+  Wiring check requested by the team: the frozen variant reproduces `results/headline_dev_v2`
+  row for row (64000 rows, every column identical) because it IS the same prior with the same
+  seeds; every other prior changes the outcome (e.g. later_60: restore point differs in 100% /
+  99.6% of prior-only / SlowBurn rows, oldest kept age in 100%; GFS restore point in 38.7%,
+  through the shared gate). Unit test
+  `tests/test_retention_experiment.py::test_timing_prior_reaches_dp_and_restore_gate`: on one
+  machine, priors centred on day 8 vs day 20 give gate days 9 vs 14 (SlowBurn) and 8 vs 18
+  (prior-only), and kept sets [6, 7, 8, 22] vs [9, 13, 14, 22] / [12, 15, 17, 22]. The
+  discovery-delay assumption was not swept.
+- **D40 Restore-time failures (analysis only, no method change, 2026-10-16).** Every failure with
+  a clean snapshot retained is a DAMAGED snapshot that passed verification (616 of 619 SlowBurn
+  DEV rows; the other 3 restore a pre-start snapshot that still fails). They concentrate at
+  q = 0 and delay 60. At q = 0, on the rows where SlowBurn fails, it restores 22.4 days later
+  (median 14) than prior-only on the same machine-cell, with more gate candidates on average
+  (4.62 vs 3.92): consistent with "no flags shifts the evidence posterior later, so the gate
+  admits newer, damaged snapshots". The gate day itself is not logged, so this is inferred from
+  restore points, not measured. Generated: `slowburn fig table-restore-failures`.
+- **D41 Scope and framing (team decision, 2026-10-16).** Do: 1a, 1c, core ablations (no
+  backbone, no detector, chunk vs file statistic), a light detector-quality comparison. Dropped:
+  real-data loaders (NapierOne, Govdocs1), restic integration and the CNN detector; recorded as
+  limitations ("simulation study"). All experiments frozen by 20 October; 21-25 October writing.
+  Framing: high clean recovery comes from planning for uncertain attack timing and restoring
+  conservatively; it beats GFS and Tower of Hanoi on both recovery and work lost, but work lost
+  stays well above the oracle (DEV 1760 vs 777 h), and detector evidence moves the restore point
+  little under the current gate. No further method changes; the test runs stand.

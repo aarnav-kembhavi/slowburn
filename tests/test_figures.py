@@ -80,3 +80,15 @@ def test_by_budget_table(tmp_path):
     g = by_budget(str(p))
     assert list(g.policy.astype(str)) == ["slowburn", "slowburn", "gfs", "gfs"]
     assert g.recovery.tolist() == [0.5] * 4 and g.kept.tolist() == [3, 7, 3, 7]
+
+
+def test_restore_failures_table(tmp_path):
+    from slowburn.bench.figures import restore_failures
+
+    rows = [{"policy": "slowburn", "detect_prob": q, "clean_recovery": r,
+             "clean_snapshot_retained": c}
+            for q, r, c in ((0.0, 0, 1), (0.0, 1, 1), (1.0, 0, 0), (1.0, 1, 1))]  # fmt: skip
+    p = tmp_path / "r.csv"
+    pd.DataFrame(rows).to_csv(p, index=False)
+    g = restore_failures(str(p), "detect_prob")
+    assert g.restore_fail.tolist() == [0.5, 0.0] and g.retention_fail.tolist() == [0.0, 0.5]

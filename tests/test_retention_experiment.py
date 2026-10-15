@@ -178,3 +178,62 @@ def test_slowburn_never_sees_cell_truth(cfg):
     c = pd.DataFrame(evaluate_trace(one, task, trace, cfg["hp"], pols))[cols]
     last = a[a.discovery_delay == cfg["discovery_delay"][-1]].reset_index(drop=True)
     assert c.reset_index(drop=True).equals(last)
+
+
+def test_timing_prior_reaches_dp_and_restore_gate(cfg):
+    """D39: the assumed attack-timing prior (misspecification sweep) changes both the retention
+    DP's kept set and the restore gate day, for SlowBurn and for the prior-only policy; and it
+    changes the end-to-end restore."""
+    import numpy as np
+
+    from slowburn.bench.retention_experiment import evaluate_trace, start_posteriors
+    from slowburn.retention.base import PosteriorDP, RetentionContext
+    from slowburn.retention.dp import (
+        discovery_posterior,
+        discovery_survival,
+        gate_day,
+        retention_posterior,
+    )
+
+    params = {**cfg["scenario"], "detect_prob": 0.5, "benign_invalid_rate": 0.01,
+              "null_prior": (0.5, 100.5)}  # fmt: skip
+    task = RetentionTask("dev", "eval", params, 0)
+    trace = simulate(cfg, task)
+    hp = cfg["hp"]
+    S = discovery_survival(hp["assumed_discovery"]["kind"], hp["assumed_discovery"]["max_days"])
+    td = trace.start + cfg["discovery_delay"][-1]
+
+    def gauss(name, center):
+        tp = {"name": name, "kind": "gaussian", "center": center, "sd": 2, "p_attack": 0.99}
+        return {**hp, "timing_prior": tp}
+
+    def run(h):
+        path, prior = start_posteriors(trace, h, cfg["warmup_days"], params["null_prior"], {})
+        gates, kept = {}, {}
+        for ev in (True, False):
+            post = (path if ev else prior)[td + 1]
+            gates[ev] = gate_day(discovery_posterior(post, td, S), hp["gate"])
+            pol = PosteriorDP(hp["penalty"], use_evidence=ev, gate=hp["gate"])
+            held: dict[int, int] = {}
+            for t in range(td + 1):
+                held[t] = t
+                rpi = retention_posterior(path[t + 1], t, S)
+                ppi = retention_posterior(prior[t + 1], t, S)
+                ctx = RetentionContext(day=t, snapshot_days=dict(held), budget=4,
+                                       daily_stat=np.zeros(t + 1), start_posterior=path[t + 1],
+                                       retention_pi=rpi, prior_retention_pi=ppi)  # fmt: skip
+                held = {sid: held[sid] for sid in pol.decide(ctx)}
+            kept[ev] = sorted(held.values())
+        return gates, kept
+
+    g_early, k_early = run(gauss("early", 8))
+    g_late, k_late = run(gauss("late", 20))
+    for ev in (True, False):
+        assert g_early[ev] < g_late[ev]
+        assert k_early[ev] != k_late[ev]
+    cols = ["policy", "budget", "discovery_delay", "restore_point", "oldest_retained_age"]
+    pols = ("slowburn", "prior_only")
+    a = pd.DataFrame(evaluate_trace(cfg, task, trace, gauss("early", 8), pols))[cols]
+    b = pd.DataFrame(evaluate_trace(cfg, task, trace, gauss("late", 20), pols))[cols]
+    for pol in pols:
+        assert not a[a.policy == pol].equals(b[b.policy == pol])

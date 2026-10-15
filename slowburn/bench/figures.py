@@ -407,6 +407,55 @@ def table_k12_fix() -> list[Path]:
     return out
 
 
+RF_POLICIES = ["slowburn", "prior_only", "gfs", "tower_of_hanoi"]
+
+
+def restore_failures(path: str, by: str, policies=RF_POLICIES) -> pd.DataFrame:
+    """Restore-time failure rate per policy and ``by`` (D40, analysis only): the share of rows
+    where a clean snapshot WAS retained but recovery failed (the verified restore accepted a
+    snapshot the detector does not flag), next to the share with no clean snapshot retained."""
+    cols = ["policy", by, "clean_recovery", "clean_snapshot_retained"]
+    df = pd.read_csv(resolve_path(path), usecols=cols)
+    df = df[df.policy.isin(policies)]
+    df = df.assign(restore_fail=(df.clean_snapshot_retained == 1) & (df.clean_recovery == 0),
+                   retention_fail=df.clean_snapshot_retained == 0)  # fmt: skip
+    g = df.groupby(["policy", by]).agg(restore_fail=("restore_fail", "mean"),
+                                       retention_fail=("retention_fail", "mean"),
+                                       rows=("restore_fail", "size")).reset_index()  # fmt: skip
+    g["policy"] = pd.Categorical(g.policy, policies, ordered=True)
+    return g.sort_values(["policy", by]).reset_index(drop=True)
+
+
+@figure("table-restore-failures")
+def table_restore_failures() -> list[Path]:
+    """Limitations: restore-time failure rate by detection probability and by budget (TEST);
+    CSVs for TEST and DEV."""
+    out = []
+    for split, path in (("test", HEADLINE_CSV), ("dev", DEV_CSV)):
+        if not resolve_path(path).exists():
+            continue
+        tabs = {by: restore_failures(path, by) for by in ("detect_prob", "budget",
+                                                          "discovery_delay")}  # fmt: skip
+        for by, t in tabs.items():
+            t.to_csv(resolve_path(path).parent / f"restore_failures_by_{by}.csv", index=False)
+        if split != "test":
+            continue
+        for by, label in (("detect_prob", "q"), ("budget", "K")):
+            w = tabs[by].pivot(index="policy", columns=by, values="restore_fail")
+            w.columns = [f"{label}={c:g}" for c in w.columns]
+            w.index = [POLICY_LABEL.get(str(p), str(p)) for p in w.index]
+            out.append(write_latex_table(w.reset_index(names="policy"),
+                                         _out(f"table_restore_failures_{label}.tex"),
+                                         floatfmt="{:.3f}",
+                                         caption="TEST grid: share of cases where a clean "
+                                         "snapshot was retained but the verified restore chose "
+                                         f"a damaged one, by {label}",
+                                         label=f"tab:restore-fail-{label}"))  # fmt: skip
+    if not out:
+        raise FileNotFoundError(2, "no result CSV", HEADLINE_CSV)
+    return out
+
+
 @figure("table-theory")
 def table_theory() -> list[Path]:
     t = pd.read_csv(resolve_path("results/theory/toh_tightness.csv"))

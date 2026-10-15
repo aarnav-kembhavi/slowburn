@@ -827,3 +827,38 @@ GFS and ToH change with the prior only through the shared verified restore (its 
 posterior); their retention is prior-free (clean snapshot retained 0.650 / 0.6125 throughout).
 The frozen prior is NOT the generating distribution (constant hazard, P(start within 60 d) =
 0.05, vs a certain start at day 112 + o); it behaves like the flat prior.
+
+## 2026-10-16: prior wiring check, freeze check K = 6, restore-time failure analysis (1c)
+
+**Prior wiring (D39).** `results/sweep_prior` frozen_geometric vs `results/headline_dev_v2`:
+64000 paired rows, restore_point / oldest_retained_age / gate_candidates / estimated_start /
+clean_recovery / work_lost identical in 1.0000 of rows (same prior, same seeds). Share of paired
+rows whose restore point differs from the frozen prior (prior-only / SlowBurn / GFS): flat
+0.027 / 0.018 / 0.004; matched 1.000 / 0.990 / 0.137; earlier_30 1.000 / 0.980 / 0.095;
+earlier_60 0.586 / 0.513 / 0.114; later_30 0.988 / 0.977 / 0.274; later_60 1.000 / 0.996 /
+0.387; narrow 1.000 / 0.994 / 0.272; wide 0.418 / 0.289 / 0.035. New test
+`test_timing_prior_reaches_dp_and_restore_gate` (smoke machine, start 12, discovery 22): gate day
+9 vs 14 (SlowBurn), 8 vs 18 (prior-only) for priors centred on day 8 vs 20; kept sets
+[6, 7, 8, 22] vs [9, 13, 14, 22] (SlowBurn), [6, 7, 8, 22] vs [12, 15, 17, 22] (prior-only).
+
+**Freeze check, K = 6 added** (scratchpad replay, 400 days, gate 0.8, penalty 90): today's
+snapshot deleted on 0.0 of deletion days; yesterday's 0.964 (backbone 0) / 0.0 (backbone 0.25);
+newest non-today kept age median / max 18.0 / 36 (bb 0), 1.0 / 1 (bb 0.25); last-day ages
+[0, 15, 51, 87, 123, 159] (bb 0), [0, 1, 4, 46, 88, 130] (bb 0.25); replay recovery 1.0, work lost
+17.163 / 19.82 days.
+
+**Restore-time failures (D40), share of rows with a clean snapshot retained but recovery failed**
+(`slowburn fig table-restore-failures`; CSVs `restore_failures_by_{detect_prob,budget,
+discovery_delay}.csv` next to each results CSV). Every such failure has verified = 1.
+
+| TEST | overall | q=0 | q=0.2 | q=0.5 | q=0.9 | q=1 | K=4 | K=6 | K=8 | K=12 | d=45 | d=60 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| SlowBurn | 0.0328 | 0.1272 | 0.0261 | 0.0098 | 0.0004 | 0.0004 | 0.0204 | 0.0242 | 0.0470 | 0.0396 | 0.0314 | 0.1302 |
+| Prior-only | 0.0193 | 0.0544 | 0.0293 | 0.0124 | 0.0004 | 0.0000 | 0.0000 | 0.0173 | 0.0211 | 0.0388 | 0.0000 | 0.0965 |
+| GFS | 0.0062 | 0.0256 | 0.0041 | 0.0014 | 0.0001 | 0.0001 | 0.0000 | 0.0004 | 0.0008 | 0.0238 | 0.0127 | 0.0148 |
+| ToH | 0.0150 | 0.0700 | 0.0038 | 0.0006 | 0.0002 | 0.0002 | 0.0000 | 0.0003 | 0.0298 | 0.0298 | 0.0019 | 0.0717 |
+
+Delays 7 / 14 / 30 are at most 0.0022 for every policy. No clean snapshot retained: GFS 0.35,
+ToH 0.3875, SlowBurn and prior-only 0. DEV overall: SlowBurn 0.0387, prior-only 0.0216, GFS
+0.0092, ToH 0.0195. DEV q = 0: on the 425 of 3200 rows where SlowBurn fails, it restores 22.4
+days later (median 14) than prior-only on the same machine-cell; gate candidates 4.62 vs 3.92.
