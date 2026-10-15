@@ -958,3 +958,36 @@ prior-only = +0.000417 (uniform), -0.004583 (early), +0.00125 (late), -0.000583 
 lowers work lost in every world (by 27.164-133.156 h) and raises recovery under byte budgets
 (+0.021555 to +0.055667). The v1 robustness result (60 days late: prior-only 0.362 vs SlowBurn
 0.621) came from a concentrated prior placed 60 days late, which the v2 design no longer has.
+
+## 2026-10-16 (night): P1 worst-case timing grid on the v2 DEV seed (D47)
+
+`configs/dev_v2_worst.yaml` -> `results/dev_v2_worst/worst_case_timing.csv`: starts 112..143 x
+delays {7, 14, 30, 45, 60}, q in {1, .5, 0}, benign 0.01, 5 reps per start (480 machines). Per
+policy, budget and q: mean over the 160 timing cells and the worst cell. With 5 reps a cell's
+recovery moves in steps of 0.2, so "worst cell" is coarse and biased low; the TEST grid needs
+more reps per timing cell. Pooled over budgets and q (mean of cell means / min of worst cells /
+mean work lost / max worst work lost, h):
+
+| budget kind | policy | recovery avg | recovery worst | work lost avg | work lost worst |
+|---|---|---|---|---|---|
+| count | prior-only | 0.974063 | 0.0 | 1770.5975 | 4800.0 |
+| count | SlowBurn | 0.959167 | 0.0 | 1771.57 | 4752.0 |
+| count | GFS | 0.599583 | 0.0 | 2250.885 | 4872.0 |
+| count | Tower of Hanoi | 0.578542 | 0.0 | 2515.425 | 4872.0 |
+| count | keep last N | 0.049896 | 0.0 | 3660.87 | 4872.0 |
+| count | keep first | 0.999687 | 0.8 | 3806.9575 | 4872.0 |
+| count | oracle | 0.999687 | 0.8 | 777.255 | 1464.0 |
+| bytes | prior-only | 0.617083 | 0.0 | 2311.38 | 4872.0 |
+| bytes | SlowBurn | 0.66125 | 0.0 | 2146.206667 | 4872.0 |
+| bytes | GFS | 0.539722 | 0.0 | 2382.746667 | 4872.0 |
+| bytes | Tower of Hanoi | 0.512639 | 0.0 | 2514.343333 | 4872.0 |
+| bytes | keep last N | 0.485417 | 0.0 | 2489.086667 | 4872.0 |
+| bytes | oracle | 0.755972 | 0.0 | 1666.796667 | 4872.0 |
+
+Count budgets, worst cell at q = 1: prior-only 1.0 at every K; SlowBurn 0.8 at K = 4 (start 130,
+delay 60), 1.0 otherwise; GFS 0.0 at every K (start 112 or 120, delay 45-60); Tower of Hanoi 0.0
+at K = 4 and 6, 1.0 at K = 8 and 12. At q = 0 every policy except keep first and the oracle has
+a worst cell of 0.0, and SlowBurn's mean is below prior-only's at every K (K = 4: 0.885 vs
+0.9375; K = 6: 0.895 vs 0.98125; K = 8: 0.91125 vs 0.93875; K = 12: 0.86 vs 0.88125), again the
+q = 0 restore-time failure. Byte budget 30 d at q = 1: SlowBurn 0.99 (worst 0.8) vs prior-only
+0.71125 (worst 0.0), GFS 0.5175, Tower of Hanoi 0.45625, oracle 1.0.
