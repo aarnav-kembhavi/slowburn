@@ -311,3 +311,19 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   which the appendix must say). The full frozen TEST grid is re-run into `results/headline_v2`;
   the first run stays in `results/headline` and both go in the appendix. The myopic one-day
   objective stays and is a stated limitation.
+- **D38 Why work lost rose after D37 (DEV, analysis only, 2026-10-16).** SlowBurn DEV whole-system
+  work lost 1357.842 h (first run) -> 1760.010 h (rerun); recovery 0.929 -> 0.961. Before the
+  fix 5586 of 16000 restores (35%) found no kept snapshot past the restore gate and fell back to
+  the oldest kept snapshot, usually a recent backbone copy: recovery 0.820, mean gap
+  (s - 1 - restore day) 10.2 days given recovery. After the fix every restore has candidates
+  past the gate (4.59 on average, was 0.68) and lands behind it: mean gap 38.0 days given
+  recovery (17.2 before), nearly flat in detection probability (41.0 at q = 0, 35.2 at q = 1)
+  and LARGEST at short delays (50.6 days at delay 7 vs 26.0 at delay 60). In 74.4% of
+  machine-cells recovered in both runs the rerun restores an older snapshot (mean restore day
+  82.5 vs 102.9). Cause: the gate (tau = 0.8 under the assumed uniform delay to 60 days) puts
+  the newest admissible snapshot about 48 days before discovery unless evidence localises the
+  start; the first run's low work lost came partly from the fallback landing on recent
+  snapshots. No method change (team decision); recorded as a limitation.
+- **Limitations recorded (team, 2026-10-16):** myopic per-day objective; recovery not monotone
+  in K (prior-only 1.000 -> 0.957 on DEV, SlowBurn dip at K = 8); verification errors (restore
+  accepts a dirty snapshot the detector misses); conservative restore gate (D38).

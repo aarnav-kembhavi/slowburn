@@ -261,3 +261,24 @@ def test_hazard_from_window():
         assert 1 - np.exp(lp[-1]) == pytest.approx(p)  # prior P(started) over the window
     with pytest.raises(ValueError):
         hazard_from_window(1.0, 60)
+
+
+def test_timing_log_prior_specs():
+    from slowburn.inference.changepoint import (
+        geometric_log_prior,
+        timing_log_prior,
+        uniform_log_prior,
+    )
+
+    T, w = 150, 14
+    assert np.array_equal(timing_log_prior(T, {"kind": "geometric", "hazard": 0.01}, w),
+                          geometric_log_prior(T, 0.01, w))  # fmt: skip
+    assert np.array_equal(timing_log_prior(T, {"kind": "uniform"}, w), uniform_log_prior(T, w))
+    spec = {"kind": "gaussian", "center": 121, "sd": 12, "p_attack": 0.99}
+    for TT in (10, 100, 121, 200):
+        p = np.exp(timing_log_prior(TT, spec, w))
+        assert p.sum() == pytest.approx(1.0) and (p[: min(w, TT)] == 0).all()
+    p = np.exp(timing_log_prior(300, spec, w))
+    assert int(np.argmax(p[:-1])) == 121 and p[-1] == pytest.approx(0.01, abs=1e-6)
+    with pytest.raises(ValueError):
+        timing_log_prior(T, {"kind": "nope"}, w)
