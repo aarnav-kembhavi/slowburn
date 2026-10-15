@@ -138,8 +138,12 @@ def verified_restore(
     # the restore point the DP's loss assumes: newest gated kept snapshot that is truly clean
     model = [j for j in candidates if j < true_start]
     model_point = max(model) if model else kept[0]
+    # measured gate (P0): newest day the gate admits, and the clean probability of the restore
+    ok = np.flatnonzero(p_clean(post, np.arange(discovery_day + 1)) >= gate - 1e-12)
     return {**out, "estimated_start": L, "verified": verified, "snapshots_scanned": scanned,
             "files_scanned": files_scanned, "gate_candidates": len(candidates),
+            "gate_day": int(ok[-1]) if len(ok) else -1,
+            "restore_p_clean": float(p_clean(post, [j_r])[0]),
             "restore_matches_dp_model": int(j_r == model_point)}  # fmt: skip
 
 

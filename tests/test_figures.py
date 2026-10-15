@@ -92,3 +92,18 @@ def test_restore_failures_table(tmp_path):
     pd.DataFrame(rows).to_csv(p, index=False)
     g = restore_failures(str(p), "detect_prob")
     assert g.restore_fail.tolist() == [0.5, 0.0] and g.retention_fail.tolist() == [0.0, 0.5]
+
+
+def test_gate_by_q(tmp_path):
+    from slowburn.bench.figures import gate_by_q
+
+    rows = [{"policy": pol, "detect_prob": q, "gate_day": g, "true_start": 10,
+             "clean_recovery": r, "clean_snapshot_retained": 1}
+            for pol, q, g, r in (("slowburn", 0.0, 12, 0), ("slowburn", 0.0, 6, 1),
+                                 ("slowburn", 1.0, 4, 1), ("prior_only", 0.0, 5, 1))]  # fmt: skip
+    p = tmp_path / "g.csv"
+    pd.DataFrame(rows).to_csv(p, index=False)
+    g = gate_by_q(str(p))
+    assert g.policy.tolist() == ["slowburn", "slowburn", "prior_only"]
+    sb0 = g[(g.policy == "slowburn") & (g.detect_prob == 0.0)].iloc[0]
+    assert sb0.gate_lag_mean == -1.0 and sb0.gate_admits_start == 0.5 and sb0.restore_fail == 0.5

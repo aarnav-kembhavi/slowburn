@@ -862,3 +862,34 @@ Delays 7 / 14 / 30 are at most 0.0022 for every policy. No clean snapshot retain
 ToH 0.3875, SlowBurn and prior-only 0. DEV overall: SlowBurn 0.0387, prior-only 0.0216, GFS
 0.0092, ToH 0.0195. DEV q = 0: on the 425 of 3200 rows where SlowBurn fails, it restores 22.4
 days later (median 14) than prior-only on the same machine-cell; gate candidates 4.62 vs 3.92.
+
+## 2026-10-16: P0 consolidation for the systems paper (D42-D44)
+
+**New direction (D42)** recorded; **v1 TEST split marked SPENT (D43)**: nothing from
+`results/headline` or `results/headline_v2` is a headline result; v2 claims come only from a fresh
+pre-registered TEST.
+
+**Restore gate logged per restore (D44).** `verified_restore` now records `gate_day` and
+`restore_p_clean` next to `gate_candidates` and `verified`. DEV v2 rerun with logging
+(`configs/headline_dev_v2_gatelog.yaml` -> `results/headline_dev_v2_gatelog`, same seeds): all
+576000 rows match `results/headline_dev_v2` in every one of the 45 shared columns (wall-clock
+timings excluded), i.e. the logging changes nothing else.
+
+**Measured gate, v1 DEV** (`slowburn fig table-gate-q` -> `paper/generated/table_gate_q.tex`,
+`results/headline_dev_v2_gatelog/gate_by_detect_prob.csv`; 3200 rows per policy and q):
+
+| policy | q | gate - start, mean d | median d | gate admits start | restore-time failure |
+|---|---|---|---|---|---|
+| SlowBurn | 1.0 | -7.51375 | -4.0 | 0.0275 | 0.0 |
+| SlowBurn | 0.9 | -7.63 | -5.0 | 0.07625 | 0.00375 |
+| SlowBurn | 0.5 | -10.81875 | -8.0 | 0.18 | 0.0146875 |
+| SlowBurn | 0.2 | -12.36875 | -10.0 | 0.24875 | 0.0421875 |
+| SlowBurn | 0.0 | -10.36 | -9.0 | 0.36 | 0.1328125 |
+| Prior-only | every q | -18.8 | -20.0 | 0.2 | 0.0 / 0.0025 / 0.0165625 / 0.035625 / 0.053125 (q = 1 / .9 / .5 / .2 / 0) |
+
+At q = 0, SlowBurn's gate day is later than prior-only's on the same machine-cell by 8.44 days on
+average (median 11, 3200 rows); on the 425 rows where SlowBurn fails with a clean snapshot
+retained, by 11.02 days (median 12), and its gate admits the true start day in 1.0 of them
+(prior-only: 0.7976). The restore point lies inside SlowBurn's gate in 1.0 of those rows (mean
+restore_p_clean 0.8932). The D40 explanation is now measured, not inferred. Prototype appendix:
+`paper/sections/appendix_prototype.tex`.

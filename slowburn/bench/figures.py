@@ -456,6 +456,53 @@ def table_restore_failures() -> list[Path]:
     return out
 
 
+GATELOG_CSV = "results/headline_dev_v2_gatelog/retention_results.csv"
+
+
+def gate_by_q(path: str, policies=("slowburn", "prior_only")) -> pd.DataFrame:
+    """Measured restore gate (D44) per policy and detection probability: mean and median gate
+    day relative to the true start (>= 0 means the gate admits days on or after the start), the
+    share of rows whose gate admits such days, and the restore-time failure rate."""
+    cols = ["policy", "detect_prob", "gate_day", "true_start", "clean_recovery",
+            "clean_snapshot_retained"]  # fmt: skip
+    df = pd.read_csv(resolve_path(path), usecols=cols)
+    df = df[df.policy.isin(policies)]
+    df = df.assign(
+        gate_lag=df.gate_day - df.true_start,
+        gate_open=df.gate_day >= df.true_start,
+        restore_fail=(df.clean_snapshot_retained == 1) & (df.clean_recovery == 0),
+    )
+    g = df.groupby(["policy", "detect_prob"]).agg(
+        gate_lag_mean=("gate_lag", "mean"), gate_lag_median=("gate_lag", "median"),
+        gate_admits_start=("gate_open", "mean"), restore_fail=("restore_fail", "mean"),
+        rows=("gate_lag", "size")).reset_index()  # fmt: skip
+    g["policy"] = pd.Categorical(g.policy, list(policies), ordered=True)
+    return g.sort_values(["policy", "detect_prob"], ascending=[True, False]).reset_index(drop=True)
+
+
+@figure("table-gate-q")
+def table_gate_q() -> list[Path]:
+    """Prototype-stage appendix (v1 DEV, D44): measured restore gate by detection probability."""
+    t = gate_by_q(GATELOG_CSV)
+    t.to_csv(resolve_path(GATELOG_CSV).parent / "gate_by_detect_prob.csv", index=False)
+    t["policy"] = [POLICY_LABEL.get(str(p), str(p)) for p in t.policy]
+    t = t.rename(
+        columns={
+            "detect_prob": "q",
+            "gate_lag_mean": "gate - start (mean d)",
+            "gate_lag_median": "gate - start (median d)",
+            "gate_admits_start": "gate admits start",
+            "restore_fail": "restore-time failure",
+        }
+    ).drop(columns="rows")
+    cap = (
+        "Prototype stage (v1 DEV): measured restore gate day relative to the true attack "
+        "start, and restore-time failure rate, by detection probability q"
+    )
+    return [write_latex_table(t, _out("table_gate_q.tex"), floatfmt="{:.3f}", caption=cap,
+                              label="tab:gate-q")]  # fmt: skip
+
+
 @figure("table-theory")
 def table_theory() -> list[Path]:
     t = pd.read_csv(resolve_path("results/theory/toh_tightness.csv"))

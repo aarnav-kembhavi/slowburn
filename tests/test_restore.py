@@ -114,8 +114,12 @@ def test_gate_skips_unlikely_clean_snapshots_and_fallback():
     post = _post(20, {8: 0.5, 14: 0.5})
     r = verified_restore([5, 10, 15, 20], post, 20, hist, true_start=14, gate=0.9)
     assert r["gate_candidates"] == 1 and r["restore_point"] == 5  # only day 5 has P_clean 1
+    assert r["gate_day"] == 7 and r["restore_p_clean"] == 1.0  # logged gate: days <= 7 admitted
     r = verified_restore([10, 15, 20], post, 20, hist, true_start=14, gate=0.9)
     assert r["gate_candidates"] == 0 and r["verified"] == 0 and r["restore_point"] == 10
+    assert r["gate_day"] == 7 and r["restore_p_clean"] == 0.5  # fallback restores outside gate
+    r = verified_restore([5, 10, 15, 20], post, 20, hist, true_start=14, gate=0.5)
+    assert r["gate_day"] == 13 and r["gate_candidates"] == 2  # 5 and 10 are <= 13
 
 
 def test_benign_flag_causes_false_rejection():
