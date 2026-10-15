@@ -422,3 +422,27 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   policy's assumed discovery-delay distribution uniform on 1..{14, 30, 60 (frozen), 90, 120} and
   geometric with mean 30 (truncated at 60), true delays 7-60, all four worlds, q in
   {1, .5, .2, 0}, benign 0.01.
+- **D48 Method v2 stage A: uncertain detector sensitivity (DEV only; rule fixed BEFORE the run,
+  2026-10-16).** Model: the attack-regime likelihood gets one extra effect component equal to the
+  benign likelihood (the detector cannot see this attack) with prior weight w; the v1 effect grid
+  shares 1 - w. w = 0 is v1 exactly (tested). Without flags above the benign rate the posterior
+  stays close to the timing prior; once flags appear the sensitive components dominate. The
+  policy never sees the cell's true q. Candidates w in {0, 0.25, 0.5, 0.75, 0.9}
+  (`configs/dev_v2_method_a.yaml`: v2 DEV seed 202, all four worlds, q in {1, .5, .2, 0},
+  benign in {0, .01, .05}, 40 reps, count budgets). Selection rule: (1) eligible = in EVERY world,
+  SlowBurn's pooled q = 0 restore-time failure rate (clean snapshot retained, recovery failed) is
+  at most prior-only's + 0.01 (DEV point estimates; the pre-registered TEST version is the
+  one-sided Holm-adjusted test of the team's decision 5); (2) among eligible w, the highest mean
+  SlowBurn clean recovery over all worlds, cells, budgets and delays, ties within 0.001 broken by
+  lower mean work lost; (3) if none is eligible, the w with the smallest worst-world q = 0 excess,
+  reported as NOT meeting the criterion on DEV.
+- **D49 Method v2 stage B: adaptive restore gate (DEV only; rule fixed BEFORE the run,
+  2026-10-16).** Restore gate = min + (0.8 - min) * (1 - c), c = largest start-posterior mass in
+  any 7 consecutive days; applied only to restores that use detector evidence, so the prior-only
+  (no-detector) restore keeps the fixed 0.8 gate. The DP keeps planning with the fixed 0.8 gate.
+  Variants on the stage-A choice: fixed (control), min 0.5, min 0.65. Adopt an adaptive variant
+  only if (a) the D48 q = 0 criterion still holds in every world, (b) mean SlowBurn clean
+  recovery is at most 0.005 below the control, and (c) mean work lost is below the control;
+  among those, the lowest mean work lost. Otherwise keep the fixed gate. Diagnostic logged per
+  restore: `newest_clean_kept` (the best restore the kept set allows) and `restore_gate`, to
+  separate work lost caused by the gate from work lost caused by retention spacing.

@@ -257,6 +257,23 @@ def start_posteriors(trace: MachineTrace, hp: dict, warmup: int, null_prior, cac
     return cache[key]
 
 
+def adaptive_gate(post: np.ndarray, spec: dict, gate: float) -> float:
+    """Method v2 restore gate (D49): ``gate`` when the start posterior is diffuse, down to
+    ``spec['min']`` when it is concentrated. Concentration c = the largest posterior mass of the
+    started days inside any window of ``spec['window']`` consecutive days; the gate is
+    min + (gate - min) * (1 - c). Applied only to restores that use detector evidence, so the
+    no-detector (prior-only) restore keeps the fixed gate."""
+    started = np.asarray(post[:-1], float)
+    total = started.sum()
+    if total <= 0:
+        return gate
+    w = int(spec.get("window", 7))
+    cs = np.r_[0.0, np.cumsum(started / total)]
+    c = float(np.max(cs[w:] - cs[:-w])) if len(started) >= w else 1.0
+    lo = float(spec["min"])
+    return lo + (gate - lo) * (1.0 - c)
+
+
 def evaluate_trace(
     cfg: dict,
     task: RetentionTask,
@@ -351,6 +368,7 @@ def evaluate_trace(
                "hp_timing_prior": (hp.get("timing_prior") or {}).get("name", "frozen_geometric"),
                "variant": hp.get("_variant", ""),
                "hp_blind_weight": float(hp.get("blind_weight", 0.0)),
+               "hp_adaptive_gate": repr(hp.get("adaptive_gate") or ""),
                "hp_assumed_discovery_max": hp["assumed_discovery"]["max_days"],
                "hp_null_pool": hp.get("null_pool", "pooled"), "hp_restore_rule": rule,
                "hp_restore_quantile": hp.get("restore_quantile"),
@@ -383,8 +401,11 @@ def evaluate_trace(
                 rpost = post if getattr(pol, "use_evidence", True) else prior[td + 1]
                 if hp.get("restore_posterior", "discovery") == "discovery":  # D34
                     rpost = discovery_posterior(rpost, td, S)
+                g_r = gate
+                if hp.get("adaptive_gate") and getattr(pol, "use_evidence", True):
+                    g_r = adaptive_gate(rpost, hp["adaptive_gate"], gate)  # method v2 (D49)
                 if rule == "verified":
-                    r = verified_restore(kept, rpost, td, trace.histories, start, gate, scan_eps)
+                    r = verified_restore(kept, rpost, td, trace.histories, start, g_r, scan_eps)
                 else:
                     r = selective_restore(kept, rpost, td, trace.histories, start,
                                           float(hp["restore_quantile"]))  # fmt: skip
@@ -394,6 +415,10 @@ def evaluate_trace(
                              "snapshots_retained": len(kept), "retained_unique_bytes": ub,
                              "storage_vs_keep_last_n": ub / klast_bytes if klast_bytes else np.nan,
                              "clean_snapshot_retained": int(any(j < start for j in kept)),
+                             # best restore the kept set allows (diagnostic, D49)
+                             "newest_clean_kept": max((j for j in kept if j < start),
+                                                      default=np.nan),
+                             "restore_gate": g_r,
                              "oldest_retained_age": td - min(kept)})  # fmt: skip
             if kind == "count" and (K, td) in amoeba_rec:
                 rec = amoeba_rec[(K, td)]

@@ -51,3 +51,37 @@ def test_flags_still_locate_the_start():
 def test_blind_weight_validated():
     with pytest.raises(ValueError):
         BetaBinomialExceedance(blind_weight=1.0)
+
+
+def test_adaptive_gate_follows_concentration():
+    from slowburn.bench.retention_experiment import adaptive_gate
+
+    spec = {"min": 0.5, "window": 7}
+    sharp = np.r_[np.zeros(50), np.ones(3) / 3, np.zeros(10), 0.0]
+    flat = np.r_[np.ones(70) / 70, 0.0]
+    assert adaptive_gate(sharp, spec, 0.8) == pytest.approx(0.5)
+    assert adaptive_gate(flat, spec, 0.8) == pytest.approx(0.5 + 0.3 * (1 - 7 / 70))
+    assert adaptive_gate(np.r_[np.zeros(5), 1.0], spec, 0.8) == 0.8  # nothing started
+
+
+def test_adaptive_gate_leaves_prior_only_and_default_unchanged():
+    import pandas as pd
+
+    from slowburn.bench.retention_experiment import RetentionTask, evaluate_trace, simulate
+    from slowburn.utils.config import load_config
+
+    cfg = load_config("configs/retention_smoke.yaml")
+    params = {**cfg["scenario"], "detect_prob": 0.9, "benign_invalid_rate": 0.01,
+              "null_prior": (0.5, 100.5)}  # fmt: skip
+    task = RetentionTask("dev", "eval", params, 0)
+    trace = simulate(cfg, task)
+    pols = ("slowburn", "prior_only")
+    cols = ["policy", "budget", "discovery_delay", "restore_point", "restore_gate"]
+    hp1 = {**cfg["hp"], "gate": 0.8}
+    a = pd.DataFrame(evaluate_trace(cfg, task, trace, hp1, pols))
+    hp2 = {**hp1, "adaptive_gate": {"min": 0.5, "window": 7}}
+    b = pd.DataFrame(evaluate_trace(cfg, task, trace, hp2, pols))
+    po = a.policy == "prior_only"
+    assert a.loc[po, cols].equals(b.loc[po, cols])  # no detector: fixed gate, same restore
+    assert (a.restore_gate == 0.8).all()
+    assert (b.loc[~po, "restore_gate"] < 0.8).all()
