@@ -1153,7 +1153,7 @@ well as the prior one, so detector evidence cannot move the restore earlier than
 **Outcome for claim (3), by the team's rule:** evidence does not rescue recovery under an
 under-estimated delay, so claim (3) is to be dropped (D55). The proposed replacement role of
 evidence ("reduces work lost ~7% at equal recovery, and is safe when the detector is blind") is
-half supported on v2 DEV: work lost 1601.852 vs 1721.6945 h (-6.9605%, full grid, recovery
+half supported on v2 DEV: work lost 1601.852 vs 1721.6945 h (-6.960729676%, full grid, recovery
 0.982708 vs 0.980583); "safe when blind" holds on the four worlds (q = 0 restore-time failure
 excess 0.00125-0.00625 count budgets) but not on the worst-case timing grid (D54: significantly
 worse than prior-only at K = 6 and 8 after Holm, gap up to 0.01625). No claim text changed.

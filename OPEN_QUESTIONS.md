@@ -510,7 +510,7 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   assumed delay bound enters the evidence posterior, the restore gate and the verification
   window (all measured after the true start in 1.0 of those rows). By the team's rule claim (3)
   is dropped. The fallback wording has a problem: "~7% less work lost at equal recovery" holds
-  (6.9605%, full v2 DEV grid), but "safe when the detector is blind" does not hold on the
+  (6.960729676%, full v2 DEV grid), but "safe when the detector is blind" does not hold on the
   worst-case grid (D54). Possible wording: "reduces work lost by about 7% at equal recovery; with
   a blind detector it is within one point of prior-only on randomly timed attacks, but can be
   significantly worse for specific attack timings." A method that treats the delay bound itself
