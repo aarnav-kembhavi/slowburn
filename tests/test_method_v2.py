@@ -126,3 +126,24 @@ def test_stage_a_refuses_test_rows():
     df.loc[0, "split"] = "test"
     with pytest.raises(ValueError, match="DEV"):
         select_stage_a(df)
+
+
+def test_soft_delay_never_reaches_zero_and_lets_evidence_move_the_gate():
+    from slowburn.retention.dp import discovery_posterior, discovery_survival, gate_day
+
+    S = discovery_survival("soft", 30, tail=0.1, alpha=1.0)
+    k = np.arange(-1, 1000)
+    s = S(k)
+    assert s[0] == 1.0 and S(0) == 1.0 and np.all(np.diff(s) <= 1e-15) and S(999) > 0
+    assert S(30) == pytest.approx(0.1 * 2**-1)  # core exhausted, tail remains
+    with pytest.raises(ValueError):
+        discovery_survival("soft", 30, tail=0.0)
+    # evidence says the attack started on day 10; discovery on day 100; assumed core 30 days
+    T = 100
+    post = np.r_[np.full(T + 1, 1e-4), 0.0]
+    post[10] = 1.0
+    post /= post.sum()
+    hard = discovery_posterior(post, T, discovery_survival("uniform", 30))
+    soft = discovery_posterior(post, T, S)
+    assert gate_day(hard[:-1], 0.8) >= 70  # the hard bound overrides the evidence
+    assert gate_day(soft[:-1], 0.8) < 10  # the soft tail lets the evidence through

@@ -533,3 +533,25 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   recovery on the worlds grid (all q, benign rates, budgets, delays), ties within 0.001 broken by
   lower work lost. If no weight is eligible, none is chosen and no blind-safety statement is
   made. The same constraint applies to method v3 (D56).
+- **D56 Method v3: soft heavy-tailed assumed delay (DEV only; rule fixed BEFORE the runs,
+  2026-10-17).** The hard maximum is replaced by: weight 1 - tail uniform on 1..M, weight tail a
+  Lomax tail S(k) = (1 + k/M)^-1 that never reaches zero. It enters through the survival function
+  S, which is used consistently by the retention posterior (DP), the discovery-conditioned restore
+  posterior, the restore gate and the verification window (the window starts at that posterior's
+  0.001 quantile). Candidates: tail in {0.05, 0.1, 0.2} x blind weight w in {0, 0.5, 0.9}.
+  Grids (`configs/dev_v3_*.yaml`, count budgets): G1 under-estimated, core M in {14, 30}, all four
+  worlds, q in {1, .5, .2, 0}, benign 0.01, 40 reps (true delays 7-60); G2 normal, M = 60, q in
+  {1, .5, .2, 0} x benign {0, .01, .05}, 40 reps (same machines as stage A); G3 worst-case timing
+  grid, M = 60, q = 0. Prior-only uses the same soft assumption as the variant. A variant is
+  ELIGIBLE only if (C1) the D57 q = 0 constraint holds against prior-only with the same soft
+  assumption (4 worlds on G2, 4 budgets on G3; excess <= 0.01 and not significantly worse,
+  one-sided exact McNemar, Holm over the 8 units) and (C2) on G2 SlowBurn's mean recovery is at
+  least method v2's on the same machines (0.978646) - 0.005 and its mean work lost at most 1.10 x
+  method v2's (1634.5425 h). Among eligible variants: the highest mean SlowBurn recovery on G1
+  rows with true delay > M, ties within 0.001 broken by lower G2 work lost. "Clear rescue" (the
+  condition for the team's claim wording) is defined now: for the chosen variant, on G1 rows with
+  true delay > M, SlowBurn minus prior-only (same soft assumption) recovery >= 0.10 at each
+  q in {0.2, 0.5, 1} and each M in {14, 30}, each one-sided exact McNemar significant after Holm
+  over those 6 tests. Reported for every variant regardless: (a) prior-only soft vs hard on G1;
+  (b) SlowBurn v3 vs prior-only soft at each q and world on G1; (c) the work-lost cost on G2 and
+  for short true delays (7, 14 d) on G1.

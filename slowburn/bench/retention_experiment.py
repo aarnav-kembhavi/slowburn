@@ -286,9 +286,9 @@ def evaluate_trace(
     """Evaluate the given policies on a simulated machine under hyperparameters ``hp``."""
     p = task.params
     warmup = int(cfg["warmup_days"])
-    S = discovery_survival(
-        hp["assumed_discovery"]["kind"], int(hp["assumed_discovery"]["max_days"])
-    )
+    ad = hp["assumed_discovery"]
+    S = discovery_survival(ad["kind"], int(ad["max_days"]), float(ad.get("tail", 0.0)),
+                           float(ad.get("alpha", 1.0)))  # fmt: skip
     delays = [int(d) for d in cfg["discovery_delay"]]
     start = trace.start
     n = trace.n_days
@@ -370,6 +370,8 @@ def evaluate_trace(
                "hp_blind_weight": float(hp.get("blind_weight", 0.0)),
                "hp_adaptive_gate": repr(hp.get("adaptive_gate") or ""),
                "hp_assumed_discovery_max": hp["assumed_discovery"]["max_days"],
+               "hp_assumed_discovery_kind": hp["assumed_discovery"]["kind"],
+               "hp_assumed_discovery_tail": float(hp["assumed_discovery"].get("tail", 0.0)),
                "hp_null_pool": hp.get("null_pool", "pooled"), "hp_restore_rule": rule,
                "hp_restore_quantile": hp.get("restore_quantile"),
                "hp_restore_posterior": hp.get("restore_posterior", "discovery")}  # fmt: skip

@@ -346,8 +346,12 @@ def brute_force_select(
     return best[0], arg
 
 
-def discovery_survival(kind: str, max_days: int) -> callable:
+def discovery_survival(kind: str, max_days: int, tail: float = 0.0, alpha: float = 1.0) -> callable:
     """S(k) = P(discovery delay > k) for an assumed delay distribution on {1..max_days}.
+
+    ``soft`` (method v3, D56): no hard bound. With weight 1 - ``tail`` uniform on {1..max_days},
+    with weight ``tail`` a Lomax (Pareto II) tail S_tail(k) = (1 + k / max_days)^-alpha, which
+    never reaches zero: any delay keeps positive probability.
 
     ``uniform``: uniform on {1..max_days}. ``geometric``: mean max_days/2, truncated at max_days.
     """
@@ -364,6 +368,17 @@ def discovery_survival(kind: str, max_days: int) -> callable:
         def S(k):
             k = np.asarray(k, float)
             return np.where(k < max_days, (1 - p) ** np.maximum(k, 0), 0.0)
+
+        return S
+    if kind == "soft":
+        if not 0.0 < tail < 1.0 or alpha <= 0:
+            raise ValueError("soft delay needs 0 < tail < 1 and alpha > 0")
+
+        def S(k):
+            k = np.asarray(k, float)
+            core = np.clip((max_days - k) / max_days, 0.0, 1.0)
+            heavy = (1.0 + np.maximum(k, 0.0) / max_days) ** -alpha
+            return np.where(k < 0, 1.0, (1 - tail) * core + tail * heavy)
 
         return S
     raise ValueError(f"unknown discovery distribution {kind!r}")

@@ -166,7 +166,7 @@ def plan_contiguous_block(files: list[tuple[str, str, str]], sizes: dict[str, in
     most = max(len(v) for v in by_day.values())
     start = next(d for d in days if len(by_day[d]) == most)
     chosen, total, last = [], 0, None
-    for d in days[days.index(start):]:
+    for d in days[days.index(start) :]:
         cost = sum(sizes[f] for f in by_day[d])
         if total + cost > room:
             break
@@ -205,8 +205,9 @@ def run(root: str = "data", log=print) -> dict:
             if hk in keys:
                 hp = dest.with_name(hk.split("/")[-1])
                 download(f"{S3}/{hk}", hp, budget, log, keys[hk])
-                enc[fam]["published_hash_match"] = enc[fam]["sha256"] in hp.read_text(
-                    errors="replace").lower()
+                enc[fam]["published_hash_match"] = (
+                    enc[fam]["sha256"] in hp.read_text(errors="replace").lower()
+                )
             enc[fam]["extract"] = extract(dest, budget.root / "napierone" / "encrypted" / fam,
                                           budget, log)  # fmt: skip
             save()
