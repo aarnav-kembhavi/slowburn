@@ -99,9 +99,10 @@ def q0_units(world_df: pd.DataFrame, worst_df: pd.DataFrame, margin: float = Q0_
             )
             for u, x in m.groupby(unit):
                 fs, fp = x.vfail_sb.mean(), x.vfail_po.mean()
+                p = _one_sided_mcnemar(x.vfail_sb, x.vfail_po)
                 rows.append({"variant": v, "grid": grid, "unit": u, "pairs": len(x),
                              "fail_slowburn": fs, "fail_prior_only": fp, "excess": fs - fp,
-                             "p_one_sided": _one_sided_mcnemar(x.vfail_sb, x.vfail_po)})  # fmt: skip
+                             "p_one_sided": p})  # fmt: skip
     out = pd.DataFrame(rows)
     out["p_holm"] = out.groupby("variant").p_one_sided.transform(lambda p: holm(p.values))
     out["passes"] = (out.excess <= margin + 1e-12) & (out.p_holm >= 0.05)
