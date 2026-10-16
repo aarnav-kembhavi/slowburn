@@ -515,3 +515,21 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   a blind detector it is within one point of prior-only on randomly timed attacks, but can be
   significantly worse for specific attack timings." A method that treats the delay bound itself
   as uncertain (heavy-tailed assumed delay) is a separate design question for the team.
+- **D55b Finding recorded (team decision, 2026-10-17): claim (3) in its current form is dropped.
+  A hard assumed-delay bound overrides all detector evidence: beyond the bound recovery is 0.0
+  for every policy, world and q, including q = 1 (v2 DEV, `results/dev_v2_underdelay`). Evidence
+  wording for now: "reduces work lost by about 7% at equal recovery"; nothing about blind safety
+  until D57 passes.**
+- **D57 Blind-weight re-selection with q = 0 non-inferiority as a HARD constraint (DEV only; rule
+  fixed BEFORE the runs, 2026-10-17).** Candidates w in {0, 0.25, 0.5, 0.75, 0.9, 0.95}. Data:
+  worlds grid = `results/dev_v2_method_a` (w = 0 ... 0.9; same seed, grid and code path, reused)
+  plus `results/dev_v2_blind_worlds` (w = 0.95); worst-case grid at q = 0 =
+  `results/dev_v2_blind_worst` (starts 112-143 x delays 7-60 x 5 reps, benign 0.01). Count
+  budgets. A weight is ELIGIBLE only if, for each of 8 units (4 worlds, pooled over budgets; 4
+  budgets K on the worst-case grid), at q = 0: (1) SlowBurn's restore-time failure rate minus
+  prior-only's is at most 0.01, and (2) SlowBurn is not significantly worse: one-sided exact
+  McNemar on paired restore-time failures (alternative: SlowBurn fails more), Holm-adjusted over
+  the 8 units, adjusted p >= 0.05. Among eligible weights: the highest mean SlowBurn clean
+  recovery on the worlds grid (all q, benign rates, budgets, delays), ties within 0.001 broken by
+  lower work lost. If no weight is eligible, none is chosen and no blind-safety statement is
+  made. The same constraint applies to method v3 (D56).
