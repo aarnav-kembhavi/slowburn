@@ -43,7 +43,19 @@ the "What was kept" section is filled from `data/MANIFEST.json` once they finish
 
 ## Counts per type
 
-To be filled from the extracted files.
+**NapierOne encrypted (100 per family):** 30 family archives downloaded (3,914,326,784 bytes),
+each matching its published SHA-256; extracted to `data/napierone/encrypted/<FAMILY>/`, 3,030
+files (101 per family: 100 encrypted files plus one extra file per archive, to be identified),
+4,301,073,838 bytes.
+
+**NapierOne benign (100 per subset):** `NapierOne-tiny.zip` (17,737,521,386 bytes) is a zip of
+100 per-subset zips (44 types plus variants such as `-PASSWORD`, `-ENCRYPTED`, `-NOMAGIC`,
+`-FROM-WEB` and per-compression 7ZIP/ZIP subsets). The 100 inner zips were extracted to
+`data/napierone/benign/` (17,737,505,702 bytes); their contents are read directly from the inner
+zips when needed, not unpacked, to leave room under the cap. The APK, DLL, ELF, EXE and POWERSHELL
+inner zips were written as still-compressed archives (the type filter matched folder names, not
+these file names); nothing in them has been opened or run, and they are excluded from all use.
+Per-type file counts: to be filled when the inner zips are indexed.
 
 ## What was kept
 
