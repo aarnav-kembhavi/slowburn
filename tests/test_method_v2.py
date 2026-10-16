@@ -147,3 +147,32 @@ def test_soft_delay_never_reaches_zero_and_lets_evidence_move_the_gate():
     soft = discovery_posterior(post, T, S)
     assert gate_day(hard[:-1], 0.8) >= 70  # the hard bound overrides the evidence
     assert gate_day(soft[:-1], 0.8) < 10  # the soft tail lets the evidence through
+
+
+def test_select_blind_safe_hard_constraint():
+    import pandas as pd
+
+    from slowburn.bench.method_v2 import select_blind_safe
+
+    def rows(variant, grid_worlds, sb_fail, n=200, rec=1):
+        out = []
+        for unit in grid_worlds:
+            for i in range(n):
+                for pol, fail in (("slowburn", i < sb_fail), ("prior_only", i < 10)):
+                    out.append({"split": "dev", "variant": variant, "policy": pol,
+                                "detect_prob": 0.0, "rep": i, "discovery_delay": 7,
+                                "benign_invalid_rate": 0.01, "attack_start": 100,
+                                "clean_snapshot_retained": 1, "clean_recovery": int(not fail),
+                                "work_lost_whole_system_hours": 10.0, **unit})  # fmt: skip
+        return out
+
+    worlds = [{"world": w, "budget": 4} for w in ("u", "e", "l", "b")]
+    worst = [{"budget": k} for k in (4, 6, 8, 12)]
+    wdf = pd.DataFrame(rows("ok", worlds, 11) + rows("bad", worlds, 11))
+    xdf = pd.DataFrame(
+        rows("ok", worst, 11) + rows("bad", worst[:3], 11) + rows("bad", worst[3:], 40)
+    )
+    v, board, units = select_blind_safe(wdf, xdf)
+    assert v == "ok" and board.loc["ok", "eligible"] and not board.loc["bad", "eligible"]
+    bad = units[(units.variant == "bad") & ~units.passes]
+    assert list(bad.unit) == [12] and bad.excess.iloc[0] == pytest.approx(0.15)
