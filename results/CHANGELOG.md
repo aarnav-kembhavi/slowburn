@@ -1114,3 +1114,46 @@ SlowBurn v2 0.973125 / 0.0 (v1 0.959167 / 0.0), prior-only 0.974063 / 0.0; work 
 K = 4 (0.93125 vs 0.9375), K = 6 (0.9725 vs 0.98125) and K = 8 (0.9225 vs 0.93875; gap 0.01625),
 above it at K = 12 (0.88625 vs 0.88125). Byte budgets pooled: SlowBurn v2 0.670556 vs v1 0.66125
 vs prior-only 0.617083.
+
+## 2026-10-17: D50 test, under-estimated discovery delay (v2 DEV); D52-D54
+
+`configs/dev_v2_underdelay.yaml` -> `results/dev_v2_underdelay/` (2400 machines: 4 worlds x 15
+evidence cells x 40 reps; count budgets; assumed max delay 14 / 30 / 60 x SlowBurn v1 (blind
+weight 0) / method v2 (0.5); true delays 7-60). Tables: `underdelay_by_world_q.csv` (per assumed
+max, world, q and policy; all delays and true delay > assumed), `v2_vs_prior_only_under_tests.csv`.
+The assumed-60 variants reproduce `results/dev_v2_method_full` (method v2 0.982708 / 1601.852 h,
+prior-only 0.980583 / 1721.6945 h).
+
+**Where the delay is under-estimated (true delay > assumed max), clean recovery is 0.0 for
+prior-only, SlowBurn v1, method v2, GFS and Tower of Hanoi (with either restore), in every world
+and at every q, including q = 1** (assumed 14: 5760 paired rows per q, true delays 30 / 45 / 60;
+assumed 30: 3840 per q, true delays 45 / 60). McNemar v2 vs prior-only: no discordant pairs at any
+q. Pooled over all true delays (mean of worlds), recovery / work lost (h):
+
+| assumed max | prior-only | SlowBurn v1 | method v2 | GFS (v2 restore) | Tower of Hanoi (v2 restore) |
+|---|---|---|---|---|---|
+| 14 | 0.361 / 3225.488 | 0.359125 / 3229.3665 | 0.361208 / 3222.0655 | 0.363792 / 3178.5445 | 0.279312 / 3533.9175 |
+| 30 | 0.573625 / 2511.941 | 0.574563 / 2468.599 | 0.577271 / 2458.4685 | 0.493312 / 2833.6145 | 0.388833 / 3050.714 |
+| 60 | 0.980583 / 1721.6945 | 0.979708 / 1644.471 | 0.982708 / 1601.852 | 0.573104 / 2670.2885 | 0.566417 / 2713.804 |
+
+Recovery by q at assumed 14 (prior-only / v1 / v2): q = 0 0.318542 / 0.300417 / 0.309062; 1.0
+0.4 / 0.399792 / 0.399896. At assumed 30: q = 0 0.538646 / 0.522604 / 0.539896; 1.0 0.6 / 0.6 /
+0.599792. The recovered cases are exactly those with true delay <= assumed max.
+
+**Mechanism (measured on the under-estimated rows, v2 variants):** the restore gate day is after
+the true start in 1.0 of rows for every policy; the verification scan window starts (estimated
+start L) after the true start in 1.0 of rows, so damaged versions written before L are never
+checked and the damaged snapshot passes verification (verified 1.0 for prior-only at 14 and 30,
+0.999514 / 0.999583 for SlowBurn); retention keeps a clean snapshot in 0.156771 (prior-only) /
+0.18559 (SlowBurn) of rows at assumed 14, 0.985156 / 0.946719 at assumed 30, yet the restore
+point is after the start in 0.932552 / 0.923385 of rows at 30. The assumed delay distribution
+gives zero probability to starts before discovery minus its maximum, in the evidence posterior as
+well as the prior one, so detector evidence cannot move the restore earlier than that bound.
+
+**Outcome for claim (3), by the team's rule:** evidence does not rescue recovery under an
+under-estimated delay, so claim (3) is to be dropped (D55). The proposed replacement role of
+evidence ("reduces work lost ~7% at equal recovery, and is safe when the detector is blind") is
+half supported on v2 DEV: work lost 1601.852 vs 1721.6945 h (-6.9605%, full grid, recovery
+0.982708 vs 0.980583); "safe when blind" holds on the four worlds (q = 0 restore-time failure
+excess 0.00125-0.00625 count budgets) but not on the worst-case timing grid (D54: significantly
+worse than prior-only at K = 6 and 8 after Holm, gap up to 0.01625). No claim text changed.

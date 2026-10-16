@@ -504,3 +504,14 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   (0.01625) exceeds the pre-registered 1-point non-inferiority margin, so method v2 as chosen
   would likely FAIL the q = 0 criterion on a grid like this one. Not acted on (no method change
   without the team).
+- **D55 Claim (3) fails the team's under-estimated-delay test (v2 DEV, 2026-10-17; claim text NOT
+  yet changed, awaiting the team).** With true delay > assumed maximum (14 or 30 days), recovery
+  is 0.0 for every policy, world and q (including q = 1); evidence cannot help because the
+  assumed delay bound enters the evidence posterior, the restore gate and the verification
+  window (all measured after the true start in 1.0 of those rows). By the team's rule claim (3)
+  is dropped. The fallback wording has a problem: "~7% less work lost at equal recovery" holds
+  (6.9605%, full v2 DEV grid), but "safe when the detector is blind" does not hold on the
+  worst-case grid (D54). Possible wording: "reduces work lost by about 7% at equal recovery; with
+  a blind detector it is within one point of prior-only on randomly timed attacks, but can be
+  significantly worse for specific attack timings." A method that treats the delay bound itself
+  as uncertain (heavy-tailed assumed delay) is a separate design question for the team.
