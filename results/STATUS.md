@@ -3,7 +3,10 @@
 ## 2026-10-16 (night): systems paper, no fixed date (D42)
 
 **Schedule:** no deadline; phases P0-P7 (OPEN_QUESTIONS D42). Tonight: P0 done; P1 simulator v2
-done and the new DEV set generated; baseline numbers per world done; method v2 stage A running.
+done and the new DEV set generated; baseline numbers per world done; method v2 chosen on DEV
+(blind-detector weight 0.5, fixed gate; adaptive gate rejected by its rule) and compared on the
+full DEV grid and the worst-case grid. Next: P2 (report data availability before downloads), P3.
+See results/MORNING_REPORT.md.
 
 **Done tonight (tests pass, ruff clean, committed):** gate day logged per restore (v1 rerun
 row-identical); v1 TEST marked spent; prototype appendix; generating worlds (uniform, early,

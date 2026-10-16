@@ -1083,3 +1083,34 @@ gate even without detector signal (q = 0), because the discovery-conditioned pos
 somewhat concentrated. The work lost from the gate (439.893 h above the best kept snapshot) is not
 recovered by loosening the gate this way: restores move only slightly newer while restore-time
 failures rise (q = 0: 0.067604 / 0.061667 vs 0.053021).
+
+## 2026-10-17 (night, cont.): method v2 (blind weight 0.5, fixed gate) vs v1 on the full v2 DEV grid
+
+`configs/dev_v2_method_full.yaml` -> `results/dev_v2_method_full/` (2400 machines, count and byte
+budgets, policies prior-only, SlowBurn, GFS, Tower of Hanoi, keep last N, oracle; 1008000 rows).
+The v1 variant reproduces `results/dev_v2` exactly (504000 rows; restore point, recovery, work
+lost, gate day, retained bytes and snapshot count identical in 1.0 of rows). The blind weight
+changes the evidence posterior, so it also moves the shared restore of the other policies.
+
+Count budgets, all worlds, recovery / work lost (h): SlowBurn v2 0.982708 / 1601.852, v1
+0.979708 / 1644.471, prior-only 0.980583 / 1721.6945; GFS v2 0.573104 / 2670.2885 (v1 0.570833 /
+2670.8045); Tower of Hanoi v2 0.566417 / 2713.804 (v1 0.5615 / 2716.466). Per world, SlowBurn v2
+vs prior-only: bursty 0.98675 / 1633.384 vs 0.986 / 1794.414; early 0.981833 / 1463.502 vs 0.9815
+/ 1544.374; late 0.97975 / 1718.93 vs 0.97575 / 1860.822; uniform 0.9825 / 1591.592 vs 0.979083 /
+1687.168. q = 0 restore-time failure, SlowBurn v2 / v1 / prior-only: bursty 0.04875 / 0.060833 /
+0.0425; early 0.055417 / 0.085833 / 0.054167; late 0.058333 / 0.08125 / 0.0625; uniform 0.049583 /
+0.069583 / 0.047917.
+
+Byte budgets, all worlds: SlowBurn v2 0.665583 / 2361.655333, v1 0.657944 / 2385.25, prior-only
+0.621917 / 2562.205333, oracle v2 0.765194. q = 0 restore-time failure, SlowBurn v2 / v1 /
+prior-only: bursty 0.063333 / 0.103333 / 0.060556; early 0.068889 / 0.122222 / 0.063333; late
+0.061111 / 0.098333 / 0.058889; uniform 0.062778 / 0.106667 / 0.06.
+
+Worst-case grid (`configs/dev_v2_worst_method.yaml` ->
+`results/dev_v2_worst_method/worst_case_timing_by_variant.csv`; the v1 variant reproduces
+`results/dev_v2_worst` in all 126 matching rows). Count budgets pooled, mean / worst-cell recovery:
+SlowBurn v2 0.973125 / 0.0 (v1 0.959167 / 0.0), prior-only 0.974063 / 0.0; work lost 1686.7825 vs
+1771.57 (v1) vs 1770.5975 h. At q = 0 SlowBurn v2 is still below prior-only in mean recovery at
+K = 4 (0.93125 vs 0.9375), K = 6 (0.9725 vs 0.98125) and K = 8 (0.9225 vs 0.93875; gap 0.01625),
+above it at K = 12 (0.88625 vs 0.88125). Byte budgets pooled: SlowBurn v2 0.670556 vs v1 0.66125
+vs prior-only 0.617083.

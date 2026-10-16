@@ -1,253 +1,211 @@
-# Morning report — 2026-10-08
+# Morning report: 2026-10-17 (unattended night of 2026-10-16)
 
-Unattended session (M0 → M1 → M2; M3 not started, as instructed). Every number below is read
-programmatically from the result CSVs (4 decimals; full precision in the CSVs). **All data is
-synthetic** (`benign_source=synthetic`, `damage_source=synthetic_random`). No dataset was
-downloaded, nothing was pushed, nothing outside the repo was touched.
+Everything here is DEV (design) data from the simulator: no TEST set was generated or run, nothing
+was downloaded or installed, nothing was pushed, and no paper claim was edited. Numbers are copied
+from the result CSVs at full printed precision; each table names its source. All data is
+synthetic (`benign_source=synthetic`, `damage_source=abstract_token`). Full entries with every
+number are in `results/CHANGELOG.md`; decisions in `OPEN_QUESTIONS.md` D42-D51.
 
 ## TL;DR
-- **M0, M1 and M2 are built, tested (91 tests passing, ruff clean) and committed:** `6908197` (M0),
-  `f1e0fad` (M1), `232726e` (M2), plus the commit containing this report.
-- **The Phase I plot is ready:** `results/detector/auroc_vs_fraction.png` (headline) and
-  `results/detector/auroc_by_type.png` (per file type).
-- **The premise holds on synthetic data, starkly.** With striped damage, chunk AUROC on high-entropy
-  types falls from 0.8693 (100%) to 0.5410 (5%), essentially chance. lzma is at chance at every
-  fraction, even for fully random chunks.
-- **M2 works but fails in the hard regime, and its numbers are provisional.** The 16-rep re-run was
-  stopped by Claude Code because the machine ran low on memory. The M2 numbers here come from an
-  earlier 8-rep run made before one methodology fix (see "What failed"). I did not restart it.
 
-## What works
-| Milestone | What | Command |
+1. **Done:** P0 (gate day logged per restore, v1 TEST marked spent, prototype appendix); P1
+   (simulator v2: four generating worlds, byte budgets, worst-case timing grid, assumed-delay
+   sweep; new DEV seed 202); baseline numbers per world; method v2 stages A and B.
+2. **Claim (3) does not reproduce on v2 DEV (D50, your decision).** With the flat timing
+   assumption fixed and the generating world varied, prior-only recovers 0.97575-0.986 in every
+   world, so there is nothing for detector evidence to rescue: SlowBurn (v1) minus prior-only =
+   -0.004583 to +0.00125. Evidence lowers work lost in every world (by 27.164-133.156 h) and
+   raises recovery under byte budgets (+0.021555 to +0.055667). I did not touch the claim.
+3. **Claims (1) and (2) hold on v2 DEV:** GFS 0.534417-0.61125 and Tower of Hanoi
+   0.52075-0.5935 recovery; prior-only and SlowBurn 0.97575-0.986 (count budgets).
+4. **Method v2 = blind-detector weight 0.5, fixed gate.** Chosen by the rules fixed before the
+   runs (D48, D49). It removes the q = 0 penalty (worst-world excess over prior-only 0.00625,
+   was 0.031667) and is at or above prior-only's recovery in every world with lower work lost.
+   The adaptive gate failed its rule and is not adopted. On the full v2 DEV grid it reaches 0.982708 recovery / 1601.852 h work lost (count
+   budgets; prior-only 0.980583 / 1721.6945, v1 0.979708 / 1644.471). On the fixed-start
+   worst-case grid at q = 0 it is still below prior-only at K = 4, 6 and 8 (largest gap
+   0.01625 at K = 8).
+5. **Incident (D51):** method stage A ran twice at once for ~95 min (10 workers, above the cap).
+   Data verified and the CSV rebuilt from the per-machine cache; details below.
+6. **New findings:** an assumed maximum delay shorter than the true one collapses recovery for
+   every policy (assumed 14 d: prior-only 0.35125); byte budgets are harsh under the simulated
+   churn (14 days of storage: even the oracle recovers only 0.37-0.41); work lost above the
+   oracle splits about evenly between the restore gate (439.893 h) and retention spacing
+   (421.849 h).
+
+## 1. What is done (commits)
+
+| step | what | commit(s) |
 |---|---|---|
-| M0 | uv project, ruff/pytest, single-seed RNG, configs, synthetic simulator (10 file types via real encoders), dedup snapshot store, end-to-end `bench` writing tidy CSV + plot | `uv run slowburn bench configs/smoke.yaml` |
-| M1 | `features(buf)` (260-d), LightGBM, isotonic probabilities, marginal + Mondrian (per file type) conformal p-values, train/calib/test split by file, hard negatives in every split, AUROC sweep over 2 damage models x 5 fractions x 10 types with file-cluster bootstrap CIs | `uv run slowburn detector configs/detector.yaml` (~95 s) |
-| M2 | daily aggregators (exceedance count, trimmed mean, ...), Beta-Binomial and weekday-Gaussian observation models, exact single-changepoint posterior, BOCPD (both brute-force tested), ablations "suspicion only" and "prior only", experiment runner | `uv run slowburn inference configs/inference.yaml` (~25-30 min) |
+| P0 | `gate_day`, `restore_p_clean` logged per restore (with `gate_candidates`, `verified`); DEV v2 rerun row-identical to `results/headline_dev_v2` (576000 rows, 45 columns); v1 TEST spent (D43); prototype appendix `paper/sections/appendix_prototype.tex` with `table_gate_q.tex` | d6424a6 |
+| P1 | `slowburn/sim/worlds.py` (uniform, early, late, bursty), `slowburn/retention/bytes.py` (exact unique bytes, byte budgets via each policy's own deletion rule), worst-case grid and assumed-delay sweep configs, Oracle keeps today's snapshot | 6158122 |
+| DEV | `results/dev_v2` (2400 machines), `results/dev_v2_worst` (480), `results/dev_v2_delay` (640 x 6 variants) | 544ba32, a514088, ac1862c, 925c516 |
+| P4 | blind-detector weight and adaptive gate options, mechanical selection rules (`slowburn/bench/method_v2.py`), stage A and B runs, full-grid comparison | cab1e61, 1de5602, 3ea8a3b, 706eb7a, e10b518, a8687fd, and the commit containing this report |
 
-`configs/*_smoke.yaml` run each pipeline in seconds.
+Tests pass and ruff is clean at every commit.
 
-## M1: detector AUROC (the Phase I result)
-1500 files (150/type), 142875 labelled chunks, 28521 test
-chunks, seed 11. AUROC is computed on the raw LightGBM score (decision D2). Chunk level
-unless stated.
+## 2. Per-world results (v2 DEV, method v1 = the frozen operating point)
 
-### Striped damage within chunk (headline model), per damaged fraction and file type
-| file_type | 100% | 50% | 25% | 10% | 5% |
-|---|---|---|---|---|---|
-| ALL | 0.9069 | 0.8960 | 0.8543 | 0.7808 | 0.7522 |
-| HIGH_ENTROPY | 0.8693 | 0.7955 | 0.7198 | 0.5896 | 0.5410 |
-| LOW_ENTROPY | 0.9997 | 1.0000 | 0.9999 | 0.9981 | 0.9963 |
-| bin | 0.9990 | 1.0000 | 0.9992 | 0.9828 | 0.9668 |
-| csv | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| docx | 0.8961 | 0.7341 | 0.6319 | 0.5388 | 0.5223 |
-| jpg | 0.9949 | 0.9896 | 0.9521 | 0.7311 | 0.6244 |
-| lzma | 0.5510 | 0.5386 | 0.4839 | 0.4975 | 0.4817 |
-| mp3 | 0.9919 | 0.9924 | 0.9877 | 0.8430 | 0.6952 |
-| png | 0.8734 | 0.7497 | 0.6404 | 0.5451 | 0.5212 |
-| txt | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| zip | 0.9191 | 0.7998 | 0.6546 | 0.5577 | 0.5254 |
-| zlib | 0.8863 | 0.7582 | 0.6305 | 0.5463 | 0.5240 |
+Source: `results/dev_v2/world_summary.csv`. Count budgets K = 4, 6, 8, 12 pooled, all 15 evidence
+cells and 5 delays (12000 rows per world and policy). Clean recovery / whole-system work lost (h).
+Oracle-ideal work lost is 772.8 h in every world.
 
-### Whole-chunk damage, per damaged fraction and file type
-| file_type | 100% | 50% | 25% | 10% | 5% |
-|---|---|---|---|---|---|
-| ALL | 0.9070 | 0.9101 | 0.9041 | 0.9095 | 0.9110 |
-| HIGH_ENTROPY | 0.8692 | 0.8762 | 0.8666 | 0.8716 | 0.8766 |
-| LOW_ENTROPY | 0.9997 | 0.9997 | 0.9997 | 0.9999 | 0.9998 |
-| bin | 0.9989 | 0.9992 | 0.9988 | 0.9997 | 0.9997 |
-| csv | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| docx | 0.8886 | 0.9039 | 0.9194 | 0.9199 | 0.9101 |
-| jpg | 0.9968 | 0.9957 | 0.9953 | 0.9980 | 0.9978 |
-| lzma | 0.5171 | 0.5515 | 0.5094 | 0.5253 | 0.5450 |
-| mp3 | 0.9917 | 0.9925 | 0.9919 | 0.9920 | 0.9911 |
-| png | 0.8688 | 0.8813 | 0.8542 | 0.8650 | 0.8708 |
-| txt | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| zip | 0.9254 | 0.9247 | 0.9263 | 0.9075 | 0.9144 |
-| zlib | 0.8899 | 0.9027 | 0.8795 | 0.8979 | 0.9105 |
+| world | prior-only | SlowBurn | GFS | Tower of Hanoi | keep last N | keep first | oracle |
+|---|---|---|---|---|---|---|---|
+| uniform | 0.979083 / 1687.168 | 0.9795 / 1642.93 | 0.563583 / 2488.84 | 0.545833 / 2514.428 | 0.05 / 3860.052 | 0.999833 / 4013.152 | 0.999833 / 777.354 |
+| early | 0.9815 / 1544.374 | 0.976917 / 1517.21 | 0.61125 / 1781.774 | 0.52075 / 1982.586 | 0.049917 / 2720.888 | 0.999833 / 2818.846 | 0.999833 / 776.85 |
+| late | 0.97575 / 1860.822 | 0.977 / 1756.486 | 0.534417 / 3474.616 | 0.585917 / 3368.278 | 0.05 / 5721.132 | 1.0 / 5974.12 | 1.0 / 776.382 |
+| bursty | 0.986 / 1794.414 | 0.985417 / 1661.258 | 0.574083 / 2937.988 | 0.5935 / 3000.572 | 0.05 / 5069.048 | 0.999917 / 5288.478 | 0.999917 / 776.91 |
 
-### File level (file score = max over its changed chunks)
-| damage_model | file_type | 100% | 50% | 25% | 10% | 5% |
+Byte budgets (storage keep-last-N needs for 14, 30 and 90 days, pooled; 9000 rows per world and
+policy; keep first cannot meet a byte budget and is count-only):
+
+| world | prior-only | SlowBurn | GFS | Tower of Hanoi | keep last N | oracle |
 |---|---|---|---|---|---|---|
-| striped | ALL | 0.9441 | 0.9182 | 0.8695 | 0.8047 | 0.7751 |
-| striped | HIGH_ENTROPY | 0.9391 | 0.8363 | 0.7422 | 0.6240 | 0.5685 |
-| whole | ALL | 0.9454 | 0.9200 | 0.8675 | 0.8116 | 0.7680 |
-| whole | HIGH_ENTROPY | 0.9438 | 0.9124 | 0.8335 | 0.7509 | 0.6929 |
+| uniform | 0.645667 / 2290.544 | 0.667222 / 2193.576 | 0.522222 / 2548.669333 | 0.520111 / 2518.618667 | 0.491778 / 2553.848 | 0.759889 / 1695.485333 |
+| early | 0.618 / 1897.754667 | 0.659667 / 1753.114667 | 0.553667 / 1864.770667 | 0.505667 / 1993.149333 | 0.486778 / 1969.456 | 0.761556 / 1404.682667 |
+| late | 0.621 / 3144.352 | 0.646222 / 2942.778667 | 0.49 / 3642.186667 | 0.495889 / 3664.706667 | 0.474444 / 3646.621333 | 0.749222 / 2228.050667 |
+| bursty | 0.603 / 2916.170667 | 0.658667 / 2651.530667 | 0.523111 / 3116.872 | 0.513556 / 3212.165333 | 0.484778 / 3250.032 | 0.754778 / 2019.992 |
 
-### Groups with 95% file-cluster bootstrap CIs, and detection rate at a 1% false-alarm level
-| damage_model | fraction | file_type | auroc | ci_low | ci_high | tpr_marginal_a0.01 | tpr_mondrian_a0.01 | fpr_mondrian_a0.01 |
-|---|---|---|---|---|---|---|---|---|
-| whole | 1.0000 | ALL | 0.9070 | 0.8890 | 0.9247 | 0.1178 | 0.4977 | 0.0073 |
-| whole | 0.5000 | ALL | 0.9101 | 0.8928 | 0.9281 | 0.1086 | 0.4848 | 0.0073 |
-| whole | 0.2500 | ALL | 0.9041 | 0.8843 | 0.9204 | 0.1047 | 0.4364 | 0.0073 |
-| whole | 0.1000 | ALL | 0.9095 | 0.8925 | 0.9284 | 0.1224 | 0.4506 | 0.0073 |
-| whole | 0.0500 | ALL | 0.9110 | 0.8953 | 0.9306 | 0.1253 | 0.4450 | 0.0073 |
-| whole | 1.0000 | HIGH_ENTROPY | 0.8692 | 0.8453 | 0.8908 | 0.1309 | 0.2897 | 0.0082 |
-| whole | 0.5000 | HIGH_ENTROPY | 0.8762 | 0.8535 | 0.8981 | 0.1230 | 0.2876 | 0.0082 |
-| whole | 0.2500 | HIGH_ENTROPY | 0.8666 | 0.8396 | 0.8921 | 0.1138 | 0.2620 | 0.0082 |
-| whole | 0.1000 | HIGH_ENTROPY | 0.8716 | 0.8499 | 0.8968 | 0.1318 | 0.2870 | 0.0082 |
-| whole | 0.0500 | HIGH_ENTROPY | 0.8766 | 0.8496 | 0.9045 | 0.1438 | 0.2742 | 0.0082 |
-| whole | 1.0000 | LOW_ENTROPY | 0.9997 | 0.9993 | 0.9999 | 0.0869 | 0.9918 | 0.0051 |
-| whole | 0.5000 | LOW_ENTROPY | 0.9997 | 0.9995 | 1.0000 | 0.0714 | 0.9946 | 0.0051 |
-| whole | 0.2500 | LOW_ENTROPY | 0.9997 | 0.9992 | 0.9999 | 0.0759 | 0.9873 | 0.0051 |
-| whole | 0.1000 | LOW_ENTROPY | 0.9999 | 0.9996 | 1.0000 | 0.0909 | 1.0000 | 0.0051 |
-| whole | 0.0500 | LOW_ENTROPY | 0.9998 | 0.9992 | 1.0000 | 0.0652 | 1.0000 | 0.0051 |
-| striped | 1.0000 | ALL | 0.9069 | 0.8864 | 0.9208 | 0.1191 | 0.5005 | 0.0073 |
-| striped | 0.5000 | ALL | 0.8960 | 0.8744 | 0.9132 | 0.3269 | 0.4547 | 0.0073 |
-| striped | 0.2500 | ALL | 0.8543 | 0.8309 | 0.8766 | 0.3087 | 0.4220 | 0.0073 |
-| striped | 0.1000 | ALL | 0.7808 | 0.7479 | 0.8074 | 0.2675 | 0.3069 | 0.0073 |
-| striped | 0.0500 | ALL | 0.7522 | 0.7167 | 0.7850 | 0.2630 | 0.2832 | 0.0073 |
-| striped | 1.0000 | HIGH_ENTROPY | 0.8693 | 0.8462 | 0.8911 | 0.1291 | 0.2932 | 0.0082 |
-| striped | 0.5000 | HIGH_ENTROPY | 0.7955 | 0.7676 | 0.8266 | 0.0852 | 0.2251 | 0.0082 |
-| striped | 0.2500 | HIGH_ENTROPY | 0.7198 | 0.6920 | 0.7489 | 0.0775 | 0.1821 | 0.0082 |
-| striped | 0.1000 | HIGH_ENTROPY | 0.5896 | 0.5725 | 0.6106 | 0.0237 | 0.0443 | 0.0082 |
-| striped | 0.0500 | HIGH_ENTROPY | 0.5410 | 0.5324 | 0.5508 | 0.0185 | 0.0198 | 0.0082 |
-| striped | 1.0000 | LOW_ENTROPY | 0.9997 | 0.9994 | 0.9999 | 0.0951 | 0.9928 | 0.0051 |
-| striped | 0.5000 | LOW_ENTROPY | 1.0000 | 1.0000 | 1.0000 | 0.9008 | 1.0000 | 0.0051 |
-| striped | 0.2500 | LOW_ENTROPY | 0.9999 | 0.9997 | 1.0000 | 0.8579 | 0.9918 | 0.0051 |
-| striped | 0.1000 | LOW_ENTROPY | 0.9981 | 0.9951 | 0.9995 | 0.8466 | 0.9305 | 0.0051 |
-| striped | 0.0500 | LOW_ENTROPY | 0.9963 | 0.9922 | 0.9990 | 0.8436 | 0.9090 | 0.0051 |
+By byte budget (uniform world), recovery: 14 d prior-only 0.21, SlowBurn 0.214667, GFS 0.17,
+Tower of Hanoi 0.16, keep last N 0.2, oracle 0.41; 30 d 0.804 / 0.882667 / 0.489333 / 0.464333 /
+0.409 / 0.999; 90 d 0.923 / 0.904333 / 0.907333 / 0.936 / 0.866333 / 0.870667. At 90 d the oracle
+is below Tower of Hanoi because its ~36 newest snapshots put more damaged candidates inside the
+restore gate (its retention knows the start; its restore does not).
 
-### Detection rate (TPR) at Mondrian alpha = 0.01, striped damage, per file type
-| file_type | 100% | 50% | 25% | 10% | 5% |
+**Worst-case timing** (`results/dev_v2_worst/worst_case_timing.csv`; starts 112-143 x delays 7-60,
+q in {1, .5, 0}, 5 reps per start, so cell recovery moves in steps of 0.2 and "worst" is coarse):
+count budgets pooled, mean / worst-cell recovery: prior-only 0.974063 / 0.0, SlowBurn 0.959167 /
+0.0, GFS 0.599583 / 0.0, Tower of Hanoi 0.578542 / 0.0, keep last N 0.049896 / 0.0, keep first and
+oracle 0.999687 / 0.8. At q = 1: prior-only's worst cell is 1.0 at every K, SlowBurn's 0.8 at
+K = 4 (start 130, delay 60) and 1.0 otherwise, GFS 0.0 at every K, Tower of Hanoi 0.0 at K = 4
+and 6. Byte budget 30 d at q = 1: SlowBurn 0.99 (worst 0.8), prior-only 0.71125 (worst 0.0).
+
+**Assumed discovery delay** (`results/dev_v2_delay/sweep_summary.csv`, mean of the four worlds,
+recovery / work lost h): uniform 1-14 prior-only 0.35125 / 3259.78125, SlowBurn 0.348984 /
+3265.760625; 1-30 0.565703 / 2542.336875 and 0.566328 / 2506.275; 1-60 (frozen) 0.973203 /
+1732.39125 and 0.972109 / 1660.003125; 1-90 1.0 / 2224.695 and 0.993672 / 2158.83; 1-120 1.0 /
+2816.5875 and 0.997109 / 2509.940625; geometric (mean 30, max 60) 0.976406 / 1734.38625 and
+0.962422 / 1668.3825. Assuming a shorter maximum than the true delay makes the gate trust
+post-start snapshots (recovery 0.0 at true delays above the assumed maximum, for every policy
+sharing the restore); a longer one is safe and costs work lost.
+
+## 3. What changed versus the old simulator
+
+| | v1 DEV (benign 0 / .01 / .05, all q) | v2 DEV (count budgets, all worlds) |
+|---|---|---|
+| attack starts | {112, 115, 118, 139}, one per grid cell | per machine from a world on [28, 280] |
+| prior-only | 0.979667 / 1787.298 | 0.980583 / 1721.6945 |
+| SlowBurn (v1 method) | 0.964167 / 1786.894 | 0.979708 / 1644.471 |
+| GFS | 0.642417 / 2079.484 | 0.570833 / 2670.8045 |
+| Tower of Hanoi | 0.594833 / 2404.872 | 0.5615 / 2716.466 |
+| keep last N | 0.05 / 3512.314 | 0.049979 / 4342.78 |
+
+- SlowBurn's recovery gap to prior-only shrinks from -0.0155 to -0.000875, and its work lost
+  falls below prior-only's in every world.
+- GFS loses 0.071584 recovery: v1's starts included GFS's best case (start on a month boundary).
+- The q = 0 restore-time failure persists: SlowBurn 0.074375 vs prior-only 0.051770833 pooled; at
+  q = 0 SlowBurn's measured gate admits the start day in 0.3333-0.3617 of restores per world vs
+  0.2 for prior-only.
+- New axes v1 did not have: byte budgets, a worst-case timing grid, the assumed-delay sweep.
+
+## 4. Method v2 progress (DEV only)
+
+**Stage A, uncertain detector sensitivity (D48).** The evidence model gets a "detector blind"
+component with prior weight w (w = 0 is v1, tested identical). Rule fixed before the run:
+eligible if, in every world, SlowBurn's q = 0 restore-time failure is at most prior-only's + 0.01;
+then highest recovery, ties within 0.001 by lower work lost. Source
+`results/dev_v2_method_a/stage_a_scoreboard.csv` (1920 machines, count budgets):
+
+| w | SlowBurn recovery | work lost (h) | worst-world q = 0 excess | eligible |
+|---|---|---|---|---|
+| 0 (v1) | 0.974922 | 1673.2425 | 0.031667 | no |
+| 0.25 | 0.979323 | 1655.116875 | 0.025417 | no |
+| **0.5 (chosen)** | 0.978646 | 1634.5425 | 0.00625 | yes |
+| 0.75 | 0.97875 | 1644.030625 | 0.006667 | yes |
+| 0.9 | 0.977135 | 1646.56875 | 0.0025 | yes |
+
+Same machines, prior-only: 0.9762239583 / 1736.83375 h. Per world, recovery for prior-only / v1 /
+v2: bursty 0.982708 / 0.981771 / 0.983437; early 0.977187 / 0.971146 / 0.977812; late 0.969688 /
+0.97125 / 0.974688; uniform 0.975313 / 0.975521 / 0.978646. q = 0 recovery 0.948229 / 0.925625 /
+0.946979. v2 gives up a little of v1's recovery at q = 0.2 and 0.5 (0.004375, 0.001979).
+
+**Stage B, adaptive restore gate (D49): not adopted.** Gate = min + (0.8 - min)(1 - c), c = the
+largest start-posterior mass in 7 days. Min 0.5: recovery 0.970443, work lost 1621.1475 h,
+worst-world q = 0 excess 0.02875; min 0.65: 0.974193, 1625.624375, 0.02125; fixed gate 0.978646,
+1634.5425, 0.00625. Both adaptive variants fail the q = 0 criterion, for 8.918125-13.395 h less
+work lost; the concentration measure lowers the gate even without detector signal.
+
+**Where work lost comes from.** With method v2, mean work lost 1634.542 h, best possible from the
+kept snapshots 1194.649 h, oracle-ideal 772.8 h: 439.893 h from the restore choosing an older
+snapshot than the best kept one, 421.849 h from retention spacing. Both are open for a later,
+separately pre-specified stage.
+
+**Method v2 on the full v2 DEV grid** (`results/dev_v2_method_full/`, 2400 machines; the v1
+variant reproduces `results/dev_v2` exactly, 504000 rows). Recovery / work lost (h):
+
+| world | prior-only | SlowBurn v1 | SlowBurn v2 | GFS (v2 restore) | Tower of Hanoi (v2 restore) |
 |---|---|---|---|---|---|
-| bin | 0.9786 | 1.0000 | 0.9755 | 0.7920 | 0.7278 |
-| csv | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| docx | 0.1534 | 0.0383 | 0.0147 | 0.0147 | 0.0029 |
-| jpg | 0.9026 | 0.7890 | 0.3994 | 0.0779 | 0.0325 |
-| lzma | 0.0352 | 0.0293 | 0.0088 | 0.0029 | 0.0000 |
-| mp3 | 0.7126 | 0.6916 | 0.8054 | 0.1916 | 0.0719 |
-| png | 0.1254 | 0.0370 | 0.0513 | 0.0199 | 0.0228 |
-| txt | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| zip | 0.1180 | 0.0311 | 0.0124 | 0.0031 | 0.0062 |
-| zlib | 0.0579 | 0.0091 | 0.0030 | 0.0030 | 0.0030 |
+| uniform, count | 0.979083 / 1687.168 | 0.9795 / 1642.93 | 0.9825 / 1591.592 | 0.566333 / 2486.106 | 0.549 / 2520.744 |
+| early, count | 0.9815 / 1544.374 | 0.976917 / 1517.21 | 0.981833 / 1463.502 | 0.614583 / 1780.356 | 0.52475 / 1979.594 |
+| late, count | 0.97575 / 1860.822 | 0.977 / 1756.486 | 0.97975 / 1718.93 | 0.5355 / 3477.918 | 0.59175 / 3366.402 |
+| bursty, count | 0.986 / 1794.414 | 0.985417 / 1661.258 | 0.98675 / 1633.384 | 0.576 / 2936.774 | 0.600167 / 2988.476 |
+| uniform, bytes | 0.645667 / 2290.544 | 0.667222 / 2193.576 | 0.680667 / 2145.789333 | 0.528889 / 2538.045333 | 0.526222 / 2518.821333 |
+| early, bytes | 0.618 / 1897.754667 | 0.659667 / 1753.114667 | 0.664667 / 1758.834667 | 0.563 / 1856.704 | 0.513889 / 1988.344 |
+| late, bytes | 0.621 / 3144.352 | 0.646222 / 2942.778667 | 0.648333 / 2946.885333 | 0.496778 / 3621.888 | 0.501889 / 3656.402667 |
+| bursty, bytes | 0.603 / 2916.170667 | 0.658667 / 2651.530667 | 0.668667 / 2595.112 | 0.529444 / 3099.832 | 0.520778 / 3193.376 |
 
-### Conformal false-alarm check on benign test chunks (alpha = 0.01)
-| file_type | variant | alpha | empirical_fpr | n_benign |
-|---|---|---|---|---|
-| ALL | marginal | 0.0100 | 0.0151 | 3301 |
-| ALL | mondrian | 0.0100 | 0.0073 | 3301 |
-| HIGH_ENTROPY | marginal | 0.0100 | 0.0215 | 2323 |
-| HIGH_ENTROPY | mondrian | 0.0100 | 0.0082 | 2323 |
-| LOW_ENTROPY | marginal | 0.0100 | 0.0000 | 978 |
-| LOW_ENTROPY | mondrian | 0.0100 | 0.0051 | 978 |
+q = 0 restore-time failure, SlowBurn v2 / v1 / prior-only (count): bursty 0.04875 / 0.060833 /
+0.0425; early 0.055417 / 0.085833 / 0.054167; late 0.058333 / 0.08125 / 0.0625; uniform 0.049583 /
+0.069583 / 0.047917 (bytes: excess over prior-only 0.002222-0.005556 for v2, 0.039444-0.058889 for
+v1). Worst-case grid, count budgets: SlowBurn v2 mean 0.973125 (v1 0.959167, prior-only 0.974063),
+work lost 1686.7825 h (v1 1771.57, prior-only 1770.5975); at q = 0 v2 is still below prior-only
+at K = 4 (0.93125 vs 0.9375), 6 (0.9725 vs 0.98125) and 8 (0.9225 vs 0.93875), above at 12
+(0.88625 vs 0.88125). With method v2, evidence now adds recovery in every world (+0.000333 to
++0.004 over prior-only, count budgets) and lowers work lost by 80.872-161.03 h; this is still
+small next to the v1 robustness effect claimed in (3).
 
-**Reading, unsoftened**
-- Striped 5% on high-entropy types: **0.5410** (CI 0.5324–0.5508). At 5%: docx 0.5223, png 0.5212,
-  zip 0.5254, zlib 0.5240, lzma 0.4817. The detector is near-useless there, and that regime is the
-  research question.
-- **lzma is at chance under every condition** (0.4817–0.5515), including fully random chunks. With
-  these features, xz output is indistinguishable from random bytes.
-- Even fully overwritten chunks inside compressed containers are hard to flag. At Mondrian alpha
-  0.01, TPR for whole-chunk 100% damage is docx 0.1770, png 0.1140, zip 0.1087, zlib 0.0762, lzma
-  0.0352.
-- Whole-chunk damage gives a flat chunk-level curve (about 0.91 for ALL), as expected: each damaged
-  chunk is fully random whatever the file fraction.
-- Marginal conformal **breaks its false-alarm level** on high-entropy types (0.0215 at alpha 0.01).
-  Mondrian holds it (0.0082) and is far more sensitive, so it became the default (D1).
-- Caveat: train and test come from the same synthetic generators. Real NapierOne data is needed
-  before any external claim.
+## 5. Decisions made for you (all logged in OPEN_QUESTIONS.md)
 
-## M2: start-day inference (PROVISIONAL: 8 reps, before the day-0 fix)
-Figure: `results/inference/start_accuracy_vs_fraction.png`. Example machines:
-`results/inference/example_trace_f{5,10,25}_{all,high_entropy}.png`.
-Metric: posterior mass on days within ±3 of the true start, at discovery day +14, hazard 0.02.
-The prior-only baseline is 0.1014.
+- **D45 worlds:** window [28, 280]; early = Beta(1, 3), late = Beta(3, 1) on the window; bursty =
+  3 centres [99, 139, 267] drawn once from a seeded stream, jitter sd 3 d; new DEV seed 202;
+  evidence grid q in {1, .9, .5, .2, 0} x benign {0, .01, .05} (v1's 0.001 level dropped to
+  afford 40 starts per world); threshold vault and AMOEBA-style left out of the v2 DEV baseline
+  (they return in the P5 grid).
+- **D46 byte budgets:** unique bytes of the kept snapshots; enforced with each policy's own
+  deletion rule, one at a time (no policy is byte-aware); levels = keep-last-N storage for 14, 30,
+  90 days, calibrated on 40 attack-free DEV machines (multipliers 1.7450643130492298,
+  2.66980547090922, 6.146835909945129 of the day-0 size). A first choice (keep-last-4/8/12
+  footprints) was discarded before any evaluation run because no policy could keep anything older
+  than 2-3 weeks. keep first is count-only. Oracle now always keeps today's snapshot (count
+  budgets >= 2 unchanged).
+- **D47 worst case and delay sweep:** starts 112-143 (every residue mod 7, 28, 32), 5 reps per
+  start; assumed delay uniform 1-{14, 30, 60, 90, 120} and geometric.
+- **D48 / D49 rules** fixed before the runs; outcomes above. Method v2 (w = 0.5, fixed gate) is
+  what I would pre-register for P5 unless you object.
+- **D50:** claim (3) reported as not reproduced on v2 DEV; claim untouched; runs continued
+  because none depended on it.
+- **D51:** duplicate stage-A run, verified and rebuilt; process fix recorded.
 
-### Mass within ±3 days vs damage fraction (exceedance statistic)
-| attack_target_types | statistic | model | 1.0 | 0.5 | 0.25 | 0.1 | 0.05 |
-|---|---|---|---|---|---|---|---|
-| all | exceed | bocpd | 0.4935 | 0.5106 | 0.4410 | 0.2551 | 0.1207 |
-| all | exceed | prior_only | 0.1014 | 0.1014 | 0.1014 | 0.1014 | 0.1014 |
-| all | exceed | single_cp | 0.5396 | 0.3828 | 0.3939 | 0.4944 | 0.2638 |
-| all | exceed | single_cp_uniform | 0.5872 | 0.4345 | 0.4338 | 0.5202 | 0.3517 |
-| high_entropy | exceed | bocpd | 0.5485 | 0.3342 | 0.1209 | 0.0863 | 0.1391 |
-| high_entropy | exceed | prior_only | 0.1014 | 0.1014 | 0.1014 | 0.1014 | 0.1014 |
-| high_entropy | exceed | single_cp | 0.4903 | 0.3120 | 0.2463 | 0.0622 | 0.0919 |
-| high_entropy | exceed | single_cp_uniform | 0.5266 | 0.3583 | 0.3503 | 0.1838 | 0.2412 |
+## 6. Incident (D51)
 
-### MAP errors at day +14 (exceedance statistic; MAP = "not started" counts as missed)
-| attack_target_types | model | median_map_error | missed_rate | mean_p_started |
-|---|---|---|---|---|
-| all | bocpd | 1.5000 | 0.3000 | 0.8716 |
-| all | prior_only |  | 1.0000 | 0.4654 |
-| all | single_cp | 2.0000 | 0.2750 | 0.8628 |
-| all | single_cp_uniform | 2.0000 | 0.0750 | 0.9888 |
-| high_entropy | bocpd | 4.0000 | 0.5750 | 0.7220 |
-| high_entropy | prior_only |  | 1.0000 | 0.4654 |
-| high_entropy | single_cp | 4.0000 | 0.6250 | 0.6351 |
-| high_entropy | single_cp_uniform | 6.0000 | 0.1250 | 0.9691 |
+An early `nohup` launch of the stage-A chain that I believed had not started did start, next to
+the tracked launch, so two identical runs overlapped for ~95 min (10 workers; the cap is 6) and
+wrote to the same output directory. Checks: all 1920 per-machine cache files load, 200 rows each,
+no duplicate keys; the first 384000 CSV rows equal them in every compared column; 6 tasks
+recomputed from scratch are identical; the CSV had 15 trailing garbage lines. I rebuilt
+`tuning_sweep.csv` from the cache and recomputed the summary (40 rows, every column equal). No
+other run had more than one launch (checked with the Windows process list).
 
-### Clean (attack-free) machines at day +14
-| statistic | model | discovery_delay | prior_p_started | mean_p_started | false_alarm_p05 | false_alarm_p09 | n |
-|---|---|---|---|---|---|---|---|
-| exceed | bocpd | 14 | 0.4654 | 0.4931 | 0.5000 | 0.0000 | 8 |
-| exceed | prior_only | 14 | 0.4654 | 0.4654 | 0.0000 | 0.0000 | 8 |
-| exceed | single_cp | 14 | 0.4654 | 0.3031 | 0.2500 | 0.0000 | 8 |
-| exceed | single_cp_uniform | 14 | 0.9688 | 0.9183 | 1.0000 | 0.7500 | 8 |
-| trimmed_mean | bocpd | 14 | 0.4654 | 0.5179 | 0.5000 | 0.2500 | 8 |
-| trimmed_mean | prior_only | 14 | 0.4654 | 0.4654 | 0.0000 | 0.0000 | 8 |
-| trimmed_mean | single_cp | 14 | 0.4654 | 0.4374 | 0.2500 | 0.2500 | 8 |
-| trimmed_mean | single_cp_uniform | 14 | 0.9688 | 0.9337 | 1.0000 | 0.7500 | 8 |
+## 7. Needs you
 
-**Reading, unsoftened**
-- The pre-registered rule (D16) chose **single-CP + exceedances** as the default. It has the lowest
-  clean false-alarm rate (0.25 vs 0.50 for BOCPD). On the "any type" target set its
-  fraction-averaged mass within ±3 is 0.4149 vs 0.3642 for BOCPD, a gap within about 1 s.e. So it
-  does not lose, but a win is not shown.
-- Even when the damage is visible, start recovery is moderate: 0.2638–0.5396 mass within ±3 on
-  "any type".
-- **Hard regime: failure.** On high-entropy targets at 5% and 10%, the start is missed on 8 of 8
-  machines, with mass 0.0919 and 0.0622, *below* the prior-only 0.1014.
-- **Errors are late**, almost never early (details in `results/CHANGELOG.md`). For retention that
-  is the dangerous direction, so M3 must hedge toward older snapshots.
-- The trimmed-mean statistic carries little information: it stays close to the prior baseline.
-- On clean machines, single-CP lowers P(started) below the prior on average, but 2 of 8 still
-  exceed 0.5 at hazard 0.02 (0 of 8 at hazard 0.005). The placeholder hazard looks too aggressive;
-  that's a team decision.
-
-## What failed or was not done
-1. **The M2 16-rep re-run was stopped for low memory.** Claude Code stopped it at run 77/176 while
-   the session was idle; its instructions say not to restart it, so I didn't. To re-run:
-   `uv run slowburn inference configs/inference.yaml`. Partial results are now saved after every
-   machine, so an interrupted run keeps its progress.
-2. As a result, the M2 numbers come from the 8-rep run made **before** day 0 (the initial full
-   backup, n ≈ 840 chunks) was excluded from the benign-model fit. How much that changes the
-   numbers is unknown until the re-run.
-3. Bugs found and fixed overnight, all with regression tests:
-   - non-reproducible zip/docx bytes (zipfile wall-clock timestamps);
-   - seed-key collisions for long string keys;
-   - plug-in benign parameters causing false alarms on clean series;
-   - overdispersion that can't be estimated from 14 warm-up days;
-   - a stale hard-coded delay in the summary;
-   - object-dtype columns silently dropped from aggregates.
-4. Not done:
-   - NapierOne benign loading (layout unknown; the damage-source loader exists but is tested only
-     on a fake directory);
-   - the stripe-length sweep;
-   - a file-level daily statistic;
-   - features beyond the spec.
-
-   The retention `bench` still uses keep-last-N only, since M3 was not started, as instructed.
-
-## Decisions I made for you
-Full text is in `OPEN_QUESTIONS.md` (D1–D16). Short list:
-- D1 Mondrian conformal (per declared file type) is the default p-value.
-- D2 AUROC on raw scores. D3 isotonic calibrated under a 50/50 prior. D4 file score = max chunk score.
-- D5 dataset shape: 150 files/type, 16–128 KiB, 4 KiB chunks, at most 12 chunks per file, 16-byte stripes.
-- D6 NapierOne benign loading deferred until the layout is known.
-- D7 no features beyond the spec.
-- D8 14-day clean warm-up, with day 0 excluded from the fit. D9 the benign rate is estimated, not
-  assumed equal to alpha.
-- D10 uncertainty grids for the benign parameters. D11 intermittent-attack mixture likelihood,
-  upward effects only.
-- D12 BOCPD reads the most recent changepoint as the start. D13 hazard 0.02 primary (placeholder),
-  0.005 as sensitivity.
-- D14 attacker: 0.5 files/day, striped damage, "any type" vs "high-entropy only" targets. D15
-  scenarios are in-distribution for the detector.
-- D16 default-model rule → single-CP + exceedances (provisional).
-
-## Needs you
-- Choose a defensible start hazard (D13); it dominates how clean machines behave.
-- Decide how M3 should handle the late bias: shift the posterior earlier, or keep extra old snapshots.
-- NapierOne download and layout; the AMOEBA PDF into `docs/`; venue and format.
-- Re-run M2 when memory allows.
+1. **D50:** how to restate or test claim (3). Options: (a) restate as "evidence lowers work lost
+   and helps under tight storage, and method v2 removes the blind-detector penalty"; (b) add a
+   concentrated, misplaced assumption as a "wrong assumption" axis next to the flat one (this
+   reproduced the effect in v1).
+2. Dataset and restic-workload paths and disk caps (still placeholders) before P2/P5.
+3. P2 next: I will report FSL Homes availability, format and size, and NapierOne's
+   partial-encryption coverage before any download.
+4. The synthetic churn (~5% of bytes new per day, spread over all files) makes old snapshots
+   expensive under byte budgets; real traces (P2) should change the byte-budget picture.
+5. docs/theory.md review (unchanged).
