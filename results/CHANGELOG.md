@@ -1157,3 +1157,38 @@ half supported on v2 DEV: work lost 1601.852 vs 1721.6945 h (-6.960729676%, full
 0.982708 vs 0.980583); "safe when blind" holds on the four worlds (q = 0 restore-time failure
 excess 0.00125-0.00625 count budgets) but not on the worst-case timing grid (D54: significantly
 worse than prior-only at K = 6 and 8 after Holm, gap up to 0.01625). No claim text changed.
+
+## 2026-10-17: D57 blind-weight re-selection and method v3 (soft assumed delay), v2/v3 DEV
+
+**D57** (rule fixed before the runs; `results/dev_v2_blind_worst/d57_{scoreboard,units}.csv`):
+units passing of 8 / SlowBurn recovery / work lost (h) on the worlds grid: w = 0: 0 / 0.974922 /
+1673.2425; 0.25: 5 / 0.979323 / 1655.116875; 0.5: 7 / 0.978646 / 1634.5425 (fails worst-case K = 8,
+excess 0.01625, Holm p 0.0177); 0.75: 8 / 0.97875 / 1644.030625; 0.9: 8 / 0.977135 / 1646.56875;
+0.95: 8 / 0.977266 / 1650.74875. **Chosen: w = 0.75** (largest excess 0.00875, worst-case K = 8,
+Holm p 0.261719). Prior-only on the same machines 0.9762239583 / 1736.83375 h.
+
+**Method v3, D56** (rule fixed before the runs, amended before any result to add w = 0.75;
+`results/dev_v3_{under,normal,worst}[_w075]/`, `results/dev_v3_normal/d56_{scoreboard,units,
+report}`, `results/dev_v3_under/d56_{rescue_tests,b_by_world_q}.csv`). 12 variants (tail 0.05 /
+0.1 / 0.2 x w 0 / 0.5 / 0.75 / 0.9). **No variant is eligible and none shows a clear rescue.**
+
+- C1 (q = 0, vs prior-only with the same soft assumption): all 12 pass all 8 units (largest
+  excess 0.00125, worst-case K = 12, tail 0.1 and 0.2 with w = 0).
+- C2 (cost on the normal grid): all fail. SlowBurn v3 work lost 3784.02375 to 3956.44375 h
+  (limit 1.10 x 1634.5425 = 1797.99675 h); recovery 0.997318 to 0.998047 (v2: 0.978646).
+- (a) prior-only with the soft assumption stops collapsing. True delay > assumed core:
+  recovery 1.0 (core 14, every tail) and 0.988281 to 0.992969 (core 30), against 0.0 with the
+  hard bound; work lost 4378.25-4381.625 h (14) and 4401.01875-4438.74375 h (30) vs 4858.05 and
+  4757.77125 h hard. All true delays: 1.0 / 0.993828-0.996016 vs 0.359812 / 0.571937 hard.
+- (b) evidence adds nothing beyond the soft prior: SlowBurn v3 minus prior-only (soft) on the
+  under-estimated rows, q in {0.2, 0.5, 1}, ranges -0.0140625 to +0.0109375 (largest: tail 0.1,
+  w 0, core 30, q 0.2, Holm p 0.000366; below the 0.10 rescue threshold).
+- (c) the cost: with true delays 7 / 14 days, prior-only (soft) loses 3443.7375-3556.3125 h vs
+  783.40125 (core 14) and 816.24375 h (core 30) with the hard bound; on the normal grid prior-only
+  (soft) loses 3802.54875-3844.428125 h vs 1736.83375 h (hard, same machines). A never-zero tail on
+  top of the flat timing prior puts enough mass on very old starts that the gate restores from far
+  back on every machine, whatever the true delay.
+
+Claim (3) is not reinstated ("detection protects you when attacks stay hidden longer than you
+planned for" fails the pre-defined rescue test: the soft assumption itself, not detection,
+removes the collapse, at 2.3-4.5x the work lost).
