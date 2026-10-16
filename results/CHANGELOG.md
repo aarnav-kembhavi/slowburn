@@ -1016,3 +1016,48 @@ recovery collapses for every policy that shares the restore (GFS and Tower of Ha
 longer assumption is safe for recovery and costs work lost (prior-only +492.30375 h at 90,
 +1084.19625 h at 120, relative to 60). SlowBurn's work lost is below prior-only's for every
 assumption except uniform 1-14 (+5.979375 h).
+
+## 2026-10-17 (night, cont.): method v2 stage A on the v2 DEV seed (D48 applied; D51 incident)
+
+`configs/dev_v2_method_a.yaml` -> `results/dev_v2_method_a/` (1920 machines: 4 worlds x q in
+{1, .5, .2, 0} x benign {0, .01, .05} x 40 reps; count budgets; 9600 rows per variant, world and
+policy). Rule D48 applied mechanically (`slowburn.bench.method_v2.select_stage_a`;
+`stage_a_scoreboard.csv`, `q0_excess_by_world.csv`):
+
+| blind weight | SlowBurn recovery | SlowBurn work lost (h) | worst-world q = 0 excess | eligible |
+|---|---|---|---|---|
+| 0 (v1) | 0.974922 | 1673.2425 | 0.031667 | no |
+| 0.25 | 0.979323 | 1655.116875 | 0.025417 | no |
+| 0.5 | 0.978646 | 1634.5425 | 0.00625 | yes |
+| 0.75 | 0.97875 | 1644.030625 | 0.006667 | yes |
+| 0.9 | 0.977135 | 1646.56875 | 0.0025 | yes |
+
+q = 0 excess by world (bursty / early / late / uniform): v1 0.018333 / 0.031667 / 0.01875 /
+0.021667; 0.5: 0.00625 / 0.00125 / -0.004167 / 0.001667. **Chosen: blind weight 0.5** (eligible;
+0.75 has the highest eligible recovery, 0.5 is within 0.001 of it with lower work lost).
+Prior-only on the same machines: recovery 0.9762239583, work lost 1736.83375 h.
+
+Per world, recovery / work lost (h), prior-only vs v1 SlowBurn vs v2 (w = 0.5): bursty 0.982708 /
+1806.7625 vs 0.981771 / 1697.2725 vs 0.983437 / 1671.275; early 0.977187 / 1550.195 vs 0.971146 /
+1536.265 vs 0.977812 / 1485.27; late 0.969688 / 1889.7025 vs 0.97125 / 1796.395 vs 0.974688 /
+1764.5325; uniform 0.975313 / 1700.675 vs 0.975521 / 1663.0375 vs 0.978646 / 1617.0925. By q,
+recovery (prior-only / v1 / v2): q = 0 0.948229 / 0.925625 / 0.946979; 0.2 0.967917 / 0.978542 /
+0.974167; 0.5 0.98875 / 0.995521 / 0.993542; 1.0 1.0 / 1.0 / 0.999896. Restore-time failure at
+q = 0: 0.051771 / 0.074375 / 0.053021. Work lost at q = 1: 1657.6725 / 1513.0075 / 1455.0775.
+v2 gives up a little of v1's recovery at q = 0.2 and 0.5 (0.004375, 0.001979) and gains 0.021354
+at q = 0.
+
+**Where work lost comes from (new diagnostic `newest_clean_kept`):** mean work lost if the
+restore used the newest truly clean kept snapshot: prior-only 1177.83 h, v1 1241.398, v2
+1194.649, against actual 1736.834 / 1673.242 / 1634.542 and the oracle-ideal 772.8. For v2,
+439.893 h of the 861.742 h above the oracle are the restore choosing an older snapshot than the
+best kept one (the gate), and 421.849 h are retention spacing.
+
+**Incident (D51):** stage A ran TWICE at the same time for ~95 min (10 workers, above the cap of
+6): an earlier `nohup` launch that I believed had not started did start, next to the tracked
+launch. Both wrote the same output directory. Integrity check: all 1920 per-machine cache files
+load with 200 rows each and no duplicate keys; the first 384000 rows of the CSV equal them in
+every compared column; 6 tasks recomputed from scratch are identical to the cache; the CSV had
+15 trailing garbage lines from the second writer. `tuning_sweep.csv` was rebuilt from the cache
+(the corrupt file is kept in the session scratchpad, not in the repo); summaries were recomputed
+from the rebuilt file and match. No other run was affected (each had one launch).

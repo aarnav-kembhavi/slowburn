@@ -455,3 +455,11 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   edited; the pre-specified DEV runs continue (they do not depend on the claim); the team decides
   whether claim (3) is restated (e.g. "evidence lowers work lost and helps under tight storage"),
   or tested with a concentrated misplaced assumption as an added "wrong assumption" axis.
+- **D51 Incident: duplicate stage-A run (2026-10-17, reported).** Two identical method-v2 stage-A
+  runs overlapped for ~95 min (10 workers; cap is 6) because an untracked `nohup` launch did
+  start. Data verified (cache files complete and consistent, 6 tasks recomputed identical); the
+  CSV was rebuilt from the cache. Process fix: launch long jobs only through tracked background
+  tasks, one at a time, and verify with the Windows process list, not `ps` from Git Bash.
+- **D48 outcome (2026-10-17):** blind weight 0.5 chosen on DEV by the pre-registered rule (worst-
+  world q = 0 excess 0.00625 <= 0.01). It becomes the method-v2 evidence model for stage B and
+  for the P5 pre-registration unless the team objects.
