@@ -1191,5 +1191,5 @@ report}`, `results/dev_v3_under/d56_{rescue_tests,b_by_world_q}.csv`). 12 varian
 
 Claim (3) is not reinstated ("detection protects you when attacks stay hidden longer than you
 planned for" fails the pre-defined rescue test: the soft assumption itself, not detection,
-removes the collapse, at 2.189-2.213x the work lost on the normal grid and 4.180-4.539x when
+removes the collapse, at 2.189356782-2.213469266x the work lost on the normal grid and 4.180368916-4.539579813x when
 the true delay is 7-14 days).

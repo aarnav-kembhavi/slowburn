@@ -590,8 +590,8 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
 - **D56 outcome (2026-10-17): method v3 not adopted; claim (3) not reinstated.** No soft-tail
   variant meets C2 (normal-grid work lost 3784.02375-3956.44375 h vs limit 1797.99675 h); none
   shows a clear rescue (largest evidence gain 0.0109375). The soft tail alone removes the collapse
-  (prior-only recovery 0.988281-1.0 beyond the bound vs 0.0) at 4.180-4.539x the work lost when
-  the true delay is 7-14 days (2.189-2.213x on the normal grid). Open for the team: whether the paper presents this as a trade-off (hard
+  (prior-only recovery 0.988281-1.0 beyond the bound vs 0.0) at 4.180368916-4.539579813x the work lost when
+  the true delay is 7-14 days (2.189356782-2.213469266x on the normal grid). Open for the team: whether the paper presents this as a trade-off (hard
   bound: cheap but collapses beyond it; soft tail: safe but restores far back), and whether a
   tail that is cheaper (e.g. smaller weight, or a tail that only opens with detector evidence)
   deserves a separately pre-registered stage.
