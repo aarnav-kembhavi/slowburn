@@ -555,3 +555,16 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   over those 6 tests. Reported for every variant regardless: (a) prior-only soft vs hard on G1;
   (b) SlowBurn v3 vs prior-only soft at each q and world on G1; (c) the work-lost cost on G2 and
   for short true delays (7, 14 d) on G1.
+- **D57 outcome (2026-10-17): blind weight 0.75 chosen; it passes the hard q = 0 constraint.**
+  `results/dev_v2_blind_worst/d57_{scoreboard,units}.csv`. Units passing (of 8) / SlowBurn mean
+  recovery / work lost (h) on the worlds grid: w = 0: 0 / 0.974922 / 1673.2425; 0.25: 5 /
+  0.979323 / 1655.116875; 0.5: 7 / 0.978646 / 1634.5425 (fails worst-case K = 8: excess 0.01625,
+  Holm p 0.0177, = D54); 0.75: 8 / 0.97875 / 1644.030625; 0.9: 8 / 0.977135 / 1646.56875; 0.95:
+  8 / 0.977266 / 1650.74875. w = 0.75: largest excess 0.00875 (worst-case K = 8, Holm p
+  0.261719); worlds excess bursty 0.006667, early -0.002917, late -0.002083, uniform -0.001667.
+  Method v2 becomes blind weight 0.75 (was 0.5, D48). Prior-only on the same machines: 0.9762239583
+  / 1736.83375 h, so v2's work-lost reduction on this grid is 5.343235931% (0.5 gave 5.889524544%); the "about
+  7%" wording came from w = 0.5 on the full grid and must be re-measured for w = 0.75.
+- **D56 amendment (2026-10-17, BEFORE any v3 result was seen):** blind-weight candidates for v3
+  become {0, 0.5, 0.75, 0.9} so the D57 choice is included; the w = 0.75 variants run as
+  `configs/dev_v3_*_w075.yaml` on the same grids and machines. Rule otherwise unchanged.
