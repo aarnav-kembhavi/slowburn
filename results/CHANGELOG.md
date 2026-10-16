@@ -1183,7 +1183,7 @@ report}`, `results/dev_v3_under/d56_{rescue_tests,b_by_world_q}.csv`). 12 varian
 - (b) evidence adds nothing beyond the soft prior: SlowBurn v3 minus prior-only (soft) on the
   under-estimated rows, q in {0.2, 0.5, 1}, ranges -0.0140625 to +0.0109375 (largest: tail 0.1,
   w 0, core 30, q 0.2, Holm p 0.000366; below the 0.10 rescue threshold).
-- (c) the cost: with true delays 7 / 14 days, prior-only (soft) loses 3443.7375-3556.3125 h vs
+- (c) the cost: with true delays 7 / 14 days, prior-only (soft) loses 3412.2-3556.3125 h vs
   783.40125 (core 14) and 816.24375 h (core 30) with the hard bound; on the normal grid prior-only
   (soft) loses 3802.54875-3844.428125 h vs 1736.83375 h (hard, same machines). A never-zero tail on
   top of the flat timing prior puts enough mass on very old starts that the gate restores from far
@@ -1191,4 +1191,5 @@ report}`, `results/dev_v3_under/d56_{rescue_tests,b_by_world_q}.csv`). 12 varian
 
 Claim (3) is not reinstated ("detection protects you when attacks stay hidden longer than you
 planned for" fails the pre-defined rescue test: the soft assumption itself, not detection,
-removes the collapse, at 2.3-4.5x the work lost).
+removes the collapse, at 2.189-2.213x the work lost on the normal grid and 4.180-4.539x when
+the true delay is 7-14 days).
