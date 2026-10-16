@@ -568,3 +568,22 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
 - **D56 amendment (2026-10-17, BEFORE any v3 result was seen):** blind-weight candidates for v3
   become {0, 0.5, 0.75, 0.9} so the D57 choice is included; the w = 0.75 variants run as
   `configs/dev_v3_*_w075.yaml` on the same grids and machines. Rule otherwise unchanged.
+- **D58 Downloads (team approval 2026-10-17; decisions made for the team logged here).** Location
+  `C:\PROJECTS\ISM\data` (gitignored), hard cap 100 GB, at least 45 GB free on C:, checked before
+  every archive and extraction, nothing deleted to make room. Done: NapierOne encrypted 100 per
+  family (30 archives, 3,914,326,784 bytes, every archive matching its published SHA-256;
+  extracted 3,030 files, 4,301,073,838 bytes) and NapierOne benign `NapierOne-tiny.zip`
+  (17,737,521,386 bytes; a zip of 100 per-subset zips, extracted as those inner zips,
+  17,737,505,702 bytes; contents are read from the inner zips instead of unpacked, to leave room
+  under the cap; the APK/DLL/ELF/EXE/POWERSHELL inner zips are excluded from all use). FSL Homes
+  `2011-8kb-only`: block fixed at the first planning run = 2011-09-16 to 2011-12-03, 60 snapshot
+  days (calendar gap 2011-11-13 to 11-30 inside), all 13 users, 55,954,970,133 bytes of the
+  listing's 87,895,854,552 (1,123 archives, 89 days); the block ends where the cap and reserve
+  leave no room for the next day. The server serves ~100 KB/s per connection (measured: 3
+  parallel 3 MB range requests at 99.4-99.5 KB/s each, alongside a running download); decision:
+  4 concurrent connections (modest load on a university server), roughly 1.5 days for the block.
+  fs-hasher is not built (WSL timed out on start); a pure-Python reader
+  (`slowburn/datasets/hashfile.py`) re-implements the format from the fs-hasher 0.9.5 source and
+  reproduces the bundled example exactly, and on the first real archive (user006, 2011-09-16:
+  version 7, variable chunking, 48-bit hashes, 8,550 files, 1,690,689 chunks = header, 0 trailing
+  bytes; 4,730 of 8,550 files have no extension, so content mapping needs a fallback for them).

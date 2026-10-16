@@ -20,10 +20,12 @@ import hashlib
 import json
 import re
 import shutil
+import threading
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,6 +34,8 @@ FSL = "https://tracer.filesystems.org/traces/fslhomes/2011-8kb-only/"
 GB = 10**9
 SKIP_TYPES = {"APK", "DLL", "ELF", "EXE", "POWERSHELL"}  # executables / scripts: not extracted
 UA = {"User-Agent": "slowburn-research-fetch/1.0"}
+# tracer.filesystems.org serves ~100 KB/s per connection; 4 connections (D58, modest load)
+FSL_CONNECTIONS = 4
 
 
 class StopFetch(Exception):
@@ -233,24 +237,43 @@ def run(root: str = "data", log=print) -> dict:
         # 3. FSL Homes 2011-8kb-only, compressed, contiguous block of days
         log("FSL Homes 2011-8kb-only: listing and sizes")
         files = fsl_listing()
-        sizes = {n: content_length(FSL + n) for n, _, _ in files}
-        room = min(budget.cap_bytes - budget.used(), budget.free() - budget.reserve_bytes)
-        chosen, summary = plan_contiguous_block(files, sizes, room)
-        summary["listing_files"] = len(files)
-        summary["listing_bytes"] = sum(sizes.values())
-        manifest["fsl_plan"] = summary
+        sizes = manifest.get("fsl_sizes") or {}
+        missing = [n for n, _, _ in files if n not in sizes]
+        with ThreadPoolExecutor(FSL_CONNECTIONS) as ex:
+            sizes.update(
+                zip(missing, ex.map(lambda n: content_length(FSL + n), missing), strict=True)
+            )
+        manifest["fsl_sizes"] = sizes
+        if "fsl_plan" in manifest:  # resume: the block fixed on the first run stays the block
+            summary = manifest["fsl_plan"]
+            chosen = [n for n, _, d in files if summary["first_day"] <= d <= summary["last_day"]]
+        else:
+            room = min(budget.cap_bytes - budget.used(), budget.free() - budget.reserve_bytes)
+            chosen, summary = plan_contiguous_block(files, sizes, room)
+            summary["listing_files"] = len(files)
+            summary["listing_bytes"] = sum(sizes.values())
+            manifest["fsl_plan"] = summary
         save()
         log(f"  plan: {summary}")
         got = manifest.setdefault("fsl_homes_2011_8kb", {})
-        for n in chosen:
-            got[n] = download(FSL + n, budget.root / "fslhomes" / "2011-8kb-only" / n, budget,
-                              log, sizes[n])  # fmt: skip
+        lock = threading.Lock()
+
+        def one(n):
+            rec = download(FSL + n, budget.root / "fslhomes" / "2011-8kb-only" / n, budget, log,
+                           sizes[n])  # fmt: skip
             with _open(FSL + n + ".sha256") as r:
                 published = r.read().decode("ascii", "replace").split()[0].lower()
-            got[n]["published_hash_match"] = published == got[n]["sha256"]
-            if not got[n]["published_hash_match"]:
+            rec["published_hash_match"] = published == rec["sha256"]
+            with lock:
+                got[n] = rec
+                save()
+            if not rec["published_hash_match"]:
                 raise OSError(f"{n}: SHA-256 does not match the published .sha256")
-            save()
+
+        todo = [n for n in chosen if not got.get(n, {}).get("published_hash_match")]
+        with ThreadPoolExecutor(FSL_CONNECTIONS) as ex:  # the server limits each connection
+            for fut in [ex.submit(one, n) for n in todo]:
+                fut.result()
         log("DONE")
     except StopFetch as e:
         manifest["stopped"] = str(e)
