@@ -1,0 +1,51 @@
+# Data card
+
+Status: DRAFT (2026-10-17). Downloads in progress under the team's approval (OPEN_QUESTIONS D58);
+the "What was kept" section is filled from `data/MANIFEST.json` once they finish. Nothing in
+`data/` is committed (gitignored).
+
+## What is real and what is simulated
+
+| component | source | real or simulated |
+|---|---|---|
+| benign file contents (v2 experiments so far) | `slowburn.sim` synthetic generator | simulated |
+| benign file contents (P2 onward) | NapierOne benign, 100 files per type | real files (2021 collection) |
+| damaged file contents | NapierOne ransomware-encrypted, 100 files per family; partial damage, if needed, uses blocks taken from these real encrypted files | real encryptor output; any partial pattern built from it is simulated and will be labelled as such |
+| file churn: which files change, when, how much | FSL Homes `2011-8kb-only` | real metadata and chunk hashes; **from 2011 student home directories** at Stony Brook University (13 users, Sept-Dec 2011) |
+| mapping of churn onto content | file extension in the FSL trace -> NapierOne file of the same type | simulated ("trace driven, semi synthetic") |
+| attack start, speed, files hit, discovery delay | simulator parameters | simulated |
+| detector evidence | abstract detection probability and benign flag rate (v2); LightGBM chunk detector trained on separate NapierOne files (later) | simulated / model output |
+
+## Sources and licences
+
+- **NapierOne** (Edinburgh Napier University): https://github.com/simonrdavies/NapierOne,
+  https://registry.opendata.aws/napierone/, bucket `s3://napierone.com` (eu-north-1). Licence:
+  Edinburgh Napier University License Agreement (permissive, attribution requested); per-subset
+  licence and attribution terms are in each subset's PDF. Ransomware archives contain encrypted
+  files only ("the actual ransomware sample (executable) is not included"). Partial or
+  intermittent encryption is not documented and is measured by us.
+- **FSL Homes** (File systems and Storage Lab, Stony Brook University):
+  https://tracer.filesystems.org/traces/fslhomes/ and SNIA IOTTA
+  (https://iotta.snia.org/traces/static/5231), SNIA Trace Data Files Download License. Paths and
+  chunk hashes are anonymized; file extensions are kept. SNIA warns the traces are over 10 years
+  old: the churn reflects 2011 student home directories, not a modern office or server workload.
+
+## Handling
+
+- Archives are untrusted data: nothing in them is executed; zip members with absolute paths or
+  `..` are refused; the NapierOne benign folders APK, DLL, ELF, EXE and POWERSHELL are not
+  extracted.
+- Every download is checked against the server's byte count, and against the published SHA-256
+  where one exists (FSL `.sha256` files; NapierOne `*_zip_hashes.txt` when it lists the archive).
+- Disk rules: `data/` at most 100 GB, at least 45 GB kept free on C:, checked before every
+  archive and extraction; nothing deleted to make room. FSL archives stay compressed and are read
+  by streaming.
+
+## Counts per type
+
+To be filled from the extracted files.
+
+## What was kept
+
+To be filled from `data/MANIFEST.json` when the downloads finish (for FSL: first and last day,
+users, number of days, bytes, and why the block ends).

@@ -143,6 +143,14 @@ def extract(zpath: Path, out: Path, budget: Budget, log, skip_types=frozenset(),
     return info
 
 
+def napierone_published_sha256(raw: bytes) -> str | None:
+    """SHA-256 from a NapierOne ``*_zip_hashes.txt`` (Hash Console output, UTF-8 or UTF-16)."""
+    bom16 = (b"\xff\xfe", b"\xfe\xff")
+    txt = raw.decode("utf-16") if raw[:2] in bom16 else raw.decode("utf-8", "replace")
+    m = re.search(r"SHA256\s+32\s+([0-9a-fA-F]{64})", txt)
+    return m.group(1).lower() if m else None
+
+
 # ---- FSL Homes ---------------------------------------------------------------------------
 
 _FSL_RE = re.compile(r'href="(fslhomes-(user\d+)-(\d{4}-\d{2}-\d{2})\.tar\.bz2)"')
@@ -205,8 +213,9 @@ def run(root: str = "data", log=print) -> dict:
             if hk in keys:
                 hp = dest.with_name(hk.split("/")[-1])
                 download(f"{S3}/{hk}", hp, budget, log, keys[hk])
+                enc[fam]["published_sha256"] = napierone_published_sha256(hp.read_bytes())
                 enc[fam]["published_hash_match"] = (
-                    enc[fam]["sha256"] in hp.read_text(errors="replace").lower()
+                    enc[fam]["published_sha256"] == enc[fam]["sha256"]
                 )
             enc[fam]["extract"] = extract(dest, budget.root / "napierone" / "encrypted" / fam,
                                           budget, log)  # fmt: skip

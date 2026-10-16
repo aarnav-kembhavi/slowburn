@@ -42,3 +42,13 @@ def test_fsl_plan_is_a_contiguous_block_from_the_fullest_day():
     assert s["first_day"] == "d2" and s["last_day"] == "d3" and s["days"] == 2
     assert s["users"] == ["u1", "u2"] and s["bytes"] == 40
     assert "f-u1-d1" not in chosen and "f-u1-d4" not in chosen
+
+
+def test_napierone_published_sha256_parses_utf8_and_utf16():
+    from slowburn.datasets.fetch import napierone_published_sha256
+
+    h = "b7eadda70d854bb19f10c6fdb0910345bda6e78522413a524b9e6537872027a3"
+    txt = f" MD5   16   e2add58330e7556145e6ddd505b81bd0\n SHA256      32      {h.upper()}\n"
+    assert napierone_published_sha256(txt.encode()) == h
+    assert napierone_published_sha256(txt.encode("utf-16")) == h
+    assert napierone_published_sha256(b"nothing") is None
