@@ -1,0 +1,60 @@
+# D50 test (DEV only, reporting): is claim (3) rescued where a wrong assumption is realistic,
+# i.e. an UNDER-estimated discovery delay? Assumed max delay 14 / 30 (and the frozen 60 as
+# reference) x SlowBurn v1 (blind weight 0) / method v2 (0.5). Same machines as configs/dev_v2.yaml.
+# Count budgets only. GFS and Tower of Hanoi share the restore, so they appear under each variant.
+seed: 202
+experiment: dev_v2_underdelay
+output_dir: results/dev_v2_underdelay
+split: dev
+workers: 5
+
+warmup_days: 14
+discovery_delay: [7, 14, 30, 45, 60]
+budgets: [4, 6, 8, 12]
+reps: 40
+vault_calib_machines: 40
+policies: [prior_only, slowburn, gfs, tower_of_hanoi]
+
+# start window: day 28 (two weeks after warm-up) to day 280 (40 weeks)
+worlds:
+  - {name: uniform, kind: uniform, window: [28, 280]}
+  - {name: early, kind: beta, a: 1, b: 3, window: [28, 280]}     # mean day 91
+  - {name: late, kind: beta, a: 3, b: 1, window: [28, 280]}      # mean day 217
+  # bursty campaigns: centres drawn once from child_rng(202, "bursty_centres") on [40, 268]
+  - {name: bursty, kind: clusters, centres: [99, 139, 267], sd: 3, window: [28, 280]}
+
+hp:                              # v1 frozen operating point, unchanged (configs/frozen.yaml)
+  p_attack_within_window: 0.05
+  prior_window_days: 60
+  penalty: 90.0
+  restore_quantile: 0.1
+  assumed_discovery: {kind: uniform, max_days: 60}
+  gate: 0.8
+  backbone: 0.25
+  null_pool: pooled
+  restore_rule: verified
+  restore_posterior: discovery
+  scan_eps: 0.001
+
+scenario:
+  n_files: 40
+  file_types: [txt, csv, bin, docx, zip, png, jpg, mp3, zlib, lzma]
+  file_kib: [16, 96]
+  edits_per_day: 4.0
+  attack_start: 112              # used only by calibration machines (attack-free anyway)
+  attack_files_per_day: 0.5
+  damage_model: striped
+  damage_fraction: 0.1
+
+sweep:
+  detect_prob: [1.0, 0.9, 0.5, 0.2, 0.0]
+  benign_invalid_rate: [0.0, 0.01, 0.05]
+
+# assumed maximum discovery delay (uniform on 1..max) x method version; true delays 7-60
+variants:
+  - {name: a14_v1, hp: {assumed_discovery: {kind: uniform, max_days: 14}, blind_weight: 0.0}}
+  - {name: a14_v2, hp: {assumed_discovery: {kind: uniform, max_days: 14}, blind_weight: 0.5}}
+  - {name: a30_v1, hp: {assumed_discovery: {kind: uniform, max_days: 30}, blind_weight: 0.0}}
+  - {name: a30_v2, hp: {assumed_discovery: {kind: uniform, max_days: 30}, blind_weight: 0.5}}
+  - {name: a60_v1, hp: {assumed_discovery: {kind: uniform, max_days: 60}, blind_weight: 0.0}}
+  - {name: a60_v2, hp: {assumed_discovery: {kind: uniform, max_days: 60}, blind_weight: 0.5}}

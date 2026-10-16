@@ -468,3 +468,39 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   fixed 0.8 gate. The gate still accounts for ~440 h of SlowBurn's DEV work lost above the best
   kept snapshot; a gate that loosens only on detector evidence (not on prior concentration) is a
   candidate for a later, separately pre-specified stage.
+- **D52 Finding: underestimating the discovery delay collapses every policy; overestimating is
+  safe but costs work lost (v2 DEV, 2026-10-17).** `results/dev_v2_delay` (mean of four worlds,
+  q in {1, .5, .2, 0}, benign 0.01): with an assumed maximum of 14 days, prior-only recovers
+  1.0 / 0.75625 / 0.0 / 0.0 / 0.0 at true delays 7 / 14 / 30 / 45 / 60 (0.35125 overall); 30 days
+  -> 1.0 / 1.0 / 0.828516 / 0.0 / 0.0; 60 (frozen) -> 1.0 / 1.0 / 1.0 / 1.0 / 0.866016; 90 and
+  120 -> 1.0 at every true delay, at +492.30375 h and +1084.19625 h work lost vs 60. GFS and
+  Tower of Hanoi collapse too (assumed 14: 0.3575 and 0.271641), because they share the restore
+  gate. Mechanism: the assumed delay distribution gives zero probability to starts more than its
+  maximum before discovery, so the gate trusts post-start snapshots and the retention posterior
+  treats older snapshots as worthless.
+- **D53 Byte budgets are not used in claims until real churn is in (team decision, 2026-10-17).**
+  Definition: "N days' worth of storage" = B_N = m_N x S0, with S0 the machine's day-0 snapshot
+  size (unique bytes) and m_N the median, over the 40 attack-free DEV calibration machines (seed
+  202, family vault_calib) and every day t >= warm-up + N - 1, of unique_bytes(snapshots
+  t-N+1..t) / S0, i.e. the storage keep-last-N needs to hold N daily snapshots. m_14 =
+  1.7450643130492298, m_30 = 2.66980547090922, m_90 = 6.146835909945129. Simulated churn on the
+  same machines (days 14-172, 6360 machine-days): new unique bytes per day / that day's snapshot
+  size, mean 0.058170066359578144 (5.8170066%), median 0.0508335648791331, p10 0.0, p90
+  0.12204078998321932; by weekday (day mod 7 = 0..6) 0.07264406384897355, 0.07445049219859667,
+  0.07333525922917093, 0.07478416944880155, 0.07428770716863084, 0.020494253937146708,
+  0.013619456863168457 (`results/dev_v2/daily_change_rate*.csv`). Byte-budget results stay
+  design-only until FSL Homes churn replaces the synthetic churn.
+- **D54 Method v2 at q = 0 on the worst-case grid is significantly worse than prior-only at
+  K = 6 and 8 (DEV, reported, 2026-10-17).** `results/dev_v2_worst_method/
+  q0_v2_vs_prior_only_tests.csv`: exact paired McNemar per K (800 pairs = 160 machines x 5
+  delays), Holm over K = 4, 6, 8, 12; machine-cluster bootstrap 95% CI. K = 4: 0.93125 vs 0.9375,
+  difference -0.00625 [-0.015, 0.00125], discordant 2 / 7, p 0.179688, Holm 0.359375. K = 6:
+  0.9725 vs 0.98125, -0.00875 [-0.015, -0.0025], 0 / 7, p 0.015625, Holm 0.046875. K = 8: 0.9225
+  vs 0.93875, -0.01625 [-0.02625, -0.00625], 3 / 16, p 0.004425, Holm 0.0177. K = 12: 0.88625 vs
+  0.88125, +0.005 [-0.015, 0.025], 36 / 32, p 0.716301, Holm 0.716301. Both policies retain a
+  clean snapshot in 1.0 of these rows, so the recovery gap equals the restore-time failure gap
+  (the quantity in the pre-registered criterion). Caveat: McNemar treats the
+  5 delays of a machine as independent pairs; the cluster CIs agree for K = 6 and 8. The K = 8 gap
+  (0.01625) exceeds the pre-registered 1-point non-inferiority margin, so method v2 as chosen
+  would likely FAIL the q = 0 criterion on a grid like this one. Not acted on (no method change
+  without the team).
