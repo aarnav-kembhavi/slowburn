@@ -464,7 +464,7 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   world q = 0 excess 0.00625 <= 0.01). It becomes the method-v2 evidence model for stage B and
   for the P5 pre-registration unless the team objects.
 - **D49 outcome (2026-10-17):** neither adaptive gate is adopted (both fail the q = 0 criterion;
-  recovery falls at every q < 1 for 9-13 h less work lost). Method v2 = blind weight 0.5 with the
+  recovery falls at every q < 1 for 8.918125-13.395 h less work lost). Method v2 = blind weight 0.5 with the
   fixed 0.8 gate. The gate still accounts for ~440 h of SlowBurn's DEV work lost above the best
   kept snapshot; a gate that loosens only on detector evidence (not on prior concentration) is a
   candidate for a later, separately pre-specified stage.

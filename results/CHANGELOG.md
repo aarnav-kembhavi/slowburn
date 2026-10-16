@@ -1076,7 +1076,7 @@ count budgets; 230400 rows, split dev only). Rule D49 (`select_stage_b`; `stage_
 
 **Outcome: the fixed gate is kept.** Both adaptive variants break the q = 0 criterion (excess by
 world, bursty / early / late / uniform: min 0.5 0.02875 / 0.010833 / 0.007083 / 0.016667; min 0.65
-0.02125 / 0.005833 / 0.0025 / 0.01) and lower recovery at every q < 1, for 8.917-13.395 h less
+0.02125 / 0.005833 / 0.0025 / 0.01) and lower recovery at every q < 1, for 8.918125-13.395 h less
 work lost. Mean restore gate at q = 0 / 0.2 / 0.5 / 1: min 0.5 0.755022 / 0.711703 / 0.65058 /
 0.581867; min 0.65 0.777511 / 0.755851 / 0.72529 / 0.690933. The concentration measure lowers the
 gate even without detector signal (q = 0), because the discovery-conditioned posterior is already
