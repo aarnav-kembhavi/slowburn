@@ -1061,3 +1061,25 @@ every compared column; 6 tasks recomputed from scratch are identical to the cach
 15 trailing garbage lines from the second writer. `tuning_sweep.csv` was rebuilt from the cache
 (the corrupt file is kept in the session scratchpad, not in the repo); summaries were recomputed
 from the rebuilt file and match. No other run was affected (each had one launch).
+
+## 2026-10-17 (night, cont.): method v2 stage B, adaptive restore gate (D49 applied)
+
+`configs/dev_v2_method_b.yaml` -> `results/dev_v2_method_b/` (same 1920 machines, blind weight 0.5,
+count budgets; 230400 rows, split dev only). Rule D49 (`select_stage_b`; `stage_b_scoreboard.csv`,
+`q0_excess_by_world.csv`):
+
+| restore gate | SlowBurn recovery | SlowBurn work lost (h) | worst-world q = 0 excess | eligible |
+|---|---|---|---|---|
+| fixed 0.8 (control) | 0.978646 | 1634.5425 | 0.00625 | yes |
+| adaptive, min 0.5 | 0.970443 | 1621.1475 | 0.02875 | no |
+| adaptive, min 0.65 | 0.974193 | 1625.624375 | 0.02125 | no |
+
+**Outcome: the fixed gate is kept.** Both adaptive variants break the q = 0 criterion (excess by
+world, bursty / early / late / uniform: min 0.5 0.02875 / 0.010833 / 0.007083 / 0.016667; min 0.65
+0.02125 / 0.005833 / 0.0025 / 0.01) and lower recovery at every q < 1, for 8.917-13.395 h less
+work lost. Mean restore gate at q = 0 / 0.2 / 0.5 / 1: min 0.5 0.755022 / 0.711703 / 0.65058 /
+0.581867; min 0.65 0.777511 / 0.755851 / 0.72529 / 0.690933. The concentration measure lowers the
+gate even without detector signal (q = 0), because the discovery-conditioned posterior is already
+somewhat concentrated. The work lost from the gate (439.893 h above the best kept snapshot) is not
+recovered by loosening the gate this way: restores move only slightly newer while restore-time
+failures rise (q = 0: 0.067604 / 0.061667 vs 0.053021).
