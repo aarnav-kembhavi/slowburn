@@ -784,3 +784,23 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   be identical, since retention is unchanged); paired deltas with machine-cluster bootstrap CIs.
   (5) The 3b test and the end-to-end q = 1 check are rerun under D64a before the runs; then the
   worst-case (q = 0) and under-estimated grids run as one job. Adoption rule unchanged.
+- **D64a outcome (2026-10-22): verify_snap ADOPTED (passes the 3b test, matches the threat
+  model); STOP RULE TRIGGERED, downstream reruns held for the team.** Runs: `results/
+  dev_d64a_{worst,under}` (same machines as `dev_v4_*`; pairing 6400 / 6400 and 204800 / 204800
+  rows; retention columns identical row for row, so only the restore changed).
+  Worst-case grid, q = 0, old -> new (paired): prior-only recovery 0.934688 -> 0.945625
+  (+0.010938), work lost 1865.1075 -> 2167.335 h (+16.2043%); SlowBurn 0.933438 -> 0.945 (+0.011563),
+  1868.895 -> 2179.155 h (+16.6013%). Thresholds crossed: work lost > 1% relative, C1
+  worst-case recovery > 0.01. Blind units on this grid still pass (SlowBurn - prior-only
+  restore-time failure by K = 4 / 6 / 8 / 12: 0.00375 / 0.00375 / 0.00625 / -0.01125; old
+  0.00375 / 0.00375 / 0.00875 / -0.01125). Mechanism: old benign false positives held in every
+  candidate now reject them, so restores fall back further (D64 predicted this).
+  Under-estimated grid, SlowBurn, true delay > M, recovery at q = 0 / 0.2 / 0.5 / 1 (new): hard
+  M 14: 0 / 0 / 0.0026 / 0.1495; hard M 30: 0 / 0 / 0.0062 / 0.8891; v4 (every tail) M 14: 0 / 0 /
+  0.0042 / 1.0, M 30: 0 / 0 / 0.0062 / 1.0. Hard q = 1 recovery equals the fraction of rows with a
+  clean snapshot retained (0.1495, 0.8891). v4's q = 0.5 rescue (old 0.0977-0.1458) disappears:
+  verification now walks the gated candidates down to one whose damaged versions were all
+  missed (near the start, few damaged files) and accepts it, so the walk-back never starts.
+  Within the bound, hard M 14 q = 0 recovery 0.7844 -> 0.8367 and work lost 1205.3 -> 1055.1 h.
+  Not yet rerun under the adopted restore: full grid (C1 worlds, C2, C3'), worlds grid / D57
+  table, v4 normal grid. claims.md not yet changed; D63 still on hold.

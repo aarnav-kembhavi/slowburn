@@ -1223,3 +1223,23 @@ retention vs 49.83 hard, same restore gate (45.15 days): the cost is retention, 
 
 **FSL download**: found dead since 2026-10-17 15:15 (about 17 GB of 56 GB on disk, no process
 running, no error logged); restarted on the fixed block (`results/fetch_run2.log`).
+
+## 2026-10-22: D62-D64a restore-time verification fix (adopted), stop rule triggered
+
+The original F1 wording ("under-estimating the delay collapses every policy to 0, even with a
+perfect detector") was PARTLY A SCAN-WINDOW ARTIFACT: D29 verification never scanned versions
+older than L (start-posterior 0.001 quantile), which an under-estimated bound pushes after the
+true start, so a snapshot holding flagged damaged versions verified clean and files damaged
+before L were not restored. The adopted restore (D64a "verify_snap": every version in the
+candidate scanned with the shared write-time draw, any flag rejects, plus restoring files whose
+current version is flagged) fixes this (`tests/test_damage_persistence.py`).
+
+Adopted pipeline (`results/dev_d64a_under`), SlowBurn recovery beyond the bound at q = 0 / 0.2 /
+0.5 / 1: hard M 14 0 / 0 / 0.0026 / 0.1495; hard M 30 0 / 0 / 0.0062 / 0.8891 (equal to the
+fraction of rows with a clean snapshot retained). v4 beyond the bound (all tails): M 14 0 / 0 /
+0.0042 / 1.0; M 30 0 / 0 / 0.0062 / 1.0 (old pipeline: q = 0.5 0.0977-0.1458, q = 1 0.4469-0.5229).
+
+Cost (`results/dev_d64a_worst`, worst-case grid, q = 0, paired old -> new): work lost prior-only
++16.2043%, SlowBurn +16.6013%; recovery +0.010938 / +0.011563. Past the team's thresholds: stopped
+before the full-grid, worlds-grid, D57 and v4 reruns. Earlier diagnostics (unadopted, for
+reference only): `results/diag_d62_*` (options select / verify).
