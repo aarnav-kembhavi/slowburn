@@ -176,3 +176,58 @@ def test_select_blind_safe_hard_constraint():
     assert v == "ok" and board.loc["ok", "eligible"] and not board.loc["bad", "eligible"]
     bad = units[(units.variant == "bad") & ~units.passes]
     assert list(bad.unit) == [12] and bad.excess.iloc[0] == pytest.approx(0.15)
+
+
+# ---- D60 scoring ---------------------------------------------------------------------------
+
+import pandas as pd  # noqa: E402
+
+from slowburn.bench import method_v2 as mv  # noqa: E402
+
+
+def _rows(variant, policy, q, rec, n, world="uniform", delay=60, budget=4, wl=1644.030625):
+    return pd.DataFrame({"split": "dev", "variant": variant, "policy": policy, "detect_prob": q,
+                         "attack_start": 100, "world": world, "benign_invalid_rate": 0.01,
+                         "rep": range(n), "discovery_delay": delay, "budget": budget,
+                         "clean_recovery": rec, "clean_snapshot_retained": 1,
+                         "work_lost_whole_system_hours": wl})  # fmt: skip
+
+
+def _grids(v4_rec_q, v4_wl):
+    n = 40
+    normal = pd.concat(
+        [_rows(v, pol, q, 1, n, world=w, wl=wl)
+         for w in ("uniform", "early", "late", "bursty") for q in (0.0, 1.0)
+         for v, pol, wl in (("hard", "prior_only", 1700.0), ("hard", "slowburn", 1644.030625),
+                            ("v4_60", "slowburn", v4_wl))])  # fmt: skip
+    worst = pd.concat([_rows(v, pol, 0.0, 1, n, world="x", budget=k).drop(columns="world")
+                       for k in (4, 6, 8, 12) for v, pol in (("hard", "prior_only"),
+                                                             ("v4_60", "slowburn"))])  # fmt: skip
+    under = pd.concat(
+        [_rows(f"v4_{M}", "slowburn", q, (np.arange(n) < n * r).astype(int), n)
+         for M in (14, 30) for q, r in v4_rec_q.items()])  # fmt: skip
+    return normal, worst, under
+
+
+def test_d60_adopts_only_with_rescue_below_q1_and_within_cost():
+    tails = {0.05: {60: "v4_60", 14: "v4_14", 30: "v4_30"}}
+    rec = {0.0: 0.1, 0.2: 0.15, 0.5: 0.6, 1.0: 0.9}
+    out = mv.d60_select(*_grids(rec, 1700.0), tails, "hard")
+    b = out["board"].iloc[0]
+    assert b.c1 and b.c2 and out["chosen_tail"] == 0.05
+    assert b.rescue_q == "0.5,1.0" and out["adopt"]  # 0.2: gain 0.05 < 0.10
+    # rescue only at q = 1 does not count
+    out = mv.d60_select(*_grids({0.0: 0.1, 0.2: 0.1, 0.5: 0.1, 1.0: 0.9}, 1700.0), tails, "hard")
+    assert out["board"].iloc[0].rescue_q == "1.0" and not out["adopt"]
+    # C2: work lost above 1.10 x v2 -> not eligible, nothing chosen
+    out = mv.d60_select(*_grids(rec, 1808.44), tails, "hard")
+    assert not out["board"].iloc[0].c2 and out["chosen_tail"] is None and not out["adopt"]
+
+
+def test_d60_refuses_unreproduced_hard_variant():
+    normal, worst, under = _grids({0.0: 0.1, 0.2: 0.5, 0.5: 0.6, 1.0: 0.9}, 1700.0)
+    normal.loc[(normal.variant == "hard") & (normal.policy == "slowburn"),
+               "work_lost_whole_system_hours"] = 1600.0  # fmt: skip
+    with pytest.raises(ValueError, match="reproduce"):
+        mv.d60_select(normal, worst, under, {0.05: {60: "v4_60", 14: "v4_14", 30: "v4_30"}},
+                      "hard")  # fmt: skip
