@@ -129,3 +129,63 @@ def test_benign_flag_causes_false_rejection():
     # 14 holds c's flagged day-13 version (benign validation failure) -> rejected; 12 verifies
     assert r["snapshots_scanned"] == 2 and r["restore_point"] == 12
     assert r["restore_point_clean"] == 1 and r["restore_matches_dp_model"] == 0
+
+
+# ---- D60: method v4 walk-back ------------------------------------------------------------
+
+from slowburn.store.restore import deep_damage, walkback_restore  # noqa: E402
+
+NULL0 = (0.5, 1e4 + 0.5)  # fleet prior of a benign rate of ~0
+
+
+def _whist():
+    # attack starts on day 8; damage on 8 (detected) and 9 (missed); a hard-bound posterior
+    # placing the start on 16 admits the damaged snapshot 15 and its scan window misses both
+    return {
+        "a": FileHistory((0, 8), damaged_day=8, flagged_days=frozenset({8})),
+        "b": FileHistory((0, 9), damaged_day=9),
+        "c": FileHistory((0, 3, 16), None),
+        "d": FileHistory((0, 2), None),
+    }
+
+
+def test_deep_damage_window_and_benign_rate():
+    h = _whist()
+    assert deep_damage(h, 15, 5, NULL0, 0.05) == (True, 1, 2)  # a@8, b@9 scanned; c@3 is <= 5
+    assert deep_damage(h, 5, 2, NULL0, 0.05) == (False, 0, 1)
+    # a high fleet benign rate explains one flag out of two: no damage found
+    assert deep_damage(h, 15, 5, (50.0, 50.0), 0.05)[0] is False
+
+
+def test_walkback_rescues_beyond_the_bound():
+    post = _post(20, {16: 1.0})
+    h = _whist()
+    v2 = verified_restore([5, 15, 20], post, 20, h, true_start=8, gate=0.8)
+    assert v2["restore_point"] == 15 and v2["verified"] == 1 and v2["clean_recovery"] == 0
+    r = walkback_restore([5, 15, 20], post, 20, h, true_start=8, gate=0.8, null_prior=NULL0)
+    assert r["walkback_from"] == 15 and r["walkback_steps"] == 1 and r["restore_point"] == 5
+    assert r["clean_recovery"] == 1 and r["residual_damaged_files"] == 0
+    assert r["work_lost_whole_system_hours"] == 15 * 24
+
+
+def test_walkback_is_v2_when_nothing_is_flagged():
+    post = _post(20, {16: 1.0})
+    h = {**_whist(), "a": FileHistory((0, 8), damaged_day=8)}  # q = 0: nothing detected
+    v2 = verified_restore([5, 15, 20], post, 20, h, true_start=8, gate=0.8)
+    r = walkback_restore([5, 15, 20], post, 20, h, true_start=8, gate=0.8, null_prior=NULL0)
+    assert r["walkback_steps"] == 0 and r["files_scanned"] == v2["files_scanned"] + 2
+    assert {k: r[k] for k in v2 if k != "files_scanned"} == {
+        k: v for k, v in v2.items() if k != "files_scanned"
+    }
+
+
+def test_walkback_stops_at_oldest_kept():
+    post = _post(20, {16: 1.0})
+    h = {**_whist(), "e": FileHistory((0, 10), damaged_day=10, flagged_days=frozenset({10}))}
+    r = walkback_restore([9, 15, 20], post, 20, h, true_start=8, gate=0.8, null_prior=NULL0)
+    # 15 holds e's flagged day-10 version; 9 is the oldest kept, so the walk ends there although
+    # it holds a's day-8 damage (written before the oldest kept snapshot: nothing can undo it)
+    assert r["restore_point"] == 9 and r["walkback_steps"] == 1 and r["clean_recovery"] == 0
+    r = walkback_restore([12, 15, 20], post, 20, _whist(), true_start=8, gate=0.8,
+                         null_prior=NULL0)  # fmt: skip
+    assert r["walkback_steps"] == 0  # all damage predates the oldest kept snapshot

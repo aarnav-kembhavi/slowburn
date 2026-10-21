@@ -147,6 +147,63 @@ def verified_restore(
             "restore_matches_dp_model": int(j_r == model_point)}  # fmt: skip
 
 
+def deep_damage(histories: dict[str, FileHistory], j: int, j0: int, null_prior: tuple,
+                alpha: float) -> tuple[bool, int, int]:  # fmt: skip
+    """Method v4 deep check (D60) of snapshot ``j``: scan every version it holds written after
+    the oldest kept snapshot ``j0``; damage is found iff the flag count exceeds the benign rate,
+    one-sided Beta-Binomial tail with the fleet-pooled benign prior ``null_prior`` < ``alpha``.
+    Returns (damage found, flagged, scanned)."""
+    from scipy import stats
+
+    x = n = 0
+    for h in histories.values():
+        v = version_day_at(h, j)
+        if v > j0:
+            n += 1
+            x += v in h.flagged_days
+    if x == 0:
+        return False, 0, n
+    a0, b0 = null_prior
+    return bool(stats.betabinom.sf(x - 1, n, a0, b0) < alpha), x, n
+
+
+def walkback_restore(
+    kept_days: Sequence[int],
+    post: np.ndarray,
+    discovery_day: int,
+    histories: dict[str, FileHistory],
+    true_start: int,
+    gate: float,
+    null_prior: tuple,
+    alpha: float = 0.05,
+    scan_eps: float = 0.001,
+) -> dict:
+    """Method v4 restore (D60): ``verified_restore`` on the hard-bound posterior ``post`` gives
+    j_v2; while the deep check finds damage at the restore point, step to the next older kept
+    snapshot (the oldest kept one ends the walk). If the point moved, every file changed after
+    it is restored."""
+    r = verified_restore(kept_days, post, discovery_day, histories, true_start, gate, scan_eps)
+    kept = sorted(kept_days)
+    j_r, j0 = r["restore_point"], kept[0]
+    older = [j for j in reversed(kept) if j < j_r]
+    steps, files = 0, 0
+    while j_r != j0:
+        found, _, n = deep_damage(histories, j_r, j0, null_prior, alpha)
+        files += n
+        if not found:
+            break
+        j_r = older[steps]
+        steps += 1
+    out = {**r, "walkback_steps": steps, "walkback_from": r["restore_point"],
+           "snapshots_scanned": r["snapshots_scanned"] + steps,
+           "files_scanned": r["files_scanned"] + files}  # fmt: skip
+    if steps:
+        out.update(_outcome(j_r, true_start, discovery_day,
+                            *_restore_files(histories, j_r, j_r + 1, discovery_day)))  # fmt: skip
+        out["restore_p_clean"] = float(p_clean(post, [j_r])[0])
+    return out
+
+
 def selective_restore(
     kept_days: Sequence[int],
     post: np.ndarray,

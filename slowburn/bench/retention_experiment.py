@@ -55,6 +55,7 @@ from slowburn.store.restore import (
     selective_restore,
     snapshots_scanned,
     verified_restore,
+    walkback_restore,
 )
 from slowburn.utils.config import resolve_path
 from slowburn.utils.seed import child_rng
@@ -289,6 +290,14 @@ def evaluate_trace(
     ad = hp["assumed_discovery"]
     S = discovery_survival(ad["kind"], int(ad["max_days"]), float(ad.get("tail", 0.0)),
                            float(ad.get("alpha", 1.0)))  # fmt: skip
+    # method v4 (D60): the restore may assume a different (hard) delay than retention plans with
+    rd = hp.get("restore_discovery") or ad
+    S_r = S if rd is ad else discovery_survival(rd["kind"], int(rd["max_days"]),
+                                                float(rd.get("tail", 0.0)),
+                                                float(rd.get("alpha", 1.0)))  # fmt: skip
+    walk = hp.get("walkback")
+    if walk and p.get("null_prior") is None:
+        raise ValueError("the v4 walk-back needs the fleet-pooled benign prior")
     delays = [int(d) for d in cfg["discovery_delay"]]
     start = trace.start
     n = trace.n_days
@@ -374,7 +383,10 @@ def evaluate_trace(
                "hp_assumed_discovery_tail": float(hp["assumed_discovery"].get("tail", 0.0)),
                "hp_null_pool": hp.get("null_pool", "pooled"), "hp_restore_rule": rule,
                "hp_restore_quantile": hp.get("restore_quantile"),
-               "hp_restore_posterior": hp.get("restore_posterior", "discovery")}  # fmt: skip
+               "hp_restore_posterior": hp.get("restore_posterior", "discovery"),
+               "hp_restore_discovery_kind": rd["kind"],
+               "hp_restore_discovery_max": rd["max_days"],
+               "hp_walkback_alpha": float(walk["alpha"]) if walk else np.nan}  # fmt: skip
     rows = []
     for bk in Ks:
         kind, K = bk
@@ -402,11 +414,15 @@ def evaluate_trace(
                 # blind policy's DP loss assumes a prior-gated restore, so its gate uses the prior
                 rpost = post if getattr(pol, "use_evidence", True) else prior[td + 1]
                 if hp.get("restore_posterior", "discovery") == "discovery":  # D34
-                    rpost = discovery_posterior(rpost, td, S)
+                    rpost = discovery_posterior(rpost, td, S_r)
                 g_r = gate
                 if hp.get("adaptive_gate") and getattr(pol, "use_evidence", True):
                     g_r = adaptive_gate(rpost, hp["adaptive_gate"], gate)  # method v2 (D49)
-                if rule == "verified":
+                if rule == "verified" and walk:
+                    r = walkback_restore(kept, rpost, td, trace.histories, start, g_r,
+                                         tuple(p["null_prior"]), float(walk["alpha"]),
+                                         scan_eps)  # fmt: skip
+                elif rule == "verified":
                     r = verified_restore(kept, rpost, td, trace.histories, start, g_r, scan_eps)
                 else:
                     r = selective_restore(kept, rpost, td, trace.histories, start,
@@ -421,7 +437,13 @@ def evaluate_trace(
                              "newest_clean_kept": max((j for j in kept if j < start),
                                                       default=np.nan),
                              "restore_gate": g_r,
-                             "oldest_retained_age": td - min(kept)})  # fmt: skip
+                             "oldest_retained_age": td - min(kept),
+                             # how far back the restore went (D60)
+                             "walkback_steps": r.get("walkback_steps", 0),
+                             "walkback_from": r.get("walkback_from", r["restore_point"]),
+                             "restore_depth_days": td - r["restore_point"],
+                             "restore_beyond_bound": int(td - r["restore_point"]
+                                                         > int(rd["max_days"]))})  # fmt: skip
             if kind == "count" and (K, td) in amoeba_rec:
                 rec = amoeba_rec[(K, td)]
                 total = rec["backup_bytes"] + len(trace.snapshots[td]) * trace.chunk_size
