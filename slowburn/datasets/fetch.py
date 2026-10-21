@@ -5,7 +5,10 @@ Rules enforced here, before EVERY archive:
   (45 GB) free; if the next archive (or the next extraction) would break either, stop and report.
   Nothing is ever deleted to make room.
 * Downloads land in ``<name>.part`` and are renamed only after the byte count matches the
-  server's Content-Length (and the published SHA-256 where one exists).
+  server's Content-Length (and the published SHA-256 where one exists). An interrupted download
+  resumes from its ``.part`` with an HTTP range request (D61); the server's Content-Range must
+  start at the partial size and name the expected total, otherwise the file restarts from 0. The
+  SHA-256 covers the partial bytes plus the resumed ones, so a corrupt partial fails the check.
 * Archives are treated as untrusted data: nothing in them is executed; zip members with absolute
   paths or ``..`` are refused; executable and script type folders are not extracted.
 
@@ -63,9 +66,9 @@ class Budget:
                             f"{self.reserve_bytes}")  # fmt: skip
 
 
-def _open(url: str, method: str = "GET"):
-    return urllib.request.urlopen(urllib.request.Request(url, headers=UA, method=method),
-                                  timeout=120)  # fmt: skip
+def _open(url: str, method: str = "GET", headers: dict | None = None):
+    return urllib.request.urlopen(urllib.request.Request(url, headers={**UA, **(headers or {})},
+                                                         method=method), timeout=120)  # fmt: skip
 
 
 def content_length(url: str) -> int:
@@ -93,15 +96,33 @@ def download(url: str, dest: Path, budget: Budget, log, expected: int | None = N
     if dest.exists() and dest.stat().st_size == size:
         log(f"  have {dest.name} ({size} bytes)")
         return {"file": str(dest), "bytes": size, "sha256": _sha256(dest)}
-    budget.check(size, dest.name)
     dest.parent.mkdir(parents=True, exist_ok=True)
     part = dest.with_suffix(dest.suffix + ".part")
-    h, n, t0 = hashlib.sha256(), 0, time.time()
-    with _open(url) as r, part.open("wb") as fh:
-        while chunk := r.read(1 << 20):
-            fh.write(chunk)
-            h.update(chunk)
-            n += len(chunk)
+    have = part.stat().st_size if part.exists() else 0
+    if have > size:
+        log(f"  {dest.name}: partial ({have} bytes) is longer than the file; restarting from 0")
+        have = 0
+    budget.check(size - have, dest.name)
+    h, t0 = hashlib.sha256(), time.time()
+    if have:
+        with part.open("rb") as fh:
+            while chunk := fh.read(1 << 20):
+                h.update(chunk)
+    with _open(url, headers={"Range": f"bytes={have}-"} if have else None) as r:
+        if have:
+            cr = r.headers.get("Content-Range", "")
+            ok = r.status == 206 and cr.startswith(f"bytes {have}-") and cr.endswith(f"/{size}")
+            if not ok:
+                log(f"  {dest.name}: range not honoured ({r.status}, {cr!r}); restarting from 0")
+                have, h = 0, hashlib.sha256()
+            else:
+                log(f"  {dest.name}: resuming at {have} of {size} bytes")
+        n = have
+        with part.open("ab" if have else "wb") as fh:
+            while chunk := r.read(1 << 20):
+                fh.write(chunk)
+                h.update(chunk)
+                n += len(chunk)
     if n != size:
         raise OSError(f"{dest.name}: got {n} bytes, expected {size} (kept as .part)")
     part.replace(dest)
@@ -268,7 +289,11 @@ def run(root: str = "data", log=print) -> dict:
                 got[n] = rec
                 save()
             if not rec["published_hash_match"]:
-                raise OSError(f"{n}: SHA-256 does not match the published .sha256")
+                # set aside (never deleted) so the next attempt downloads it again from 0
+                bad = Path(rec["file"])
+                bad.replace(bad.with_name(bad.name + ".corrupt"))
+                raise OSError(f"{n}: SHA-256 does not match the published .sha256; "
+                              "moved to .corrupt")  # fmt: skip
 
         todo = [n for n in chosen if not got.get(n, {}).get("published_hash_match")]
         with ThreadPoolExecutor(FSL_CONNECTIONS) as ex:  # the server limits each connection

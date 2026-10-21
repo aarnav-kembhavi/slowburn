@@ -83,3 +83,82 @@ def test_watchdog_stops_when_the_fetcher_finishes(tmp_path):
 def test_watchdog_restarts_a_crashed_fetcher(tmp_path):
     n, log = _wd(tmp_path, "raise SystemExit(3)", max_restarts=1)
     assert n == 1 and "exited with code 3 before finishing" in log
+
+
+# ---- D61 range resume (local server, no network) -------------------------------------------
+
+import hashlib  # noqa: E402
+import threading  # noqa: E402
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer  # noqa: E402
+
+from slowburn.datasets.fetch import download  # noqa: E402
+
+BODY = bytes(range(256)) * 400
+
+
+def _server(honour_range: bool):
+    class H(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            rng = self.headers.get("Range")
+            if rng and honour_range:
+                start = int(rng.split("=")[1].rstrip("-"))
+                self.send_response(206)
+                self.send_header("Content-Range", f"bytes {start}-{len(BODY) - 1}/{len(BODY)}")
+                body = BODY[start:]
+            else:
+                self.send_response(200)
+                body = BODY
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *a):
+            pass
+
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv, f"http://127.0.0.1:{srv.server_address[1]}/f.bin"
+
+
+@pytest.mark.parametrize("honour", [True, False])
+@pytest.mark.parametrize("partial", [0, 1000, len(BODY) + 5])
+def test_download_resumes_with_range_and_verifies(tmp_path, honour, partial):
+    srv, url = _server(honour)
+    try:
+        dest = tmp_path / "f.bin"
+        part = tmp_path / "f.bin.part"
+        if partial:
+            part.write_bytes((BODY + b"xxxxx")[:partial])
+        logs = []
+        rec = download(url, dest, Budget(tmp_path, reserve_bytes=0), logs.append, len(BODY))
+        assert dest.read_bytes() == BODY and not part.exists()
+        assert rec["sha256"] == hashlib.sha256(BODY).hexdigest()
+        resumed = any("resuming at 1000" in s for s in logs)
+        assert resumed == (honour and partial == 1000)
+    finally:
+        srv.shutdown()
+
+
+def test_corrupt_partial_fails_the_hash(tmp_path):
+    srv, url = _server(True)
+    try:
+        (tmp_path / "f.bin.part").write_bytes(b"\0" * 1000)  # wrong bytes, right length
+        rec = download(url, tmp_path / "f.bin", Budget(tmp_path, reserve_bytes=0), print,
+                       len(BODY))  # fmt: skip
+        assert rec["sha256"] != hashlib.sha256(BODY).hexdigest()  # caught by the published hash
+    finally:
+        srv.shutdown()
+
+
+def test_watchdog_single_instance_and_done_marker(tmp_path):
+    from slowburn.datasets.watchdog import _lock
+
+    held = _lock(tmp_path / "w.lock")
+    assert held is not None
+    n = watchdog(str(tmp_path), str(tmp_path / "f.log"), str(tmp_path / "w.log"),
+                 check_s=0.1, stall_s=0.2, cmd=(sys.executable, "-c", "print('DONE')"))  # fmt: skip
+    assert n == -1  # another instance holds the lock
+    held.close()
+    _wd(tmp_path, "print('DONE')")
+    assert (tmp_path / "w.done").exists()
+    assert _wd(tmp_path, "print('DONE')")[0] == -1  # finished earlier: exits at once
