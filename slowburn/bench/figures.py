@@ -525,6 +525,134 @@ def auroc_figure() -> list[Path]:
     return [png]
 
 
+# ---- D63: assumed vs true discovery delay (F1 / F2 guideline figure) -----------------------
+
+DELAY_GRID_CSV = "results/dev_d63_delay_grid/tuning_sweep.csv"
+DELAY_K = 8  # figure budget (all four are run; the others go to the appendix table)
+DELAY_POLICIES = ["slowburn", "prior_only", "gfs", "tower_of_hanoi"]
+
+
+def _assumed_label(v: str) -> str:
+    return "60 + tail 0.1" if v.startswith("soft") else v.split("_M")[1]
+
+
+def delay_grid_cells(df: pd.DataFrame, budget: int = DELAY_K) -> pd.DataFrame:
+    """Mean recovery and work lost per assumed bound, true delay, policy and q (one budget)."""
+    d = df[(df.budget == budget) & df.policy.isin(DELAY_POLICIES)]
+    out = (d.groupby(["variant", "discovery_delay", "policy", "detect_prob"])
+           .agg(recovery=("clean_recovery", "mean"),
+                work_lost_h=("work_lost_whole_system_hours", "mean"),
+                rows=("clean_recovery", "size"))
+           .reset_index())  # fmt: skip
+    out["assumed"] = out.variant.map(_assumed_label)
+    out["bound"] = out.variant.str.extract(r"M(\d+)")[0].astype(int)
+    out["under_estimated"] = out.variant.str.startswith("hard") & (out.discovery_delay > out.bound)
+    return out
+
+
+def fixed_vs_slowburn_under(df: pd.DataFrame, budget: int = DELAY_K) -> pd.DataFrame:
+    """Under-estimated rows (hard bound, true delay > M): SlowBurn vs each fixed schedule, paired
+    per machine, with the one-sided exact McNemar p (fixed recovers more), Holm over rows."""
+    key = ["attack_start", "world", "benign_invalid_rate", "rep", "discovery_delay", "budget",
+           "variant", "detect_prob"]  # fmt: skip
+    d = df[(df.budget == budget) & df.variant.str.startswith("hard")].copy()
+    d = d[d.discovery_delay > d.variant.str.extract(r"M(\d+)")[0].astype(int)]
+    sb = d[d.policy == "slowburn"][key + ["clean_recovery", "work_lost_whole_system_hours"]]
+    from scipy import stats
+
+    rows = []
+    for pol in ("gfs", "tower_of_hanoi", "prior_only"):
+        x = d[d.policy == pol][key + ["clean_recovery", "work_lost_whole_system_hours"]].merge(
+            sb, on=key, suffixes=("_fixed", "_sb"), validate="one_to_one")  # fmt: skip
+        for (v, q), g in x.groupby(["variant", "detect_prob"]):
+            fixed_only = int(((g.clean_recovery_fixed == 1) & (g.clean_recovery_sb == 0)).sum())
+            sb_only = int(((g.clean_recovery_fixed == 0) & (g.clean_recovery_sb == 1)).sum())
+            n = fixed_only + sb_only
+            p = 1.0 if n == 0 else float(stats.binomtest(fixed_only, n, 0.5,
+                                                         alternative="greater").pvalue)  # fmt: skip
+            rows.append({"baseline": pol, "assumed": _assumed_label(v), "q": q, "pairs": len(g),
+                         "recovery_baseline": g.clean_recovery_fixed.mean(),
+                         "recovery_slowburn": g.clean_recovery_sb.mean(),
+                         "work_lost_baseline_h": g.work_lost_whole_system_hours_fixed.mean(),
+                         "work_lost_slowburn_h": g.work_lost_whole_system_hours_sb.mean(),
+                         "baseline_only": fixed_only, "slowburn_only": sb_only,
+                         "p_baseline_better": p})  # fmt: skip
+    out = pd.DataFrame(rows)
+    out["p_holm"] = holm(out.p_baseline_better.values) if len(out) else []
+    out["baseline_beats_slowburn"] = out.p_holm < 0.05
+    return out
+
+
+@figure("delay-guideline")
+def delay_guideline() -> list[Path]:
+    df = pd.read_csv(resolve_path(DELAY_GRID_CSV))
+    cells = delay_grid_cells(df)
+    cells.to_csv(_out("delay_grid_cells_K8.csv"), index=False)
+    pd.concat([delay_grid_cells(df, k).assign(budget=k) for k in sorted(df.budget.unique())]
+              ).to_csv(_out("delay_grid_cells_all_budgets.csv"), index=False)  # fmt: skip
+    fixed_vs_slowburn_under(df).to_csv(_out("delay_grid_under_vs_fixed_K8.csv"), index=False)
+    rank = lambda v: (v.startswith("soft"), int(v.split("_M")[1].split("_")[0]))  # noqa: E731
+    order = [_assumed_label(v) for v in sorted(cells.variant.unique(), key=rank)]
+    delays = sorted(cells.discovery_delay.unique())
+    apply_style()
+    paths = []
+    for metric, label, cmap, fmt in (
+        ("recovery", "Clean recovery", "viridis", "{:.2f}"),
+        ("work_lost_h", "Work lost (h)", "magma_r", "{:.0f}"),
+    ):
+        vmax = 1.0 if metric == "recovery" else float(cells[metric].max())
+        fig, axes = plt.subplots(2, 4, figsize=(12.5, 6.4), sharex=True, sharey=True)
+        for r, q in enumerate(sorted(cells.detect_prob.unique())):
+            for c, pol in enumerate(DELAY_POLICIES):
+                ax = axes[r, c]
+                m = (cells[(cells.policy == pol) & (cells.detect_prob == q)]
+                     .pivot_table(index="assumed", columns="discovery_delay", values=metric)
+                     .reindex(index=order, columns=delays))  # fmt: skip
+                im = ax.imshow(m.values, cmap=cmap, vmin=0, vmax=vmax, aspect="auto")
+                ax.grid(False)
+                for i in range(m.shape[0]):
+                    for j in range(m.shape[1]):
+                        val = m.values[i, j]
+                        ax.text(j, i, fmt.format(val), ha="center", va="center", fontsize=6,
+                                color="white" if (val / vmax < 0.5) == (metric == "recovery")
+                                else "black")  # fmt: skip
+                ax.set_xticks(range(len(delays)), [str(x) for x in delays])
+                ax.set_yticks(range(len(order)), order)
+                ax.set_title(f"{POLICY_LABEL[pol]}, q = {q:g}", fontsize=8)
+                if r == 1:
+                    ax.set_xlabel("True discovery delay (days)")
+                if c == 0:
+                    ax.set_ylabel("Assumed bound M (days)")
+        fig.colorbar(im, ax=axes, shrink=0.7, label=label)
+        fig.text(0.01, 0.01, f"DEV, budget K = {DELAY_K}, method v2 (blind weight 0.75), benign "
+                 f"invalid rate 0.01, {int(cells.rows.min())} machines per cell; true delay <= M "
+                 "is within the bound", color=MUTED, fontsize=6.5)  # fmt: skip
+        paths += _save(fig, f"fig_delay_guideline_{metric}")
+    # recovery vs work lost, each assumed bound a point (pooled over true delays)
+    pts = (cells.groupby(["assumed", "policy", "detect_prob"])[["recovery", "work_lost_h"]]
+           .mean().reset_index())  # fmt: skip
+    fig, axes = plt.subplots(1, 2, figsize=(9.5, 3.8), sharey=True)
+    for ax, q in zip(axes, sorted(pts.detect_prob.unique()), strict=True):
+        for pol in DELAY_POLICIES:
+            p = pts[(pts.policy == pol) & (pts.detect_prob == q)].set_index("assumed").loc[order]
+            st = _style(pol)
+            ax.plot(p.work_lost_h, p.recovery, color=st["color"], marker="o", ms=4, lw=1.0,
+                    label=POLICY_LABEL[pol])  # fmt: skip
+            if pol == "slowburn":
+                for a, row in p.iterrows():
+                    ax.annotate(a, (row.work_lost_h, row.recovery), fontsize=6,
+                                xytext=(3, 3), textcoords="offset points")  # fmt: skip
+        ax.set_xlabel("Work lost (h), mean over true delays 7-120 d")
+        ax.set_title(f"q = {q:g}", fontsize=9)
+    axes[0].set_ylabel("Clean recovery")
+    axes[0].legend(fontsize=7, loc="lower right")
+    fig.text(0.01, 0.01, f"labels: assumed bound M (days); K = {DELAY_K}; DEV", color=MUTED,
+             fontsize=6.5)  # fmt: skip
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    paths += _save(fig, "fig_delay_guideline_scatter")
+    return paths
+
+
 def generate(name: str) -> list[Path]:
     if name == "all":
         out = []
