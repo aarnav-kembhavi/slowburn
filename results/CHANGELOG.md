@@ -1214,7 +1214,7 @@ dev_v4_*.yaml` -> `results/dev_v4_*`). Hard variant reproduces v2 w 0.75 on G2 (
 
 Under-estimated rows (true delay > M), v4 recovery at q = 0 / 0.2 / 0.5 / 1 (tail 0.02): M 14
 0.0266 / 0.0307 / 0.1458 / 0.5229, M 30 0.0156 / 0.018 / 0.1297 / 0.5055; hard 0.0 everywhere;
-soft 0.0 tail 0.02 0.9729-0.9979. Rescue (gain >= 0.10, Holm over 6): q = 0.2 none; q = 0.5 tail
+soft tail 0.02 0.9729-0.9979 (no evidence needed). Rescue (gain >= 0.10, Holm over 6): q = 0.2 none; q = 0.5 tail
 0.02 only; q = 1 every tail. Restore depth (days, SlowBurn, normal grid): hard 64.97, soft
 157.38, v4 156.40-156.96; beyond the hard bound 0.617 / 0.870 / 0.866-0.867; walked back in
 0.51-0.56% of restores. Mechanism: newest clean kept snapshot 155.37 days back under soft-tail
