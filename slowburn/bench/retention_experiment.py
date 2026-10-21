@@ -52,7 +52,6 @@ from slowburn.sim.worlds import world_start
 from slowburn.store.restore import (
     HOURS_PER_DAY,
     FileHistory,
-    VersionScanner,
     selective_restore,
     snapshots_scanned,
     verified_restore,
@@ -297,12 +296,7 @@ def evaluate_trace(
                                                 float(rd.get("tail", 0.0)),
                                                 float(rd.get("alpha", 1.0)))  # fmt: skip
     walk = hp.get("walkback")
-    old_flags = hp.get("old_flags", "skip")  # D62 diagnostics, D64 verify_snap
-    scanner = None
-    if old_flags == "verify_snap":
-        scanner = VersionScanner(task_seed_key(int(cfg["seed"]), task),
-                                 float(p.get("detect_prob", 0.0)),
-                                 float(p.get("benign_invalid_rate", 0.0)))  # fmt: skip
+    old_flags = hp.get("old_flags", "skip")  # D62 diagnostics, D64a verify_snap
     if walk and p.get("null_prior") is None:
         raise ValueError("the v4 walk-back needs the fleet-pooled benign prior")
     delays = [int(d) for d in cfg["discovery_delay"]]
@@ -429,10 +423,10 @@ def evaluate_trace(
                 if rule == "verified" and walk:
                     r = walkback_restore(kept, rpost, td, trace.histories, start, g_r,
                                          tuple(p["null_prior"]), float(walk["alpha"]),
-                                         scan_eps, old_flags, scanner)  # fmt: skip
+                                         scan_eps, old_flags)  # fmt: skip
                 elif rule == "verified":
                     r = verified_restore(kept, rpost, td, trace.histories, start, g_r, scan_eps,
-                                         old_flags, scanner)  # fmt: skip
+                                         old_flags)  # fmt: skip
                 else:
                     r = selective_restore(kept, rpost, td, trace.histories, start,
                                           float(hp["restore_quantile"]))  # fmt: skip

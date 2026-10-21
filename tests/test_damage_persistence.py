@@ -36,7 +36,7 @@ def _post(T, mass):
 
 
 @pytest.mark.xfail(strict=True, reason="D62: the D29 restore (skip) never scans versions "
-                   "older than L; D64 verify_snap passes (tests below)")  # fmt: skip
+                   "older than L; D64a verify_snap passes (tests below)")  # fmt: skip
 def test_q1_verification_never_passes_a_still_damaged_snapshot():
     # true start day 8; a hard-bound posterior puts the start on day 16 (delay under-estimated)
     hist = {
@@ -70,40 +70,48 @@ def test_d62_diagnostic_options():
     assert skip["clean_recovery"] == 0 and sel["clean_recovery"] == 1
 
 
-# ---- D64: faithful restore-time verification ("verify_snap") -------------------------------
-
-from slowburn.store.restore import VersionScanner  # noqa: E402
+# ---- D64a: restore-time verification of every version, shared per-version draws -----------
 
 D64_HIST = {
-    "a": FileHistory((0, 8), damaged_day=8, flagged_days=frozenset()),  # missed when written
+    "a": FileHistory((0, 8), damaged_day=8, flagged_days=frozenset({8})),
     "b": FileHistory((0, 9), damaged_day=9, flagged_days=frozenset({9})),
-    "c": FileHistory((0, 3, 16), None, flagged_days=frozenset({3})),  # stale benign day flag
+    "c": FileHistory((0, 3, 16), None),
 }
 
 
-@pytest.mark.parametrize("b", [0.0, 0.05, 0.5])
-def test_q1_verify_snap_never_passes_a_still_damaged_snapshot(b):
-    """Item 3b under D64: with q = 1 no snapshot holding a damaged version verifies clean."""
-    for kept in ([5, 15, 20], [9, 15, 20], [12, 15, 20], [5, 20]):
-        sc = VersionScanner((1, "t"), 1.0, b)
+def test_q1_verify_snap_never_passes_a_still_damaged_snapshot():
+    """Item 3b under D64a: with q = 1 (every damaged version flagged when written) no snapshot
+    holding a damaged version verifies clean, whatever the kept set."""
+    for kept in ([5, 15, 20], [9, 15, 20], [12, 15, 20], [5, 20], [15, 20]):
         r = verified_restore(kept, _post(20, {16: 1.0}), 20, D64_HIST, 8, 0.8,
-                             old_flags="verify_snap", scanner=sc)  # fmt: skip
+                             old_flags="verify_snap")  # fmt: skip
         assert not (r["verified"] and _still_damaged(D64_HIST, r["restore_point"]))
 
 
-def test_verify_snap_scanner_is_per_version_fresh_and_paired():
-    h = D64_HIST["c"]
-    hi, lo = VersionScanner((7, "m"), 1.0, 0.9), VersionScanner((7, "m"), 0.5, 0.3)
-    assert hi("c", h, 3) == hi("c", h, 3)  # same version, same answer
-    # write-time flags are ignored: a's damaged version was missed when written, found now
-    assert VersionScanner((7, "m"), 1.0, 0.0)("a", D64_HIST["a"], 8)
-    assert not VersionScanner((7, "m"), 0.0, 0.0)("c", h, 3)  # stale day flag not reused
-    # one draw per version shared across rates: flags at lower rates are a subset
-    for v in range(40):
-        assert not lo("c", h, v) or hi("c", h, v)
-    with pytest.raises(ValueError, match="scanner"):
-        verified_restore([5, 20], _post(20, {16: 1.0}), 20, D64_HIST, 8, 0.8,
+def test_verify_snap_uses_the_write_time_draw():
+    """One draw per version: a damaged version missed when written stays missed (q < 1)."""
+    hist = {**D64_HIST, "a": FileHistory((0, 8), damaged_day=8)}  # a missed at write time
+    r = verified_restore([5, 15, 20], _post(20, {16: 1.0}), 20, hist, 8, 0.8,
                          old_flags="verify_snap")  # fmt: skip
+    assert r["restore_point"] == 5  # 15 is still rejected through b's flag
+    hist = {**hist, "b": FileHistory((0, 9), damaged_day=9)}  # both missed: 15 passes
+    r = verified_restore([5, 15, 20], _post(20, {16: 1.0}), 20, hist, 8, 0.8,
+                         old_flags="verify_snap")  # fmt: skip
+    assert r["restore_point"] == 15 and r["verified"] == 1 and r["clean_recovery"] == 0
+
+
+def test_select_rollback_of_a_wrongly_flagged_clean_file_counts_as_work_lost():
+    """D64a (3): a clean file with a false-positive version older than L is rolled back by
+    select; the selective metric counts its lost edit, the whole-system metric already does."""
+    hist = {"a": FileHistory((0, 17), damaged_day=17, flagged_days=frozenset({17})),
+            "c": FileHistory((0, 3, 10), None, flagged_days=frozenset({10})),
+            "d": FileHistory((0, 2, 12), None)}  # fmt: skip
+    skip = verified_restore([5, 20], _post(20, {16: 1.0}), 20, hist, 8, 0.8)
+    sel = verified_restore([5, 20], _post(20, {16: 1.0}), 20, hist, 8, 0.8, old_flags="select")
+    assert skip["files_restored"] == 1 and sel["files_restored"] == 2
+    assert skip["work_lost_selective_file_hours"] == 0
+    assert sel["work_lost_selective_file_hours"] == 24
+    assert skip["work_lost_whole_system_hours"] == sel["work_lost_whole_system_hours"] == 360
 
 
 def test_verify_snap_end_to_end_q1_under_estimated_delay():

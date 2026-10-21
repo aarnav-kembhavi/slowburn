@@ -1,9 +1,9 @@
-# D64 verify_snap (spec in OPEN_QUESTIONS D64, committed before this config): restore-time
-# verification scores every version in the candidate snapshot with fresh per-version draws,
+# D64a verify_snap (OPEN_QUESTIONS D64 + D64a, committed before this config): restore-time
+# verification scans every version in the candidate snapshot with the shared per-version draws,
 # plus 'select'. DEV, blind weight 0.75; same seed and machines as the source config.
 seed: 202
-experiment: dev_d64_worst
-output_dir: results/dev_d64_worst
+experiment: dev_d64a_worst
+output_dir: results/dev_d64a_worst
 split: dev
 workers: 5
 
