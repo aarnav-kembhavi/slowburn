@@ -60,14 +60,41 @@ def version_day_at(h: FileHistory, day: int) -> int:
     return max(v) if v else -1
 
 
-def _restore_files(histories, j_r, s_sel, discovery_day, flagged_too=False):
-    """Restore every file changed on a day >= s_sel to its version in snapshot j_r (and, with
-    ``flagged_too``, every file whose current version is flagged and newer than j_r)."""
+def write_flag(fid: str, h: FileHistory, v: int) -> bool:
+    """The flag version ``v`` got from the daily detector when it was written (D29)."""
+    return v in h.flagged_days
+
+
+class VersionScanner:
+    """Restore-time detector of D64 ("verify_snap"): one uniform draw per (file, version day)
+    from its own stream, reused for every scan of that version; a version is damaged iff the
+    file's damage day <= the version day (damage persists until restored, docs/threat_model.md);
+    flagged with probability ``q`` if damaged, ``b`` (false positive rate) if clean."""
+
+    def __init__(self, key: tuple, q: float, b: float):
+        self.key, self.q, self.b = tuple(key), float(q), float(b)
+        self._u: dict[tuple[str, int], float] = {}
+
+    def __call__(self, fid: str, h: FileHistory, v: int) -> bool:
+        if v < 0:
+            return False
+        u = self._u.get((fid, v))
+        if u is None:
+            from slowburn.utils.seed import child_rng
+
+            u = self._u[(fid, v)] = float(child_rng(*self.key, "verify_scan", fid, v).random())
+        damaged = h.damaged_day is not None and h.damaged_day <= v
+        return u < (self.q if damaged else self.b)
+
+
+def _restore_files(histories, j_r, s_sel, discovery_day, flag=None):
+    """Restore every file changed on a day >= s_sel to its version in snapshot j_r (and, with a
+    ``flag`` function, every file whose current version is flagged and newer than j_r)."""
     residual, lost_file_days, restored = 0, 0, 0
-    for h in histories.values():
+    for fid, h in histories.items():
         cur = version_day_at(h, discovery_day)
         if any(d >= s_sel for d in h.change_days if d <= discovery_day) or (
-            flagged_too and cur > j_r and cur in h.flagged_days
+            flag is not None and cur > j_r and flag(fid, h, cur)
         ):
             restored += 1
             v = version_day_at(h, j_r)
@@ -118,12 +145,16 @@ def verified_restore(
     gate: float,
     scan_eps: float = 0.001,
     old_flags: str = "skip",
+    scanner: VersionScanner | None = None,
 ) -> dict:
-    """``old_flags`` (D62 diagnostic, not a method setting): "skip" = D29 as pre-registered;
-    "select" also restores files whose current version is flagged; "verify" additionally rejects
-    a candidate holding any flagged version newer than the oldest kept snapshot."""
-    if old_flags not in ("skip", "select", "verify"):
+    """``old_flags``: "skip" = D29 as pre-registered; D62 diagnostics: "select" also restores
+    files whose current version is flagged, "verify" additionally rejects a candidate holding any
+    flagged version newer than the oldest kept snapshot; "verify_snap" (D64) scans every version
+    in the candidate with ``scanner`` and selects as "select" with the same scanner."""
+    if old_flags not in ("skip", "select", "verify", "verify_snap"):
         raise ValueError(f"unknown old_flags {old_flags!r}")
+    if (old_flags == "verify_snap") != (scanner is not None):
+        raise ValueError("verify_snap needs a scanner, and only verify_snap uses one")
     kept = sorted(kept_days)
     L = lower_quantile_start(post, scan_eps)
     pc = p_clean(post, kept)
@@ -134,9 +165,13 @@ def verified_restore(
     for j in candidates:
         scanned += 1
         flagged = False
-        for h in histories.values():
+        for fid, h in histories.items():
             v = version_day_at(h, j)
-            if v >= L or (old_flags == "verify" and v > kept[0]):
+            if scanner is not None:
+                if v >= 0:
+                    files_scanned += 1
+                    flagged |= scanner(fid, h, v)
+            elif v >= L or (old_flags == "verify" and v > kept[0]):
                 files_scanned += 1
                 flagged |= v in h.flagged_days
         if not flagged:
@@ -145,7 +180,8 @@ def verified_restore(
     s_sel = max(j_r + 1, L)
     out = _outcome(j_r, true_start, discovery_day,
                    *_restore_files(histories, j_r, s_sel, discovery_day,
-                                   old_flags != "skip"))  # fmt: skip
+                                   None if old_flags == "skip"
+                                   else scanner or write_flag))  # fmt: skip
     # the restore point the DP's loss assumes: newest gated kept snapshot that is truly clean
     model = [j for j in candidates if j < true_start]
     model_point = max(model) if model else kept[0]
@@ -159,7 +195,7 @@ def verified_restore(
 
 
 def deep_damage(histories: dict[str, FileHistory], j: int, j0: int, null_prior: tuple,
-                alpha: float) -> tuple[bool, int, int]:  # fmt: skip
+                alpha: float, flag=write_flag) -> tuple[bool, int, int]:  # fmt: skip
     """Method v4 deep check (D60) of snapshot ``j``: scan every version it holds written after
     the oldest kept snapshot ``j0``; damage is found iff the flag count exceeds the benign rate,
     one-sided Beta-Binomial tail with the fleet-pooled benign prior ``null_prior`` < ``alpha``.
@@ -167,11 +203,11 @@ def deep_damage(histories: dict[str, FileHistory], j: int, j0: int, null_prior: 
     from scipy import stats
 
     x = n = 0
-    for h in histories.values():
+    for fid, h in histories.items():
         v = version_day_at(h, j)
         if v > j0:
             n += 1
-            x += v in h.flagged_days
+            x += flag(fid, h, v)
     if x == 0:
         return False, 0, n
     a0, b0 = null_prior
@@ -189,19 +225,21 @@ def walkback_restore(
     alpha: float = 0.05,
     scan_eps: float = 0.001,
     old_flags: str = "skip",
+    scanner: VersionScanner | None = None,
 ) -> dict:
     """Method v4 restore (D60): ``verified_restore`` on the hard-bound posterior ``post`` gives
     j_v2; while the deep check finds damage at the restore point, step to the next older kept
     snapshot (the oldest kept one ends the walk). If the point moved, every file changed after
     it is restored."""
     r = verified_restore(kept_days, post, discovery_day, histories, true_start, gate, scan_eps,
-                         old_flags)  # fmt: skip
+                         old_flags, scanner)  # fmt: skip
     kept = sorted(kept_days)
     j_r, j0 = r["restore_point"], kept[0]
     older = [j for j in reversed(kept) if j < j_r]
     steps, files = 0, 0
     while j_r != j0:
-        found, _, n = deep_damage(histories, j_r, j0, null_prior, alpha)
+        found, _, n = deep_damage(histories, j_r, j0, null_prior, alpha,
+                                  scanner or write_flag)  # fmt: skip
         files += n
         if not found:
             break
