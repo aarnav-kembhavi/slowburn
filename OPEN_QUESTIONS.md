@@ -657,3 +657,27 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   presents the hard / soft / evidence-gated trade-off. Reported regardless: hard / soft / v4
   recovery and work lost on every grid; restore depth (discovery day minus restore point: mean,
   median, p90), fraction of restores beyond the hard bound, walk-back steps.
+- **D60 outcome (2026-10-21): method v4 not adopted; claim (3) is dropped for good (team rule).**
+  `results/dev_v4_{normal,worst,under}/` (`d60_scoreboard.csv`, `d60_c1_units.csv`,
+  `d60_rescue_tests.csv`, `d60_threeway*.csv`). The hard variant reproduced v2 w 0.75 on G2
+  exactly (1644.030625 h). C1: all three tails pass all 8 units (v4 never fails more than
+  prior-only hard; excess -0.11875 to -0.033333). C2: all three FAIL. G2 SlowBurn work lost
+  3769.360625 / 3768.303125 / 3755.944375 h (tail 0.02 / 0.05 / 0.1) vs limit 1808.4336875 h
+  (2.28x v2), recovery 0.997292 / 0.997214 / 0.997292 (v2 0.97875). No variant is eligible, none
+  is chosen. C3 (reported anyway), v4 SlowBurn on G1 rows with true delay > M, recovery at q
+  minus q = 0: q = 0.2 no rescue for any tail (gain 0.001042-0.004167); q = 0.5 rescue for tail
+  0.02 only (M14 0.145833 vs 0.026563, M30 0.129687 vs 0.015625); q = 1 rescue for every tail
+  (gain 0.429688-0.496354, recovery 0.446875-0.522917). For comparison on those rows: hard 0.0 at
+  every q; soft (tail 0.02, no evidence needed) 0.972917-0.997917. Mechanism (measured, G2,
+  SlowBurn): the restore gate is the same (45.15 days back, hard and v4), but the newest clean
+  snapshot the soft-tail DP keeps is 155.37 days back vs 49.83 hard (K = 4 / 6 / 8 / 12: 172.8 /
+  158.8 / 150.6 / 139.3 vs 55.8 / 52.9 / 48.1 / 42.6), at every tail weight 0.02-0.1. So the D56
+  diagnosis ("the tail in the restore gate makes every restore reach far back") was WRONG: the
+  cost comes from retention. A never-zero delay tail makes the DP move the whole count budget to
+  old snapshots, not add a few insurance copies, and the tail weight barely matters in
+  0.02-0.2. Decoupling the restore removes the soft tail's protection (v4 q = 0 beyond-bound
+  recovery 0.015625-0.028125) without removing its cost. Walk-back stopped short at q = 1
+  (recovery ~0.5 although a clean snapshot was kept): likely cause, NOT verified, is that the
+  simulated detector flags only the damaging version, so a damaged file edited again later is
+  held unflagged. Paper: claim (3) dropped; the hard / soft / evidence-gated trade-off is
+  presented as a finding, with v2, v3 and v4 reported (4 DEV iterations).

@@ -1193,3 +1193,33 @@ Claim (3) is not reinstated ("detection protects you when attacks stay hidden lo
 planned for" fails the pre-defined rescue test: the soft assumption itself, not detection,
 removes the collapse, at 2.189356782-2.213469266x the work lost on the normal grid and 4.180368916-4.539579813x when
 the true delay is 7-14 days).
+
+## 2026-10-21: evidence wording at w = 0.75; method v4 (D60) on DEV; FSL download restarted
+
+**Evidence wording (D59)**: `results/dev_v2_method_full_w075` (run 2026-10-17, first read today),
+count budgets, all worlds and cells: SlowBurn 0.982729 / 1611.0825 h vs prior-only 0.980583 /
+1721.6945 h, -6.4246008801% work lost (w = 0.5 gave -6.960729676%). Wording: "about 6%".
+
+**Method v4, D60** (rule, scoring code and configs committed before any run; `configs/
+dev_v4_*.yaml` -> `results/dev_v4_*`). Hard variant reproduces v2 w 0.75 on G2 (1644.030625 h).
+**Not adopted: C1 passes for every tail, C2 fails for every tail** (G2 work lost 3755.944375-
+3769.360625 h vs limit 1808.4336875 h). Pooled recovery / work lost (h), SlowBurn:
+
+| grid | hard (v2) | soft tail 0.02 (v3) | v4 tail 0.02 | v4 tail 0.05 | v4 tail 0.1 |
+|---|---|---|---|---|---|
+| normal (M 60) | 0.97875 / 1644.030625 | 0.997682 / 3779.123125 | 0.997292 / 3769.360625 | 0.997214 / 3768.303125 | 0.997292 / 3755.944375 |
+| worst case, q 0 | 0.933438 / 1868.895 | 1.0 / 3023.34 | 1.0 / 2999.925 | 1.0 / 2992.02 | 1.0 / 2970.12 |
+| under, M 14 | 0.351953 / 3256.220625 | 0.992188 / 4063.588125 | 0.508906 / 4060.164375 | 0.504766 / 4061.1225 | 0.506016 / 4055.66625 |
+| under, M 30 | 0.565 / 2510.356875 | 0.991406 / 3911.446875 | 0.665 / 3913.625625 | 0.660156 / 3912.770625 | 0.656172 / 3907.29375 |
+
+Under-estimated rows (true delay > M), v4 recovery at q = 0 / 0.2 / 0.5 / 1 (tail 0.02): M 14
+0.0266 / 0.0307 / 0.1458 / 0.5229, M 30 0.0156 / 0.018 / 0.1297 / 0.5055; hard 0.0 everywhere;
+soft 0.0 tail 0.02 0.9729-0.9979. Rescue (gain >= 0.10, Holm over 6): q = 0.2 none; q = 0.5 tail
+0.02 only; q = 1 every tail. Restore depth (days, SlowBurn, normal grid): hard 64.97, soft
+157.38, v4 156.40-156.96; beyond the hard bound 0.617 / 0.870 / 0.866-0.867; walked back in
+0.51-0.56% of restores. Mechanism: newest clean kept snapshot 155.37 days back under soft-tail
+retention vs 49.83 hard, same restore gate (45.15 days): the cost is retention, not the gate
+(corrects the D56 diagnosis). Claim (3) dropped for good (D60 outcome).
+
+**FSL download**: found dead since 2026-10-17 15:15 (about 17 GB of 56 GB on disk, no process
+running, no error logged); restarted on the fixed block (`results/fetch_run2.log`).
