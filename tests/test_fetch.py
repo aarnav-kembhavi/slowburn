@@ -52,3 +52,34 @@ def test_napierone_published_sha256_parses_utf8_and_utf16():
     assert napierone_published_sha256(txt.encode()) == h
     assert napierone_published_sha256(txt.encode("utf-16")) == h
     assert napierone_published_sha256(b"nothing") is None
+
+
+# ---- D61 download watchdog -----------------------------------------------------------------
+
+import sys  # noqa: E402
+
+from slowburn.datasets.watchdog import run as watchdog  # noqa: E402
+
+
+def _wd(tmp_path, code, max_restarts=2):
+    (tmp_path / "data").mkdir(exist_ok=True)
+    cmd = (sys.executable, "-c", code)
+    n = watchdog(str(tmp_path / "data"), str(tmp_path / "f.log"), str(tmp_path / "w.log"),
+                 check_s=0.3, stall_s=0.5, max_restarts=max_restarts, cmd=cmd)  # fmt: skip
+    return n, (tmp_path / "w.log").read_text()
+
+
+def test_watchdog_restarts_a_stalled_fetcher_and_logs_it(tmp_path):
+    n, log = _wd(tmp_path, "import time; time.sleep(60)")
+    assert n == 2 and log.count("RESTART") == 2 and "no bytes written" in log
+    assert "giving up after 2 restarts" in log
+
+
+def test_watchdog_stops_when_the_fetcher_finishes(tmp_path):
+    n, log = _wd(tmp_path, "print('DONE')")
+    assert n == 0 and "fetcher finished: DONE" in log
+
+
+def test_watchdog_restarts_a_crashed_fetcher(tmp_path):
+    n, log = _wd(tmp_path, "raise SystemExit(3)", max_restarts=1)
+    assert n == 1 and "exited with code 3 before finishing" in log
