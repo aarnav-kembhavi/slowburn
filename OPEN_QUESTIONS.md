@@ -755,3 +755,32 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   than 1 percentage point, or w = 0.75 no longer passes all 8 q = 0 units; the new numbers then
   replace the old in docs/claims.md. w is not reselected. F1 is rewritten only from the adopted
   pipeline. The D63 sweep waits for adoption.
+- **D64a Amendments to D64 (team, 2026-10-22; committed BEFORE any D64a run).**
+  Incident first: the original D64 runs were launched at 02:21:30 before these amendments
+  arrived and were stopped at 02:25:38 (worst-case grid finished, under-estimated grid partial).
+  Their outputs were renamed `results/aborted_d64_*` UNREAD and are not used.
+  (1) Detector determinism: ONE draw per file version, shared by the daily evidence scan and the
+  restore-time scan. The simulator already makes exactly one: the daily scan flags each version
+  on the day it is written (damaged with probability q from the detector stream, clean when it
+  fails validation, rate b, from the aux stream), stored per version in
+  `FileHistory.flagged_days`. Verification reads those flags; a version missed at write time is
+  missed at restore time. No exception: the abstract detector has no richer restore-time mode
+  (no whole-file vs changed-chunk distinction), so no second rate is modelled. D64's separate
+  per-version scanner with fresh draws is withdrawn.
+  (2) Snapshot accept rule: the existing D29 rule, unchanged: a candidate fails verification
+  if ANY scanned version is flagged. No threshold is introduced. (Method v4's deep check keeps
+  its own pre-registered D60 Beta-Binomial test, unchanged.)
+  So verify_snap (D64a) = for each gated candidate, scan EVERY file version contained in the
+  snapshot (no L window) with the shared per-version flags, any flag rejects; gate, order and
+  oldest-kept fallback as D29; file selection = files changed on or after max(j_r + 1, L) plus
+  every file whose current version is flagged and newer than j_r ("select").
+  (3) Work lost: confirmed, no metric change. Whole-system work lost (the headline metric) is
+  (discovery - restore point) x 24 h on a clean restore, so rolling back a wrongly flagged clean
+  file adds nothing it does not already count; the selective file metric counts that file's
+  lost edits explicitly (unit check: a clean file with a false-positive version on day 10, L =
+  16, restore point 5: selective 0 h without select, 24 h with select; whole-system 360 h both).
+  (4) Old vs new: same seed (202), configs and machines as `results/dev_v2_method_full_w075`;
+  pairing is checked on the machine key plus true start, and on retention (kept-set columns must
+  be identical, since retention is unchanged); paired deltas with machine-cluster bootstrap CIs.
+  (5) The 3b test and the end-to-end q = 1 check are rerun under D64a before the runs; then the
+  worst-case (q = 0) and under-estimated grids run as one job. Adoption rule unchanged.
