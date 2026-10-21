@@ -45,7 +45,7 @@ the "What was kept" section is filled from `data/MANIFEST.json` once they finish
 
 **NapierOne encrypted (100 per family):** 30 family archives downloaded (3,914,326,784 bytes),
 each matching its published SHA-256; extracted to `data/napierone/encrypted/<FAMILY>/`, 3,030
-files (101 per family: 100 encrypted files plus one extra file per archive, to be identified),
+files (101 per family: 100 encrypted files, named `<seq>-<type>.<type>.<family extension>`, plus one description PDF),
 4,301,073,838 bytes.
 
 **NapierOne benign (100 per subset):** `NapierOne-tiny.zip` (17,737,521,386 bytes) is a zip of
