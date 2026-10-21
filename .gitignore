@@ -16,3 +16,6 @@ results/*
 !results/CHANGELOG.md
 !results/MORNING_REPORT.md
 !results/STATUS.md
+
+# restic system experiment (D59): repository, source tree and logs, never committed
+/restic/
