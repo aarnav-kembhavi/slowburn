@@ -595,3 +595,65 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   bound: cheap but collapses beyond it; soft tail: safe but restores far back), and whether a
   tail that is cheaper (e.g. smaller weight, or a tail that only opens with detector evidence)
   deserves a separately pre-registered stage.
+- **D59 Team decisions (2026-10-21).** (1) Blind weight 0.75 is the method-v2 setting for the
+  fresh test. Evidence wording = the full-grid number at 0.75: `results/dev_v2_method_full_w075`
+  (run 2026-10-17, first read today), count budgets, all worlds, q in {1, .9, .5, .2, 0}, benign
+  {0, .01, .05}, 288,000 rows per variant: SlowBurn 0.982729 / 1611.0825 h vs prior-only
+  0.980583 / 1721.6945 h, a work-lost reduction of 6.4246008801% (was 6.960729676% at w = 0.5).
+  Wording: "reduces work lost by about 6% at equal recovery". (2) The D56 trade-off goes in the
+  paper as a finding (hard bound: cheap, collapses beyond it; soft tail: safe, restores far
+  back), all v3 numbers kept. (3) Method v4 (D60). (4) restic: repo `C:\PROJECTS\ISM\restic`
+  (gitignored), workload = NapierOne benign files on disk with daily changes driven by FSL churn,
+  source + repo <= 25 GB, >= 25 GB free on C:, starts only after the FSL download completes,
+  nothing outside that folder is backed up or touched. (5) Extensionless FSL files: fallback
+  mapping chosen on DEV, then a sensitivity check (fallback A vs B vs excluding them); report
+  whether any headline number moves by more than 1 point. Order: D60 rule, D60 DEV runs while FSL
+  downloads, restic, then the fresh test set is generated and frozen.
+- **D60 Method v4: soft tail in retention only, hard-bound restore that walks back only on
+  damage (DEV only; rule fixed 2026-10-21 BEFORE any code change or run; separately
+  pre-registered; the 4th method iteration, so v2, v3 and v4 are all reported).**
+  Design. (a) Retention: the DP plans with the D56 soft survival S_soft (uniform core 1..M with
+  weight 1 - tail, Lomax tail (1 + k/M)^-1 with weight tail), for both its evidence and its
+  prior-only posterior. (b) Restore: the discovery posterior, the 0.8 gate and the verification
+  window L use the HARD survival (uniform 1..M, the same M), exactly as v2; this gives v2's
+  restore point j_v2. (c) Walk-back (new): let j_0 be the oldest kept snapshot. Deep check of a
+  snapshot j: scan every file version held in j written after j_0 (what any available restore
+  could undo); x = flagged versions, n = versions scanned; damage is found iff the one-sided
+  Beta-Binomial tail P(X >= x | n, a0, b0) < 0.05, with (a0, b0) the fleet-pooled benign prior
+  the evidence model already uses (D31). If damage is found at j_v2, step to the next older kept
+  snapshot and deep-check it; repeat until one passes or j_0 is reached (j_0 is the restore point
+  then). If the restore point moved, every file changed after it is restored (s_sel = j + 1);
+  otherwise the restore is v2's (s_sel = max(j + 1, L)). The restore goes beyond the hard bound
+  only through this walk-back. The walk-back rule (window, test, alpha 0.05) was fixed by
+  Claude Code because the team's text left it open: a plain "any flag" trigger on the widened
+  window would walk back on benign invalid files (0.01-0.05 per version, ~40 versions per
+  snapshot) on most restores. No alternative trigger is run. All policies share the restore
+  (as in v2), so the v4 prior-only also walks back; it uses the detector only at restore.
+  Candidates: tail in {0.02, 0.05, 0.1}, blind weight 0.75 fixed. Reference variants on the
+  same machines (reporting, and the C1 baseline): hard = method v2 (w 0.75); soft = method v3 at
+  tail 0.02 (v3 tails 0.05 / 0.1 at w 0.75 already exist on these machines).
+  Grids (templates `configs/dev_v3_*_w075.yaml`, same seed 202 and machines, count budgets,
+  policies prior-only and SlowBurn): G1 under-estimated (M in {14, 30}, true delays 7-60, four
+  worlds, q in {1, .5, .2, 0}, benign 0.01, 40 reps); G2 normal (M = 60, q in {1, .5, .2, 0} x
+  benign {0, .01, .05}, 40 reps); G3 worst-case timing (M = 60, starts 112-143, q = 0, benign
+  0.01, 5 reps). The hard variant must reproduce v2 w 0.75 on G2 (1644.030625 h) before anything
+  is scored; if it does not, stop and report.
+  Criteria (pre-registered). C1 blind safety: at q = 0, v4 SlowBurn vs prior-only HARD (v2
+  prior-only, same machines), outcome = clean-recovery failure (retention differs between the
+  two, so restore-time failure is not the right quantity), 8 units (4 worlds on G2 pooled over
+  budgets, benign rates and delays; 4 budgets on G3), each unit: excess failure <= 0.01 and
+  one-sided exact McNemar (v4 fails more) Holm-adjusted over the 8 units >= 0.05. C2 cost: mean
+  v4 SlowBurn work lost on G2 <= 1.10 x v2 w 0.75 on G2 = 1.10 x 1644.030625 = 1808.4336875 h.
+  Selection: among variants passing C1 and C2, the highest mean v4 SlowBurn recovery on G1 rows
+  with true delay > M (all q, worlds, both M), ties within 0.001 broken by lower G2 work lost.
+  C3 rescue (claim 3), on the chosen variant (reported for every variant): on G1 rows with true
+  delay > M, for each q in {0.2, 0.5, 1} and M in {14, 30}, v4 SlowBurn recovery at q minus at
+  q = 0 (paired: same machines) >= 0.10 and one-sided exact McNemar (q recovers more)
+  significant after Holm over the 6 tests. Rescue holds at q iff it holds at both M; reported
+  per q. Decision: v4 goes to the fresh test iff C1 and C2 pass and rescue holds at q = 0.2 or
+  q = 0.5 (rescue only at q = 1, a perfect detector, does not count); claim 3 then reads "When an
+  attack stays hidden longer than the policy assumed, detector evidence recovers X vs Y without
+  it", naming exactly the q where it held. Otherwise claim 3 is dropped for good and the paper
+  presents the hard / soft / evidence-gated trade-off. Reported regardless: hard / soft / v4
+  recovery and work lost on every grid; restore depth (discovery day minus restore point: mean,
+  median, p90), fraction of restores beyond the hard bound, walk-back steps.
