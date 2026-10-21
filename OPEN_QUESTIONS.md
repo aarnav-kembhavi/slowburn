@@ -681,3 +681,38 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   simulated detector flags only the damaging version, so a damaged file edited again later is
   held unflagged. Paper: claim (3) dropped; the hard / soft / evidence-gated trade-off is
   presented as a finding, with v2, v3 and v4 reported (4 DEV iterations).
+- **D61 FSL download robustness (team decision 2026-10-22).** Downloads resume from `.part`
+  with HTTP range requests; the server's Content-Range must start at the partial size and name
+  the expected total (else restart from 0); SHA-256 covers partial + resumed bytes and a file
+  failing its published hash is moved to `.corrupt` (never deleted) so the next attempt
+  re-downloads it. Watchdog (`slowburn/datasets/watchdog.py`): checks every 10 min, restarts the
+  fetcher after 30 min with neither new bytes under `data/` nor new fetch-log output, logs every
+  start / check / restart to `results/fetch_watchdog.log`, one instance at a time (lock file),
+  exits at once after the fetch finished (`results/fetch_watchdog.done`). Runs as the Windows
+  scheduled task "SlowBurn FSL download watchdog" (pythonw, at logon and every 30 min for 30
+  days; extra launches are no-ops). Remove the task with `Unregister-ScheduledTask -TaskName
+  "SlowBurn FSL download watchdog"` once the download is done.
+- **D62 q = 1 oddity (team item 3; OPEN, needs the team).** Rule (docs/threat_model.md): a
+  damaged file stays damaged until restored; the simulator already does this (damaged files are
+  never edited) and every damaged version is flagged at q = 1 (test passes). The verification
+  test FAILS (committed as strict xfail): a snapshot holding flagged damaged versions verifies
+  clean when those versions are older than L (start-posterior 0.001 quantile, D29), because
+  verification scans only versions >= L and file selection restores only files changed >=
+  max(j + 1, L). Under a hard bound shorter than the true delay, L lies after the true start.
+  Traces (6 + 6 rows, q = 1, beyond the bound): v4 restores from a truly clean snapshot (97% of
+  its failures) but leaves the flagged files damaged before L unrestored (median 10); hard v2
+  keeps no clean snapshot at M = 14 and its damaged point verifies because the damage predates
+  L. On the normal grid L is never after the true start (0 of all count-budget rows), so the
+  blind spot only acts when the bound is under-estimated. This is the pre-registered D29
+  window, not a coding error: fixing it changes method v2's shared restore and may move F1 (at
+  assumed 30 days a clean snapshot is retained in 0.947-0.985 of beyond-bound rows). Not fixed;
+  diagnostics only (`configs/diag_d62_*.yaml`, option `old_flags`: "select" also restores files
+  whose current version is flagged; "verify" also rejects candidates holding any flagged
+  version newer than the oldest kept snapshot; default "skip" = D29 unchanged).
+- **D63 Assumed vs true delay characterisation (team item 4; DEV, descriptive, nothing
+  selected).** `configs/dev_d63_delay_grid.yaml`: prior-only, SlowBurn v2 (w 0.75), GFS, Tower of
+  Hanoi; hard M in {7, 14, 30, 60, 90, 120} plus soft tail 0.1 on core M = 60; true delays {7,
+  14, 30, 60, 90, 120}; q in {0, 1} (separate panels); benign 0.01; four worlds x 40 reps; all
+  four budgets run, figures at K = 8 (the grid has no single main budget; 8 chosen and stated);
+  true delay <= M counts as within the bound. `slowburn fig delay-guideline`. Runs with the
+  pre-registered (D29) restore; rerun if D62 changes the restore.
