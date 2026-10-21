@@ -716,3 +716,42 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   four budgets run, figures at K = 8 (the grid has no single main budget; 8 chosen and stated);
   true delay <= M counts as within the bound. `slowburn fig delay-guideline`. Runs with the
   pre-registered (D29) restore; rerun if D62 changes the restore.
+- **D62 record (team item 2a, 2026-10-22).** `docs/threat_model.md` (the damage persistence
+  rule) was committed in `dcff256` at 2026-10-22 01:10:28 +0530, in the SAME commit as the
+  diagnostic restore options and `configs/diag_d62_*.yaml`; the first diagnostic run log was
+  created at 01:10:29. So the rule preceded the runs by one second but was not committed
+  separately ahead of the diagnostic design. Item 2b: the 3b test FAILS under "skip" and under
+  "select" alone (restore point 15 verifies clean holding damaged files a, b), PASSES under
+  "verify". Team decision: the fix is chosen by correctness against the threat model, not by
+  the stop rules; the stop rules only flag big moves.
+- **D64 Faithful restore-time verification "verify_snap" (spec fixed 2026-10-22 BEFORE any code
+  or run).**
+  Scanner. Per machine, every (file, version day) gets ONE uniform draw u from a dedicated
+  random stream keyed by the machine seed key (detect_prob and benign rate excluded, so cells of
+  one machine are paired), the file and the version day; independent of the write-time evidence
+  flags. The same draw is reused whenever that version is scanned during a restore (a detector
+  gives the same answer for the same bytes). A version is damaged iff the file's damage day is
+  <= the version day (threat model D62 rule: damage persists until restored). Flag = u < q for a
+  damaged version, u < b for a clean one, with q and b the cell's detect_prob and
+  benign_invalid_rate (the detector's normal false positive rate).
+  Verification. For each gated candidate j (gate, hard-bound posterior, newest-first order and
+  the oldest-kept fallback all unchanged from D29), scan EVERY file version contained in snapshot
+  j (no L window); any flag rejects j. File selection ("select"): restore every file changed on
+  or after max(j_r + 1, L) and also every file whose current version (at discovery) is flagged by
+  the same scanner and is newer than j_r. Method v4's deep check uses the same scanner on the
+  versions in (j0, j] with its unchanged Beta-Binomial test. Retention and the daily evidence
+  stream are unchanged. Expected consequence, stated in advance: a false positive on an old
+  version held by every candidate rejects all of them and the restore falls back to the oldest
+  kept snapshot, so work lost can rise when b > 0.
+  Test: item 3b, re-stated for the scanner, must pass at q = 1 (no snapshot holding a damaged
+  version verifies clean).
+  Runs (DEV, blind weight 0.75): worst-case grid at q = 0 (hard M 60, prior-only and SlowBurn);
+  under-estimated grid (hard M 14 / 30, and v4 tails 0.02 / 0.05 / 0.1 at M 14 / 30 for F3).
+  Adoption (team rule, fixed): the restore + verification that passes the 3b test and matches
+  the threat model is adopted whatever its cost. After adoption every DEV result that uses
+  verification is rerun (v2 w 0.75 full grid, worlds grid, worst case, under-estimated, the D57
+  blind-weight table, v4) and reported old vs new. Stop and report if a C1/C2 recovery moves by
+  more than 0.01 absolute, a work-lost value by more than 1% relative, the C3' reduction by more
+  than 1 percentage point, or w = 0.75 no longer passes all 8 q = 0 units; the new numbers then
+  replace the old in docs/claims.md. w is not reselected. F1 is rewritten only from the adopted
+  pipeline. The D63 sweep waits for adoption.
