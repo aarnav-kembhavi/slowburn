@@ -296,6 +296,7 @@ def evaluate_trace(
                                                 float(rd.get("tail", 0.0)),
                                                 float(rd.get("alpha", 1.0)))  # fmt: skip
     walk = hp.get("walkback")
+    old_flags = hp.get("old_flags", "skip")  # D62 diagnostic only
     if walk and p.get("null_prior") is None:
         raise ValueError("the v4 walk-back needs the fleet-pooled benign prior")
     delays = [int(d) for d in cfg["discovery_delay"]]
@@ -386,7 +387,8 @@ def evaluate_trace(
                "hp_restore_posterior": hp.get("restore_posterior", "discovery"),
                "hp_restore_discovery_kind": rd["kind"],
                "hp_restore_discovery_max": rd["max_days"],
-               "hp_walkback_alpha": float(walk["alpha"]) if walk else np.nan}  # fmt: skip
+               "hp_walkback_alpha": float(walk["alpha"]) if walk else np.nan,
+               "hp_old_flags": old_flags}  # fmt: skip
     rows = []
     for bk in Ks:
         kind, K = bk
@@ -421,9 +423,10 @@ def evaluate_trace(
                 if rule == "verified" and walk:
                     r = walkback_restore(kept, rpost, td, trace.histories, start, g_r,
                                          tuple(p["null_prior"]), float(walk["alpha"]),
-                                         scan_eps)  # fmt: skip
+                                         scan_eps, old_flags)  # fmt: skip
                 elif rule == "verified":
-                    r = verified_restore(kept, rpost, td, trace.histories, start, g_r, scan_eps)
+                    r = verified_restore(kept, rpost, td, trace.histories, start, g_r, scan_eps,
+                                         old_flags)  # fmt: skip
                 else:
                     r = selective_restore(kept, rpost, td, trace.histories, start,
                                           float(hp["restore_quantile"]))  # fmt: skip

@@ -60,11 +60,15 @@ def version_day_at(h: FileHistory, day: int) -> int:
     return max(v) if v else -1
 
 
-def _restore_files(histories, j_r, s_sel, discovery_day):
-    """Restore every file changed on a day >= s_sel to its version in snapshot j_r."""
+def _restore_files(histories, j_r, s_sel, discovery_day, flagged_too=False):
+    """Restore every file changed on a day >= s_sel to its version in snapshot j_r (and, with
+    ``flagged_too``, every file whose current version is flagged and newer than j_r)."""
     residual, lost_file_days, restored = 0, 0, 0
     for h in histories.values():
-        if any(d >= s_sel for d in h.change_days if d <= discovery_day):
+        cur = version_day_at(h, discovery_day)
+        if any(d >= s_sel for d in h.change_days if d <= discovery_day) or (
+            flagged_too and cur > j_r and cur in h.flagged_days
+        ):
             restored += 1
             v = version_day_at(h, j_r)
             dirty = h.damaged_day is not None and h.damaged_day <= v
@@ -113,7 +117,13 @@ def verified_restore(
     true_start: int,
     gate: float,
     scan_eps: float = 0.001,
+    old_flags: str = "skip",
 ) -> dict:
+    """``old_flags`` (D62 diagnostic, not a method setting): "skip" = D29 as pre-registered;
+    "select" also restores files whose current version is flagged; "verify" additionally rejects
+    a candidate holding any flagged version newer than the oldest kept snapshot."""
+    if old_flags not in ("skip", "select", "verify"):
+        raise ValueError(f"unknown old_flags {old_flags!r}")
     kept = sorted(kept_days)
     L = lower_quantile_start(post, scan_eps)
     pc = p_clean(post, kept)
@@ -126,15 +136,16 @@ def verified_restore(
         flagged = False
         for h in histories.values():
             v = version_day_at(h, j)
-            if v >= L:
+            if v >= L or (old_flags == "verify" and v > kept[0]):
                 files_scanned += 1
                 flagged |= v in h.flagged_days
         if not flagged:
             j_r, verified = j, 1
             break
     s_sel = max(j_r + 1, L)
-    out = _outcome(j_r, true_start, discovery_day, *_restore_files(histories, j_r, s_sel,
-                                                                    discovery_day))  # fmt: skip
+    out = _outcome(j_r, true_start, discovery_day,
+                   *_restore_files(histories, j_r, s_sel, discovery_day,
+                                   old_flags != "skip"))  # fmt: skip
     # the restore point the DP's loss assumes: newest gated kept snapshot that is truly clean
     model = [j for j in candidates if j < true_start]
     model_point = max(model) if model else kept[0]
@@ -177,12 +188,14 @@ def walkback_restore(
     null_prior: tuple,
     alpha: float = 0.05,
     scan_eps: float = 0.001,
+    old_flags: str = "skip",
 ) -> dict:
     """Method v4 restore (D60): ``verified_restore`` on the hard-bound posterior ``post`` gives
     j_v2; while the deep check finds damage at the restore point, step to the next older kept
     snapshot (the oldest kept one ends the walk). If the point moved, every file changed after
     it is restored."""
-    r = verified_restore(kept_days, post, discovery_day, histories, true_start, gate, scan_eps)
+    r = verified_restore(kept_days, post, discovery_day, histories, true_start, gate, scan_eps,
+                         old_flags)  # fmt: skip
     kept = sorted(kept_days)
     j_r, j0 = r["restore_point"], kept[0]
     older = [j for j in reversed(kept) if j < j_r]
