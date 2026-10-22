@@ -353,3 +353,29 @@ def evidence_reduction(df: pd.DataFrame, by=(), n_boot: int = 2000) -> pd.DataFr
                      "recovery_delta": rec[0], "recovery_delta_lo": rec[1],
                      "recovery_delta_hi": rec[2]})  # fmt: skip
     return pd.DataFrame(rows)
+
+
+def policy_vs_policy(df: pd.DataFrame, a: str, b: str, by=(), rec: str = "clean_recovery",
+                     wl: str = "work_lost_whole_system_hours",
+                     n_boot: int = 2000) -> pd.DataFrame:  # fmt: skip
+    """Policy ``a`` against ``b`` on the same rows (D68, D69): recovery a - b and relative work
+    lost sum(a) / sum(b) - 1, with machine-cluster bootstrap CIs. Rows where either policy is
+    absent (an infeasible or unsupported budget) are dropped, and the pair count is reported."""
+    from slowburn.bench.stats import cluster_bootstrap_ratio
+
+    key = [k for k in _row_key(df) if k != "policy"]
+    xa, xb = (df[df.policy == p][[*key, rec, wl]] for p in (a, b))
+    m = xa.merge(xb, on=key, suffixes=("_a", "_b"), validate="one_to_one")
+    rows = []
+    for g, x in m.groupby(list(by)) if by else [((), m)]:
+        cl = _clusters(x)
+        dr = cluster_bootstrap_ratio(x[f"{rec}_a"] - x[f"{rec}_b"], np.ones(len(x)), cl, n_boot)
+        wr = cluster_bootstrap_ratio(x[f"{wl}_a"] - x[f"{wl}_b"], x[f"{wl}_b"], cl, n_boot)
+        gd = dict(zip(by, g if isinstance(g, tuple) else (g,), strict=True)) if by else {}
+        rows.append({**gd, "policy": a, "vs": b, "pairs": len(x), f"{rec}_a": x[f"{rec}_a"].mean(),
+                     f"{rec}_b": x[f"{rec}_b"].mean(), "recovery_diff": dr[0],
+                     "recovery_diff_lo": dr[1], "recovery_diff_hi": dr[2],
+                     f"{wl}_a": x[f"{wl}_a"].mean(), f"{wl}_b": x[f"{wl}_b"].mean(),
+                     "work_lost_rel": wr[0], "work_lost_rel_lo": wr[1],
+                     "work_lost_rel_hi": wr[2]})  # fmt: skip
+    return pd.DataFrame(rows)

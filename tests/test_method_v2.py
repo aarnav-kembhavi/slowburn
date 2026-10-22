@@ -273,3 +273,25 @@ def test_pair_old_new_and_deltas():
         pair_old_new(old, _run([1] * 4, [100.0] * 4, kept=5))
     with pytest.raises(ValueError, match="pairing incomplete"):
         pair_old_new(old, new.iloc[:3])
+
+
+def test_policy_vs_policy_pairs_rows_and_drops_missing_budgets():
+    import pandas as pd
+
+    from slowburn.bench.method_v2 import policy_vs_policy
+
+    rows = []
+    for rep in range(6):
+        for K in (4, 8):
+            for pol, rec, wl in (("slowburn", 1, 100.0), ("gfs", rep % 2, 150.0)):
+                rows.append(dict(world="u", rep=rep, true_start=50 + rep, attack_start=50 + rep,
+                                 benign_invalid_rate=0.0, discovery_delay=7, budget=K,
+                                 detect_prob=1.0, budget_kind="count", variant="v", policy=pol,
+                                 clean_recovery=rec, work_lost_whole_system_hours=wl))
+            if K == 8:
+                rows.append({**rows[-1], "policy": "toh_eqh"})  # only at K = 8
+    df = pd.DataFrame(rows)
+    t = policy_vs_policy(df, "gfs", "slowburn", by=("budget",))
+    assert list(t.pairs) == [6, 6] and t.recovery_diff.tolist() == [-0.5, -0.5]
+    assert t.work_lost_rel.tolist() == pytest.approx([0.5, 0.5])
+    assert policy_vs_policy(df, "toh_eqh", "slowburn").pairs.item() == 6
