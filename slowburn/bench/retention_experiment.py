@@ -42,6 +42,7 @@ from slowburn.retention.base import (
     TowerOfHanoi,
 )
 from slowburn.retention.bytes import ByteIndex, enforce_byte_budget
+from slowburn.retention.checkpointing import OnlineCheckpointing
 from slowburn.retention.dp import (
     discovery_posterior,
     discovery_survival,
@@ -250,6 +251,10 @@ def make_policies(hp: dict, vault_threshold: float) -> dict:
         # D68 equal-horizon fixed schedules, configured for the assumed bound M at each K
         "toh_eqh": EqualHorizon("toh", int(hp["assumed_discovery"]["max_days"])),
         "gfs_eqh": EqualHorizon("gfs", int(hp["assumed_discovery"]["max_days"])),
+        # D69 worst-case-optimal online checkpointing (Bar-On et al.), k = K - 1
+        "shamir_exact": OnlineCheckpointing("exact"),
+        "shamir_rr": OnlineCheckpointing("rr"),
+        "shamir_recursive": OnlineCheckpointing("recursive"),
         # ablations (Tier 2 F): no backbone; DP loss ignoring the restore gate; symmetric loss
         "slowburn_no_backbone": PosteriorDP(P, gate=gate, name="slowburn_no_backbone"),
         "slowburn_ungated_loss": PosteriorDP(
