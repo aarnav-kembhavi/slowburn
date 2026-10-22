@@ -28,38 +28,36 @@ SlowBurn 0.9793, GFS 0.6025, Tower of Hanoi 0.5926; at q = 0 prior-only 0.9456, 
 0.9450. Not circular: the policy's timing prior is near flat and differs from every simulator
 world.
 
-**C2. ... with less work lost.** Same grid, whole-system work lost (h) bursty / early / late /
+**C2. ... with less work lost.** Lower work lost than fixed schedules pooled (-23.4% vs GFS,
+-26.7% vs Tower of Hanoi) and in 3 of 4 attack worlds; in the early world SlowBurn vs GFS is
+-3.0% [-9.5, +3.9], not significant. Whole-system work lost (h) bursty / early / late /
 uniform: prior-only 2325.4 / 1813.1 / 2394.0 / 2061.7, SlowBurn 2189.2 / 1729.4 / 2301.2 /
 1968.6, GFS 2939.1 / 1783.0 / 3480.2 / 2489.5, Tower of Hanoi 3111.0 / 1990.6 / 3493.5 / 2580.3.
-Paired, SlowBurn vs GFS: -25.5% [-31.2, -18.8] / -3.0% [-9.5, +3.9] / -33.9% [-38.8, -28.7] /
+Paired SlowBurn vs GFS: -25.5% [-31.2, -18.8] / -3.0% [-9.5, +3.9] / -33.9% [-38.8, -28.7] /
 -20.9% [-27.1, -12.8], pooled -23.4% [-26.8, -19.8]; vs Tower of Hanoi pooled -26.7% [-29.1,
--24.2] (every world significant). Prior-only vs GFS, early world: +1.7% [-5.1, +8.6]
-(`results/dev_d64a_full/c2_vs_fixed_schedules.csv`).
-FLAG (team to decide): under the adopted restore C2 does NOT hold in the early world against
-GFS (SlowBurn not significantly lower; prior-only point estimate higher). Old restore: SlowBurn
-1464.0 vs GFS 1781.8 there. The adopted restore raised prior-only / SlowBurn work lost by
-24.8% / 27.1% on this grid and GFS by 0.03%, because GFS rarely has a gated clean candidate to
-lose.
+-24.2], every world significant (`results/dev_d64a_full/c2_vs_fixed_schedules.csv`). Reported
+as is (team decision 2026-10-22, no post hoc rescue).
 
-**C3'. Detector evidence reduces work lost by about 5% at equal recovery, and is non-inferior
-on recovery when the detector is blind.** Full grid: SlowBurn 0.9864 / 2047.1 h vs prior-only
-0.9845 / 2148.5 h, -4.72% [-5.46, -3.93] (old restore -6.42%; change +1.70 points), recovery
-+0.0019 [0.0004, 0.0034]. By q: 0 / 0.2 / 0.5 / 0.9 / 1: +0.85% [+0.03, +1.65] / -1.45% /
--5.60% / -8.59% / -9.26%; by benign rate 0 / 0.01 / 0.05: -11.96% / -6.71% / +1.12% [-0.18,
-+2.40]. Blind: at q = 0 all 8 units (4 worlds, 4 budgets on the worst-case grid) within 1 point
-of prior-only and not significantly worse after Holm (largest excess 0.00625, K = 8 worst case,
-Holm p 0.629; worlds: 0.00583 bursty, Holm p 0.392; `results/dev_d64a_blind_worst/
-d57_units.csv`). NOTE: with a blind detector SlowBurn now loses slightly MORE work than
-prior-only on the full grid (+0.85%, CI excludes 0; worst case q = 0: +0.55% [-0.38, +1.47]).
+**C3'. Evidence reduces work lost by 4.7% [3.9, 5.5] at equal recovery. With a blind detector
+(q = 0), recovery is non-inferior (pre-registered, 8 of 8 units) but work lost is 0.85% [0.03,
+1.65] higher than prior-only.** Both halves go in the paper. Full grid: SlowBurn 0.9864 /
+2047.1 h vs prior-only 0.9845 / 2148.5 h, -4.72% [-5.46, -3.93] (old restore -6.42%), recovery
++0.0019 [0.0004, 0.0034]. By q 0 / 0.2 / 0.5 / 0.9 / 1: +0.85% [+0.03, +1.65] / -1.45% / -5.60%
+/ -8.59% / -9.26%; by benign rate 0 / 0.01 / 0.05: -11.96% / -6.71% / +1.12% [-0.18, +2.40].
+Blind units (4 worlds, 4 budgets on the worst-case grid, D57): all within 1 point of prior-only
+and not significantly worse after Holm (largest excess 0.00625, K = 8 worst case, Holm p 0.629;
+worlds 0.00583 bursty, Holm p 0.392; `results/dev_d64a_blind_worst/d57_units.csv`). Worst case
+q = 0 work lost: +0.55% [-0.38, +1.47].
 
 ## Findings
 
 **F1. Beyond the assumed bound, recovery is ~0 unless the detector is near perfect, and even
 then it is capped by the fraction of rows where retention kept a clean snapshot.** True delay >
-assumed hard bound, SlowBurn recovery at q = 0 / 0.2 / 0.5 / 1: M = 14: 0 / 0 / 0.0026 /
-0.1495; M = 30: 0 / 0 / 0.0062 / 0.8891; the q = 1 values equal the clean-retained fraction
-(0.1495, 0.8891). Prior-only: M = 14: 0 / 0 / 0.0026 / 0.1568, M = 30: 0 / 0 / 0.0062 / 0.9852,
-again equal to its clean-retained fraction (`results/dev_d64a_under`). Measured for prior-only
+assumed hard bound, recovery at q = 0 / 0.2 / 0.5: 0 / 0 / 0.0026 (M = 14) and 0 / 0 / 0.0062
+(M = 30), SlowBurn and prior-only alike. At q = 1, SlowBurn / prior-only: M = 14: 0.1495 /
+0.1568; M = 30: 0.8891 / 0.9852, each equal to the policy's clean-retained fraction
+(`results/dev_d64a_under`). Evidence-driven retention trades beyond-bound coverage for lower
+work lost inside the bound. Measured for prior-only
 and SlowBurn only; GFS / Tower of Hanoi beyond the bound wait for the D63 sweep. The earlier
 "collapses to 0 even with a perfect detector" was an artifact of the old restore's scan window
 (CHANGELOG 2026-10-22). Over-estimating is safe but costs work lost (D52: assumed 90 / 120 vs
