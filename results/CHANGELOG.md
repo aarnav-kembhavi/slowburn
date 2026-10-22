@@ -1319,3 +1319,18 @@ far"), docs/claims.md (header) and results/STATUS.md. Basis: every committed con
 `benign_source: synthetic` / `damage_source: synthetic_random` (detector) or runs token content
 with the abstract detector (retention); `benign_source: napierone` raises NotImplementedError.
 The data card's NapierOne rows describe the planned use only.
+
+## 2026-10-23: D67 detector AUROC, synthetic vs NapierOne (DEV; nothing reselected)
+
+`configs/detector_napierone.yaml` (detector.yaml unchanged except the data: NapierOne benign,
+NapierOne encrypted, 9 types, D67 splits), exit 0, `results/detector_napierone/`. Default variant
+lgbm_validity, uniform mean over the 9 shared types (lzma excluded on both sides),
+`results/detector_napierone/auroc_side_by_side_9types.csv`:
+- chunk level, NapierOne / synthetic: 0.985-0.988 / 0.997-1.000 (striped and whole, all
+  fractions 0.05-1.0); difference -0.012 to -0.014.
+- file level: 0.978-0.986 / 1.000; difference -0.014 to -0.022 (largest for whole-chunk damage at
+  5-10%).
+- per type, file level, striped 10%: every type 1.000 except zip 0.884 and bin 0.979 (synthetic
+  1.000 for all). Synthetic detector: results/detector (seed 11, 2026-10-14).
+Reading: the synthetic table was saturated; real data opens a gap, concentrated in compressed
+containers (zip) and binaries, where real benign files are already high entropy.
