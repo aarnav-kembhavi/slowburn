@@ -80,7 +80,7 @@ three times and dropped (D55b, D56, D60).
 
 ## Pending for the paper
 
-- D65 (v2.1, significance-based snapshot accept rule): one pre-registered iteration; these
-  numbers stand unless it is adopted.
+- D65 (v2.1, significance-based snapshot accept rule): REJECTED (recovery -0.012 to -0.020 per
+  world, criterion a); these numbers stand, no further accept-rule iterations.
 - Guideline figure (assumed vs true delay heatmaps, recovery vs work-lost scatter): D63 sweep.
 - Fresh TEST confirmation of C1, C2, C3' and F1 (under-estimated rows included).

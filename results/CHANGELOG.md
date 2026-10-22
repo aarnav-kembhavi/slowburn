@@ -1255,3 +1255,9 @@ reference only): `results/diag_d62_*` (options select / verify).
 - Main moves: work lost +25-27% (prior-only, SlowBurn) on the worlds grid, +16-19% worst case;
   recovery +0.004-0.012; C3' -6.42% -> -4.72%; C2 vs GFS not significant in the early world.
 - Fix during analysis: the pairing key now includes the variant (multi-variant runs).
+
+## 2026-10-22 (D65): method v2.1 rejected
+
+- Significance-based snapshot accept rule (D60 Beta-Binomial, alpha 0.05): work lost -15% / -22%
+  (worst case / full grid) but SlowBurn recovery -0.012 to -0.020 per world and -0.019 on the
+  worst case, failing criterion (a). Step 1 numbers in claims.md stand; no further iterations.

@@ -874,3 +874,20 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   are scored on SlowBurn (the method). Prior-only, GFS and Tower of Hanoi are printed for
   reference only and do not enter the verdict. No criteria are added after the fact (in
   particular not the early-world C2 check); (a)-(d) as committed in D65 are the whole rule.
+- **D65 outcome (2026-10-22): v2.1 REJECTED (criterion a fails); step 1 (D64a verify_snap)
+  numbers stand; no further accept-rule iterations.** Scored on SlowBurn as recorded before
+  the results were read; pairing complete, retention identical row for row.
+  (a) FAIL. Worst case q = 0: recovery 0.9450 -> 0.9262 (-0.0188 [-0.0238, -0.0144]). Full grid,
+  count, per world bursty / early / late / uniform: -0.0122 / -0.0170 / -0.0196 / -0.0155 (every
+  world beyond -0.01; CIs exclude it in every world but bursty, [-0.0146, -0.0099]).
+  (b) pass. Work lost worst case 2179.2 -> 1852.5 h (-15.0%), full grid 2047.1 -> 1593.8 h
+  (-22.1% [-23.6, -20.6]).
+  (c) pass. 8 / 8 units at w 0.75 (largest excess 0.0087, K = 8 worst case, Holm p 0.262).
+  (d) pass (unit test, d48f681).
+  Reference only (not in the verdict): prior-only fails (a) too (full grid -0.0266 pooled),
+  GFS / Tower of Hanoi pass (a) and (b). Beyond the bound, SlowBurn q = 1 recovery 0.1495 ->
+  0.1062 (M 14), 0.8891 -> 0.6852 (M 30). Worst case, every policy: SlowBurn 0.9793 -> 0.9705,
+  -17.9% work lost. Mechanism, as the rule implies: a single flagged damaged version (not
+  significant against the benign prior) no longer rejects a candidate, so lightly damaged
+  snapshots verify; v2.1 recovers the D64a work-lost cost by giving back recovery.
+  Tables: `results/dev_d65_{worst,full,worst_all,under}/`.
