@@ -131,3 +131,50 @@ def test_verify_snap_end_to_end_q1_under_estimated_delay():
             n += 1
             assert not (r["verified"] and r["restore_point"] >= r["true_start"])
     assert n
+
+
+# ---- D65: method v2.1 significance-based snapshot accept rule -------------------------------
+
+NULL = (0.5, 200.5)  # benign flag rate ~0.0025: 1 flag of 40 p 0.087, 2 flags p 0.011
+
+
+def _d65_hist(n_damaged):
+    hist = {f"c{i}": FileHistory((0,), None) for i in range(40 - n_damaged)}
+    hist.update({f"d{i}": FileHistory((0, 8 + i), damaged_day=8 + i,
+                                      flagged_days=frozenset({8 + i}))
+                 for i in range(n_damaged)})  # fmt: skip
+    return hist
+
+
+def test_d65_q1_significant_damage_never_verifies():
+    """Item 3b restated (D65 d): q = 1, a candidate whose damaged-version flag count is
+    significant under the D60 test must not verify."""
+    from slowburn.store.restore import deep_damage
+
+    for k in (2, 3, 4, 6):
+        hist = _d65_hist(k)
+        assert deep_damage(hist, 15, -1, NULL, 0.05)[0]  # significant at the candidate 15
+        for kept in ([5, 15, 20], [15, 20], [12, 15, 20]):
+            r = verified_restore(kept, _post(20, {16: 1.0}), 20, hist, 8, 0.8,
+                                 old_flags="verify_snap", accept_test=(NULL, 0.05))  # fmt: skip
+            assert not (r["verified"] and r["restore_point"] >= 8)
+            assert r["verified"] == 0 or not _still_damaged(hist, r["restore_point"])
+
+
+def test_d65_single_flag_below_significance_verifies():
+    """The accepted cost of D65: one flagged version among 40 (p 0.087) does not reject, so a
+    lightly damaged snapshot can verify where the D29 any-flag rule rejects it."""
+    hist = _d65_hist(1)
+    kw = dict(old_flags="verify_snap")
+    any_flag = verified_restore([5, 15, 20], _post(20, {16: 1.0}), 20, hist, 8, 0.8, **kw)
+    test = verified_restore([5, 15, 20], _post(20, {16: 1.0}), 20, hist, 8, 0.8, **kw,
+                            accept_test=(NULL, 0.05))  # fmt: skip
+    assert any_flag["restore_point"] == 5 and test["restore_point"] == 15
+    # select still restores the flagged file to its (damaged) version in 15: not clean
+    assert test["clean_recovery"] == 0
+
+
+def test_d65_needs_verify_snap():
+    with pytest.raises(ValueError, match="verify_snap only"):
+        verified_restore([5, 15], _post(20, {16: 1.0}), 20, _d65_hist(1), 8, 0.8,
+                         accept_test=(NULL, 0.05))  # fmt: skip

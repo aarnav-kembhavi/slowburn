@@ -299,6 +299,10 @@ def evaluate_trace(
     old_flags = hp.get("old_flags", "skip")  # D62 diagnostics, D64a verify_snap
     if walk and p.get("null_prior") is None:
         raise ValueError("the v4 walk-back needs the fleet-pooled benign prior")
+    sa = hp.get("snap_accept")  # method v2.1 (D65): significance-based snapshot accept rule
+    if sa and p.get("null_prior") is None:
+        raise ValueError("the D65 accept test needs the fleet-pooled benign prior")
+    accept = (tuple(p["null_prior"]), float(sa["alpha"])) if sa else None
     delays = [int(d) for d in cfg["discovery_delay"]]
     start = trace.start
     n = trace.n_days
@@ -388,7 +392,8 @@ def evaluate_trace(
                "hp_restore_discovery_kind": rd["kind"],
                "hp_restore_discovery_max": rd["max_days"],
                "hp_walkback_alpha": float(walk["alpha"]) if walk else np.nan,
-               "hp_old_flags": old_flags}  # fmt: skip
+               "hp_old_flags": old_flags,
+               "hp_snap_accept_alpha": float(sa["alpha"]) if sa else np.nan}  # fmt: skip
     rows = []
     for bk in Ks:
         kind, K = bk
@@ -423,10 +428,10 @@ def evaluate_trace(
                 if rule == "verified" and walk:
                     r = walkback_restore(kept, rpost, td, trace.histories, start, g_r,
                                          tuple(p["null_prior"]), float(walk["alpha"]),
-                                         scan_eps, old_flags)  # fmt: skip
+                                         scan_eps, old_flags, accept)  # fmt: skip
                 elif rule == "verified":
                     r = verified_restore(kept, rpost, td, trace.histories, start, g_r, scan_eps,
-                                         old_flags)  # fmt: skip
+                                         old_flags, accept)  # fmt: skip
                 else:
                     r = selective_restore(kept, rpost, td, trace.histories, start,
                                           float(hp["restore_quantile"]))  # fmt: skip

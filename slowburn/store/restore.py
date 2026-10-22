@@ -123,14 +123,20 @@ def verified_restore(
     gate: float,
     scan_eps: float = 0.001,
     old_flags: str = "skip",
+    accept_test: tuple | None = None,
 ) -> dict:
     """``old_flags``: "skip" = D29 as pre-registered; D62 diagnostics: "select" also restores
     files whose current version is flagged, "verify" additionally rejects a candidate holding any
     flagged version newer than the oldest kept snapshot; "verify_snap" (D64a) scans EVERY version
     in the candidate and selects as "select". Flags are the per-version detector draws made when
-    each version was written (one draw per version, shared with the daily evidence)."""
+    each version was written (one draw per version, shared with the daily evidence).
+    ``accept_test`` = (null_prior, alpha), method v2.1 (D65, verify_snap only): a candidate is
+    rejected only if its flag count over every version it holds is significant under the D60
+    test (``deep_damage``), instead of on any flag."""
     if old_flags not in ("skip", "select", "verify", "verify_snap"):
         raise ValueError(f"unknown old_flags {old_flags!r}")
+    if accept_test is not None and old_flags != "verify_snap":
+        raise ValueError("the D65 accept test applies to verify_snap only")
     kept = sorted(kept_days)
     L = lower_quantile_start(post, scan_eps)
     pc = p_clean(post, kept)
@@ -140,6 +146,13 @@ def verified_restore(
     j_r, scanned, files_scanned, verified = kept[0], 0, 0, 0
     for j in candidates:
         scanned += 1
+        if accept_test is not None:
+            flagged, _, n = deep_damage(histories, j, -1, *accept_test)
+            files_scanned += n
+            if not flagged:
+                j_r, verified = j, 1
+                break
+            continue
         flagged = False
         for h in histories.values():
             v = version_day_at(h, j)
@@ -197,13 +210,14 @@ def walkback_restore(
     alpha: float = 0.05,
     scan_eps: float = 0.001,
     old_flags: str = "skip",
+    accept_test: tuple | None = None,
 ) -> dict:
     """Method v4 restore (D60): ``verified_restore`` on the hard-bound posterior ``post`` gives
     j_v2; while the deep check finds damage at the restore point, step to the next older kept
     snapshot (the oldest kept one ends the walk). If the point moved, every file changed after
     it is restored."""
     r = verified_restore(kept_days, post, discovery_day, histories, true_start, gate, scan_eps,
-                         old_flags)  # fmt: skip
+                         old_flags, accept_test)  # fmt: skip
     kept = sorted(kept_days)
     j_r, j0 = r["restore_point"], kept[0]
     older = [j for j in reversed(kept) if j < j_r]
