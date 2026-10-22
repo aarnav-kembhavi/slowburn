@@ -274,7 +274,8 @@ METRICS = {"recovery": "clean_recovery", "work_lost_h": "work_lost_whole_system_
 
 
 def _row_key(df: pd.DataFrame) -> list[str]:
-    return [k for k in [*PAIR_KEY, "true_start", "detect_prob", "budget_kind", "policy"] if k in df]
+    keys = [*PAIR_KEY, "true_start", "detect_prob", "budget_kind", "variant", "policy"]
+    return [k for k in keys if k in df]
 
 
 def _clusters(df: pd.DataFrame) -> pd.Series:
