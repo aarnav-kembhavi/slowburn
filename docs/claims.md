@@ -1,5 +1,10 @@
 # Claims (DRAFT wording, team to confirm; numbers from the adopted pipeline, 2026-10-22)
 
+**Data (correction 2026-10-23): every number below uses synthetic benign files and synthetic
+damage** (abstract chunk tokens, random-token damage, abstract detector with detection
+probability q). NapierOne is downloaded but not yet used; no claim here rests on real file
+contents. See docs/data_card.md.
+
 All numbers are DEV (seed 202), count budgets K in {4, 6, 8, 12}, method v2 = blind weight 0.75
 with the fixed 0.8 gate, restored with the ADOPTED restore (D64a verify_snap: every version in a
 candidate snapshot is checked against its shared write-time flag, D29 any-flag rule, select),

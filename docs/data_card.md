@@ -4,6 +4,20 @@ Status: DRAFT (2026-10-17). Downloads in progress under the team's approval (OPE
 the "What was kept" section is filled from `data/MANIFEST.json` once they finish. Nothing in
 `data/` is committed (gitignored).
 
+## Data actually used so far (correction, 2026-10-23)
+
+**Every DEV result so far uses synthetic benign files and synthetic damage. NapierOne is
+downloaded but not yet used by any experiment.**
+- Retention, restore and claims runs (C1, C2, C3', F1-F3, D45-D65, D63) simulate files as
+  abstract chunk tokens (`content: tokens`), damage as fresh random tokens, and detector evidence
+  as an abstract detection probability q plus a benign flag rate. No file bytes are involved.
+- Detector runs (`configs/detector*.yaml`) use `benign_source: synthetic` (the `slowburn.sim`
+  generator) and `damage_source: synthetic_random`. The NapierOne loader exists, but no committed
+  config selects it, and `benign_source: napierone` raises NotImplementedError.
+- FSL Homes churn is used only by the D66 retention audit (per-file rewrite days; no content).
+The rows below marked NapierOne describe the planned use (decision of 2026-10-23: integrate
+before the fresh test set), not the results reported so far.
+
 ## What is real and what is simulated
 
 | component | source | real or simulated |

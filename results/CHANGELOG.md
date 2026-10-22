@@ -1310,3 +1310,12 @@ Per-row `tuning_sweep.csv` files (9.2 GB) were not touched.
 downloads; free space is re-checked before every 1 MB chunk; one StopFetch stops every thread;
 FSL starts only with free >= 45 GB + remaining + 10 GB; finished NapierOne steps are skipped
 (no re-download of the deleted zip). Tests: `tests/test_fetch.py`, `tests/test_f0_infra.py`.
+
+## 2026-10-23: data correction (team decision item 1)
+
+Every DEV result so far uses synthetic benign files and synthetic damage; NapierOne is
+downloaded but not yet used. Stated in docs/data_card.md (new section "Data actually used so
+far"), docs/claims.md (header) and results/STATUS.md. Basis: every committed config sets
+`benign_source: synthetic` / `damage_source: synthetic_random` (detector) or runs token content
+with the abstract detector (retention); `benign_source: napierone` raises NotImplementedError.
+The data card's NapierOne rows describe the planned use only.

@@ -1,5 +1,14 @@
 # STATUS (updated daily)
 
+## 2026-10-23: data correction
+
+**Every DEV result so far uses synthetic benign files and synthetic damage; NapierOne is
+downloaded but not yet used.** Retention/claims runs use abstract chunk tokens, random-token
+damage and an abstract detector (q, benign flag rate); detector runs use the synthetic generator
+and random damage bytes. FSL Homes churn is used only by the D66 audit. Decision 2026-10-23:
+integrate NapierOne (real encrypted damage, real benign content) before the fresh test set and
+rerun the detector AUROC table and the C1/C2/C3' grids on DEV, synthetic vs NapierOne side by side.
+
 ## 2026-10-16 (night): systems paper, no fixed date (D42)
 
 **Schedule:** no deadline; phases P0-P7 (OPEN_QUESTIONS D42). Tonight: P0 done; P1 simulator v2
