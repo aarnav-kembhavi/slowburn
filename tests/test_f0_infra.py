@@ -41,6 +41,18 @@ def test_run_tasks_caches_and_resumes(tmp_path):
     assert again == out and any("resuming: 2/2" in m for m in logs)
 
 
+def test_run_tasks_resumes_from_xz_compressed_cache(tmp_path):
+    import lzma
+
+    out = run_tasks(math.sqrt, [4.0, 9.0], cache_dir=tmp_path, log=lambda *a: None)
+    for p in tmp_path.glob("*.pkl"):
+        p.with_suffix(".pkl.xz").write_bytes(lzma.compress(p.read_bytes()))
+        p.unlink()
+    logs = []
+    again = run_tasks(lambda t: -1.0, [4.0, 9.0], cache_dir=tmp_path, log=logs.append)
+    assert again == out and any("resuming: 2/2" in m for m in logs)
+
+
 def test_run_tasks_gives_up_after_pool_restarts():
     # os._exit kills the worker: every pool breaks; the runner retries, then raises
     with pytest.raises(RuntimeError, match="failed after 1 pool restarts"):

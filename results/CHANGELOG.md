@@ -1285,3 +1285,28 @@ NapierOne on disk 43.69 GB, not ~20 GB: archives kept next to their extractions 
 {4, 5, 6, 8}, d = 0..2^(K-2) - 1 inclusive with s >= 2d, held set only. The D63 zero at K = 8,
 M = 7, delay 7 is prior-only and SlowBurn (DP), not Tower of Hanoi (held 1.0, restored 0.80 at
 q = 0). Wording fixed to state horizon, history condition and held-not-restored.
+
+## 2026-10-22/23: disk steps 3a-3d (team decision 2026-10-22)
+
+**3a. What the pipeline reads.** `slowburn/detector/datasets.py`: damage bytes from
+`data/napierone/encrypted/**/*` (extracted), benign from `data/napierone/benign/**/*`
+(extracted). No zip is read by any code. No committed config reads NapierOne at all (every
+config uses `damage_source: synthetic_random`, `benign_source: synthetic`; napierone benign
+raises NotImplementedError in `build_chunk_dataset`).
+**3b. Deleted:** `data/napierone/benign_zip/NapierOne-tiny.zip`, 17,737,521,386 bytes,
+SHA-256 cca04ab9...304c (kept in MANIFEST.json with an `archive_deleted` record). Before deleting:
+all 100 members SHA-256 identical to the extracted files. No published hash exists for it.
+Kept: encrypted zips (3.91 GB, they match the published SHA-256) AND their extractions (read by
+the loader), since there the hash-matched copy is not the used one. Check: `detector_smoke`
+and the same config with `damage_source: napierone` (reads the extracted encrypted files), each
+run twice before (deterministic) and once after the deletion: all 12 output files byte
+identical in both. 
+**3c. Compressed** every `results/*/machines*/*.pkl` resume cache (57 runs, 55,783 files) to
+`.pkl.xz` (lzma preset 1): 8.341 GB -> 0.410 GB, 7.93 GB freed; every file checked by
+decompressing and comparing bytes before the original was removed (0 mismatches), and one file
+per run loaded back with pickle and compared (57/57). `run_tasks` reads `.pkl.xz` caches.
+Per-row `tuning_sweep.csv` files (9.2 GB) were not touched.
+**3d. Fetch guard** (`slowburn/datasets/fetch.py`): checks count bytes due on all in-flight
+downloads; free space is re-checked before every 1 MB chunk; one StopFetch stops every thread;
+FSL starts only with free >= 45 GB + remaining + 10 GB; finished NapierOne steps are skipped
+(no re-download of the deleted zip). Tests: `tests/test_fetch.py`, `tests/test_f0_infra.py`.

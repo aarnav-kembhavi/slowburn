@@ -12,6 +12,7 @@ functions (Windows uses the spawn start method).
 from __future__ import annotations
 
 import hashlib
+import lzma
 import os
 import pickle
 from collections.abc import Callable, Sequence
@@ -63,6 +64,9 @@ def run_tasks(
         p = path_of(i)
         if p is not None and p.exists():
             with p.open("rb") as fh:
+                done[i] = pickle.load(fh)
+        elif p is not None and p.with_suffix(".pkl.xz").exists():  # compressed in place (lossless)
+            with lzma.open(p.with_suffix(".pkl.xz"), "rb") as fh:
                 done[i] = pickle.load(fh)
     if done:
         log(f"  resuming: {len(done)}/{len(tasks)} tasks already done")

@@ -65,6 +65,11 @@ Scope, stated wherever G1 is cited:
   inherited guarantee (Theorem 2(c)) covers d = 0 at K = 8 and d <= 1 at K = 12, nothing at
   K = 4 (R = 1). Prior-only and SlowBurn have no worst-case guarantee: at K = 8, M = 7, true
   delay 7, both hold no clean snapshot (D63 edge effect), while Tower of Hanoi does.
+SlowBurn's fixed-rotation backbone is round(0.25 K) slots (backbone size unchanged), so its
+inherited guarantee covers only delay 0 at K = 8. Its recovery comes from the timing prior in
+the DP, not from the backbone: 0.98 pooled over q (C1); with a blind detector (q = 0) 0.953 /
+0.959 / 0.953 / 0.962 bursty / early / late / uniform (D57 blind grid,
+`results/dev_d64a_blind_worst/d57_units.csv`) and 0.9450 on the worst-case grid.
 The shorthand "the fixed rotation keeps a clean copy for any discovery delay within its range"
 is true only with these three qualifiers (horizon 2^(K-2) - 1, history s >= 2d, held not
 restored); do not use it without them.
@@ -103,8 +108,12 @@ three times and dropped (D55b, D56, D60).
 
 ## Pending for the paper
 
-- D65 (v2.1, significance-based snapshot accept rule): REJECTED (recovery -0.012 to -0.020 per
-  world, criterion a); these numbers stand, no further accept-rule iterations.
+- D65 (v2.1, significance-based snapshot accept rule): REJECTED; step 1 numbers stand, no
+  further accept-rule iterations. Reported as a trade-off (team decision 2026-10-22): v2.1 cuts
+  SlowBurn work lost by 15.0% [12.5, 17.3] (worst case, q = 0) / 22.1% [20.6, 23.6] (full grid)
+  but lowers recovery in every world (bursty / early / late / uniform -0.0122 / -0.0170 /
+  -0.0196 / -0.0155; worst case -0.0188 [-0.0238, -0.0144]), failing pre-registered criterion
+  (a) (drop <= 0.01). `results/dev_d65_*/v21_vs_step1*.csv`.
 - Guideline figure: done (D63, `paper/generated/fig_delay_guideline_*`); caption must state
   the edge effect at true delay = M (D63 outcome).
 - Fresh TEST confirmation of C1, C2, C3' and F1 (under-estimated rows included).

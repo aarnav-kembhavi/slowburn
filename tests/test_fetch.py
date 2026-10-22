@@ -162,3 +162,30 @@ def test_watchdog_single_instance_and_done_marker(tmp_path):
     _wd(tmp_path, "print('DONE')")
     assert (tmp_path / "w.done").exists()
     assert _wd(tmp_path, "print('DONE')")[0] == -1  # finished earlier: exits at once
+
+
+# ---- 2026-10-22 guard: bytes due in flight, free space re-checked before every chunk ---------
+
+
+def test_budget_counts_bytes_due_on_every_in_flight_download(tmp_path):
+    free = Budget(tmp_path).free()
+    b = Budget(tmp_path, cap_bytes=10**18, reserve_bytes=free - 100)
+    b.start("a", 60)  # alone it fits (60 <= 100)
+    with pytest.raises(StopFetch, match="due in flight"):
+        b.start("b", 60)  # 60 + 60 due > 100: the old per-archive check would have allowed it
+    assert b.stopped
+    with pytest.raises(StopFetch, match="stopped"):
+        b.chunk("a", 10)  # every other thread stops at its next chunk
+
+
+def test_download_stops_mid_file_when_free_space_drops(tmp_path):
+    srv, url = _server(True)
+    try:
+        b = Budget(tmp_path, reserve_bytes=1)
+        frees = iter([10**15] * 2 + [0] * 100)  # free space vanishes after start and chunk 1
+        b.free = lambda: next(frees)
+        with pytest.raises(StopFetch, match="due in flight"):
+            download(url, tmp_path / "f.bin", b, print, len(BODY))
+        assert not (tmp_path / "f.bin").exists() and b.due == {}  # partial kept, tally cleared
+    finally:
+        srv.shutdown()

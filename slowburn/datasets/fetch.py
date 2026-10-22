@@ -3,7 +3,10 @@
 Rules enforced here, before EVERY archive:
 * data/ may hold at most ``cap_bytes`` (100 GB) and the drive must keep ``reserve_bytes``
   (45 GB) free; if the next archive (or the next extraction) would break either, stop and report.
-  Nothing is ever deleted to make room.
+  Both checks count the bytes still due on every in-flight download, and free space is
+  re-checked before every 1 MB chunk (2026-10-22). The FSL block starts only with free space
+  >= reserve + remaining bytes + 10 GB. The fetcher itself never deletes anything to make room
+  (the benign NapierOne zip was deleted by hand after verification, CHANGELOG 2026-10-22).
 * Downloads land in ``<name>.part`` and are renamed only after the byte count matches the
   server's Content-Length (and the published SHA-256 where one exists). An interrupted download
   resumes from its ``.part`` with an HTTP range request (D61); the server's Content-Range must
@@ -29,7 +32,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 S3 = "https://s3.eu-north-1.amazonaws.com/napierone.com"
@@ -47,9 +50,18 @@ class StopFetch(Exception):
 
 @dataclass
 class Budget:
+    """Cap and free-space reserve, shared by every download thread. ``due`` holds the bytes each
+    in-flight download still has to write, so a check counts all of them, not just its own file
+    (2026-10-22: the per-archive check let parallel downloads and other writers on the drive
+    take free space below the reserve). Free space is re-checked before every chunk."""
+
     root: Path
     cap_bytes: int = 100 * GB
     reserve_bytes: int = 45 * GB
+    start_buffer_bytes: int = 10 * GB  # extra free space required to START the FSL block
+    due: dict[str, int] = field(default_factory=dict, repr=False)
+    stopped: str | None = None
+    _lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
 
     def used(self) -> int:
         return sum(p.stat().st_size for p in self.root.rglob("*") if p.is_file())
@@ -57,13 +69,43 @@ class Budget:
     def free(self) -> int:
         return shutil.disk_usage(self.root).free
 
+    def _stop(self, msg: str):
+        self.stopped = self.stopped or msg
+        raise StopFetch(msg)
+
     def check(self, need: int, what: str) -> None:
-        used, free = self.used(), self.free()
-        if used + need > self.cap_bytes:
-            raise StopFetch(f"{what}: data/ would hold {used + need} bytes > cap {self.cap_bytes}")
-        if free - need < self.reserve_bytes:
-            raise StopFetch(f"{what}: free space would drop to {free - need} bytes < reserve "
-                            f"{self.reserve_bytes}")  # fmt: skip
+        with self._lock:
+            if self.stopped:
+                raise StopFetch(f"{what}: stopped earlier ({self.stopped})")
+            used, free, due = self.used(), self.free(), sum(self.due.values())
+            if used + due + need > self.cap_bytes:
+                self._stop(f"{what}: data/ would hold {used + due + need} bytes > cap "
+                           f"{self.cap_bytes}")  # fmt: skip
+            if free - due - need < self.reserve_bytes:
+                self._stop(f"{what}: free space would drop to {free - due - need} bytes < "
+                           f"reserve {self.reserve_bytes} ({due} bytes due in flight)")  # fmt: skip
+
+    def start(self, name: str, need: int) -> None:
+        """Check, then register a download that still has ``need`` bytes to write."""
+        with self._lock:
+            self.check(need, name)
+            self.due[name] = need
+
+    def chunk(self, name: str, remaining: int) -> None:
+        """Before every chunk: record what ``name`` still has to write and re-check free space
+        against everything still due on every in-flight download."""
+        with self._lock:
+            if self.stopped:
+                raise StopFetch(f"{name}: stopped ({self.stopped})")
+            self.due[name] = remaining
+            free, due = self.free(), sum(self.due.values())
+            if free - due < self.reserve_bytes:
+                self._stop(f"{name}: free space {free} bytes minus {due} bytes due in flight "
+                           f"< reserve {self.reserve_bytes}")  # fmt: skip
+
+    def finish(self, name: str) -> None:
+        with self._lock:
+            self.due.pop(name, None)
 
 
 def _open(url: str, method: str = "GET", headers: dict | None = None):
@@ -102,32 +144,45 @@ def download(url: str, dest: Path, budget: Budget, log, expected: int | None = N
     if have > size:
         log(f"  {dest.name}: partial ({have} bytes) is longer than the file; restarting from 0")
         have = 0
-    budget.check(size - have, dest.name)
-    h, t0 = hashlib.sha256(), time.time()
-    if have:
-        with part.open("rb") as fh:
-            while chunk := fh.read(1 << 20):
-                h.update(chunk)
-    with _open(url, headers={"Range": f"bytes={have}-"} if have else None) as r:
+    budget.start(dest.name, size - have)
+    try:
+        h, t0 = hashlib.sha256(), time.time()
         if have:
-            cr = r.headers.get("Content-Range", "")
-            ok = r.status == 206 and cr.startswith(f"bytes {have}-") and cr.endswith(f"/{size}")
-            if not ok:
-                log(f"  {dest.name}: range not honoured ({r.status}, {cr!r}); restarting from 0")
-                have, h = 0, hashlib.sha256()
-            else:
-                log(f"  {dest.name}: resuming at {have} of {size} bytes")
-        n = have
-        with part.open("ab" if have else "wb") as fh:
-            while chunk := r.read(1 << 20):
-                fh.write(chunk)
-                h.update(chunk)
-                n += len(chunk)
+            with part.open("rb") as fh:
+                while chunk := fh.read(1 << 20):
+                    h.update(chunk)
+        with _open(url, headers={"Range": f"bytes={have}-"} if have else None) as r:
+            if have:
+                cr = r.headers.get("Content-Range", "")
+                ok = (r.status == 206 and cr.startswith(f"bytes {have}-")
+                      and cr.endswith(f"/{size}"))  # fmt: skip
+                if not ok:
+                    log(f"  {dest.name}: range not honoured ({r.status}, {cr!r}); "
+                        "restarting from 0")  # fmt: skip
+                    have, h = 0, hashlib.sha256()
+                else:
+                    log(f"  {dest.name}: resuming at {have} of {size} bytes")
+            n = have
+            with part.open("ab" if have else "wb") as fh:
+                while True:
+                    budget.chunk(dest.name, size - n)  # re-check free space before every chunk
+                    if not (chunk := r.read(1 << 20)):
+                        break
+                    fh.write(chunk)
+                    h.update(chunk)
+                    n += len(chunk)
+    finally:
+        budget.finish(dest.name)
     if n != size:
         raise OSError(f"{dest.name}: got {n} bytes, expected {size} (kept as .part)")
     part.replace(dest)
     log(f"  got {dest.name}: {n} bytes in {time.time() - t0:.0f} s")
     return {"file": str(dest), "bytes": n, "sha256": h.hexdigest()}
+
+
+def _part_bytes(dest: Path) -> int:
+    part = dest.with_suffix(dest.suffix + ".part")
+    return part.stat().st_size if part.exists() else 0
 
 
 def _sha256(p: Path) -> str:
@@ -233,6 +288,9 @@ def run(root: str = "data", log=print) -> dict:
             name = k.split("/")[-1]
             fam = name[: -len("-tiny.zip")]
             dest = budget.root / "napierone" / "encrypted_zips" / name
+            done = budget.root / "napierone" / "encrypted" / fam / ".extracted"
+            if enc.get(fam, {}).get("published_hash_match") and done.exists():
+                continue  # downloaded, verified and extracted on an earlier run
             enc[fam] = download(f"{S3}/{k}", dest, budget, log, keys[k])
             hk = k.replace(".zip", "_zip_hashes.txt")
             if hk in keys:
@@ -247,14 +305,22 @@ def run(root: str = "data", log=print) -> dict:
             save()
         # 2. NapierOne benign, 100 per type
         log("NapierOne benign (NapierOne-tiny.zip)")
-        k = "NapierOne/Data/NapierOne-tiny.zip"
-        size = s3_keys(k)[k]
-        dest = budget.root / "napierone" / "benign_zip" / "NapierOne-tiny.zip"
-        ben = download(f"{S3}/{k}", dest, budget, log, size)
-        ben["extract"] = extract(dest, budget.root / "napierone" / "benign", budget, log,
-                                 skip_types=SKIP_TYPES)  # fmt: skip
-        manifest["napierone_benign_tiny"] = ben
-        save()
+        if (
+            "napierone_benign_tiny" in manifest
+            and (budget.root / "napierone" / "benign" / ".extracted").exists()
+        ):
+            # extracted on an earlier run; the zip itself was deleted once its members were
+            # verified byte-identical to the extraction (team decision 2026-10-22, item 3b)
+            log("  have the extraction")
+        else:
+            k = "NapierOne/Data/NapierOne-tiny.zip"
+            size = s3_keys(k)[k]
+            dest = budget.root / "napierone" / "benign_zip" / "NapierOne-tiny.zip"
+            ben = download(f"{S3}/{k}", dest, budget, log, size)
+            ben["extract"] = extract(dest, budget.root / "napierone" / "benign", budget, log,
+                                     skip_types=SKIP_TYPES)  # fmt: skip
+            manifest["napierone_benign_tiny"] = ben
+            save()
         # 3. FSL Homes 2011-8kb-only, compressed, contiguous block of days
         log("FSL Homes 2011-8kb-only: listing and sizes")
         files = fsl_listing()
@@ -296,6 +362,14 @@ def run(root: str = "data", log=print) -> dict:
                               "moved to .corrupt")  # fmt: skip
 
         todo = [n for n in chosen if not got.get(n, {}).get("published_hash_match")]
+        fsl_dir = budget.root / "fslhomes" / "2011-8kb-only"
+        remaining = sum(sizes[n] - _part_bytes(fsl_dir / n) for n in todo)
+        need = budget.reserve_bytes + remaining + budget.start_buffer_bytes
+        log(f"  {len(todo)} files, {remaining} bytes to go; free {budget.free()}, "
+            f"start needs {need}")  # fmt: skip
+        if todo and budget.free() < need:  # team decision 2026-10-22, item 3e
+            raise StopFetch(f"FSL start: free {budget.free()} < reserve + remaining + buffer "
+                            f"= {need}")  # fmt: skip
         with ThreadPoolExecutor(FSL_CONNECTIONS) as ex:  # the server limits each connection
             for fut in [ex.submit(one, n) for n in todo]:
                 fut.result()
