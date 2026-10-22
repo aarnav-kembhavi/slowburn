@@ -804,3 +804,25 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   Within the bound, hard M 14 q = 0 recovery 0.7844 -> 0.8367 and work lost 1205.3 -> 1055.1 h.
   Not yet rerun under the adopted restore: full grid (C1 worlds, C2, C3'), worlds grid / D57
   table, v4 normal grid. claims.md not yet changed; D63 still on hold.
+- **D64b Step 1 reruns under the adopted verify_snap (team decision 2026-10-22, recorded BEFORE
+  any run).** Option 1: verify_snap with the inherited D29 accept rule is the adopted pipeline,
+  the +16% worst-case work-lost cost accepted. Every policy (prior-only, SlowBurn, GFS, Tower of
+  Hanoi, keep-last-N, oracle) restores through the same `verified_restore` call with the run's
+  `old_flags`; there is no per-policy restore path (amoeba_style is not a snapshot policy and is
+  in no config). Confirmed after each run from the `hp_old_flags` column: every row
+  `verify_snap`. Runs (configs copied from the source, only name, output dir and variants
+  changed; seed 202, same grid and machines):
+  `dev_d64a_blind_worst` (from `dev_v2_blind_worst`, w 0 / 0.25 / 0.5 / 0.75 / 0.9 / 0.95),
+  `dev_d64a_blind_worlds` (from `dev_v2_method_a`, same six w; old: `dev_v2_method_a` +
+  `dev_v2_blind_worlds`), then, only if w = 0.75 passes all 8 D57 units:
+  `dev_d64a_full` (from `dev_v2_method_full_w075`), `dev_d64a_worst_all` (from
+  `dev_v2_worst_method`, every policy at w 0.75, old restore `skip` and `verify_snap` side by
+  side, since no earlier worst-case run has every policy at w 0.75), `dev_d64a_v4_normal`,
+  `dev_d64a_v4_worst` (from `dev_v4_*`). Under-estimated grid: `dev_d64a_under` (done).
+  Reporting: per row pairing on PAIR_KEY plus true start, policy, budget kind and detect_prob;
+  retention columns must match row for row; paired deltas (new - old) of clean recovery and
+  whole-system work lost with 95% cluster bootstrap CIs, clusters = simulated machines (world,
+  attack start, rep; shared across q and b), 2000 resamples, seed 0. If w = 0.75 fails any of
+  the 8 units: stop and report, no reselection. The new numbers replace C1 / C2 / C3' in
+  docs/claims.md whatever they are; F1 and F3 are rewritten from the adopted pipeline (team
+  text). The D65 accept-rule iteration is pre-registered only after step 1 lands.
