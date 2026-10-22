@@ -877,6 +877,7 @@ def run_dev_sweep(cfg: dict, log=print) -> pd.DataFrame:
     summ = sweep_summary(df)
     summ.to_csv(out / "sweep_summary.csv", index=False)
     sweep_summary(df, ("budget",)).to_csv(out / "sweep_by_budget.csv", index=False)
-    sweep_summary(df, ("detect_prob",)).to_csv(out / "sweep_by_q.csv", index=False)
+    if "detect_prob" in df:  # absent with a trained detector (D67): no abstract q axis
+        sweep_summary(df, ("detect_prob",)).to_csv(out / "sweep_by_q.csv", index=False)
     sweep_summary(df, ("discovery_delay",)).to_csv(out / "sweep_by_delay.csv", index=False)
     return summ
