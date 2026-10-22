@@ -53,4 +53,14 @@ sweep:
 products: [dropbox_30d, dropbox_180d, dropbox_365d, gdrive_30d_100v, gdrive_30d_100v_created,
            onedrive_personal_25v, onedrive_personal_25v_30d, onedrive_business_500v,
            restic_docs_dwmy, restic_docs_within, restic_keep_within_7d, restic_keep_last_1,
-           netapp_arpai]
+           netapp_arpai,
+           # D66 amendment: r damaged versions per damaged file, count-limit products (labelled)
+           gdrive_30d_100v_r2, gdrive_30d_100v_r5, gdrive_30d_100v_r25, gdrive_30d_100v_r100,
+           gdrive_30d_100v_created_r2, gdrive_30d_100v_created_r5, gdrive_30d_100v_created_r25,
+           gdrive_30d_100v_created_r100,
+           onedrive_personal_25v_r2, onedrive_personal_25v_r5, onedrive_personal_25v_r25,
+           onedrive_personal_25v_r100,
+           onedrive_personal_25v_30d_r2, onedrive_personal_25v_30d_r5,
+           onedrive_personal_25v_30d_r25, onedrive_personal_25v_30d_r100,
+           onedrive_business_500v_r2, onedrive_business_500v_r5, onedrive_business_500v_r25,
+           onedrive_business_500v_r100]

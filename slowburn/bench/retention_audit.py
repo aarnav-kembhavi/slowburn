@@ -24,7 +24,7 @@ from slowburn.bench.retention_experiment import (
     task_cache_key,
 )
 from slowburn.retention.dp import discovery_posterior, discovery_survival
-from slowburn.retention.products import PER_FILE, SNAPSHOT, retained_versions
+from slowburn.retention.products import SNAPSHOT, is_per_file, retained_versions
 from slowburn.store.restore import clean_point_held, point_in_time_restore, verified_restore
 from slowburn.utils.config import resolve_path
 
@@ -62,7 +62,7 @@ def evaluate_products(cfg: dict, task, trace, hp: dict, products) -> list[dict]:
                                          for h in trace.histories.values()),
                   "work_lost_ideal_hours": (td - (start - 1)) * 24}  # fmt: skip
         for name in products:
-            if name in PER_FILE:
+            if is_per_file(name):
                 ret = retained_versions(name, trace.histories, td)
                 r = point_in_time_restore(ret, rpost, td, trace.histories, start, g, scan_eps)
                 held = clean_point_held(ret, trace.histories, start, td)
@@ -110,7 +110,7 @@ def run_retention_audit(cfg: dict, log=print) -> pd.DataFrame:
     frozen = load_frozen(cfg.get("frozen_path", "configs/frozen.yaml")).get("params", {})
     hp = {**cfg["hp"], **{k: v for k, v in frozen.items() if k in cfg["hp"]}, **cfg["hp_override"]}
     products = tuple(cfg["products"])
-    unknown = [n for n in products if n not in PER_FILE and n not in SNAPSHOT]
+    unknown = [n for n in products if not is_per_file(n) and n not in SNAPSHOT]
     if unknown:
         raise ValueError(f"unknown products {unknown}")
     t0 = time.perf_counter()

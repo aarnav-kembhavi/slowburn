@@ -19,8 +19,14 @@ DAY0 = dt.date(2011, 9, 16)
 # ---- per-file version histories --------------------------------------------------------
 
 
-def _versions(h: FileHistory, td: int) -> list[int]:
-    return sorted(d for d in h.change_days if d <= td)
+def _versions(h: FileHistory, td: int, r: int = 1) -> list[int]:
+    """Version days up to ``td``; with ``r`` > 1 the damaging write is followed the same day by
+    r - 1 further damaged versions (D66 amendment: simulation parameter only)."""
+    v = sorted(d for d in h.change_days if d <= td)
+    if r > 1 and h.damaged_day is not None and h.damaged_day <= td:
+        v += [h.damaged_day] * (r - 1)
+        v.sort()
+    return v
 
 
 def keep_versions(td: int, versions: Sequence[int], *, superseded_within: int | None = None,
@@ -59,9 +65,27 @@ PER_FILE: dict[str, dict] = {
 }
 
 
+REWRITES = (1, 2, 5, 25, 100)  # D66 amendment: damaged versions per damaged file
+
+
+def parse_product(name: str) -> tuple[str, int]:
+    """``<product>_r<r>`` -> (product, r) for the count-limit products; plain names -> r = 1."""
+    base, _, tail = name.rpartition("_r")
+    if base in PER_FILE and tail.isdigit():
+        if "max_versions" not in PER_FILE[base]:
+            raise ValueError(f"{name}: r variants apply to count-limit products only")
+        return base, int(tail)
+    return name, 1
+
+
 def retained_versions(name: str, histories: dict[str, FileHistory], td: int) -> dict[str, list]:
-    rule = PER_FILE[name]
-    return {f: keep_versions(td, _versions(h, td), **rule) for f, h in histories.items()}
+    base, r = parse_product(name)
+    rule = PER_FILE[base]
+    return {f: keep_versions(td, _versions(h, td, r), **rule) for f, h in histories.items()}
+
+
+def is_per_file(name: str) -> bool:
+    return parse_product(name)[0] in PER_FILE
 
 
 # ---- snapshot products ---------------------------------------------------------------

@@ -91,3 +91,16 @@ def test_clean_point_held_detects_expired_clean_versions():
     assert clean_point_held(keep_all, h, 40, 100) == 1
     expired = {"a": pr.keep_versions(100, [0, 40], superseded_within=30)}
     assert expired == {"a": [40]} and clean_point_held(expired, h, 40, 100) == 0
+
+
+def test_rewrites_after_damage_push_out_the_clean_version_only_under_count_limits():
+    h = {"a": FileHistory((0, 10, 40), 40)}  # clean versions 0, 10; damaged on day 40
+    for r, held in ((1, 1), (5, 1), (24, 1), (25, 0), (100, 0)):
+        ret = pr.retained_versions(f"onedrive_personal_25v_r{r}", h, 41)
+        assert clean_point_held(ret, h, 40, 41) == held, r
+    assert pr.retained_versions("onedrive_business_500v_r100", h, 41)["a"][0] == 0
+    assert clean_point_held(pr.retained_versions("gdrive_30d_100v_r100", h, 41), h, 40, 41) == 0
+    assert clean_point_held(pr.retained_versions("gdrive_30d_100v_r5", h, 41), h, 40, 41) == 1
+    with pytest.raises(ValueError, match="count-limit"):
+        pr.parse_product("dropbox_30d_r5")
+    assert pr.parse_product("onedrive_personal_25v") == ("onedrive_personal_25v", 1)
