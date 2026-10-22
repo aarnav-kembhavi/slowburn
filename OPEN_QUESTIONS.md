@@ -973,3 +973,31 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   half (q = 0) is the absence of a detector, so it is unaffected by the data and stays as
   reported (abstract). Reported side by side: synthetic (abstract q, current claims),
   synthetic-bytes/real-detector, NapierOne-bytes/real-detector.
+- **D68 Equal-horizon fairness diagnostic (team overnight queue 2026-10-23, JOB 1; the team
+  labelled it "D67", but D67 is already the NapierOne rule, so it is D68; recorded BEFORE any code
+  or run; DEV only, report only, nothing selected).**
+  *Horizon.* H(policy, K) = the largest D <= 400 such that for every delay d = 0..D and every
+  discovery day t < 800 with attack start s = t - d >= max(1, 2d), the policy's held set at t
+  (replayed alone, one snapshot per day, K counting today's) contains a day j < s. This is the
+  G1 / Theorem 2(a) check (`theory_checks.toh_guarantee_table`), maximised over D.
+  *Tower of Hanoi family (base b).* Day n = t + 1 goes to level min(v_b(n), K - 1), where v_b(n)
+  is the largest k with b^k dividing n; each level keeps its newest day, plus today. b = 2 is the
+  current Tower of Hanoi. Rule: the smallest integer b in 2..64 with H >= M.
+  *GFS family.* Tiers daily (1), weekly (7-day blocks), monthly (28-day blocks), quarterly
+  (91-day blocks), with the current GFS block semantics (newest snapshot of each of the most
+  recent completed blocks). Counts n1 >= 1, n7, n28, n91 >= 0, summing to K. Rule: among
+  configurations with H >= M, the lexicographically largest (n1, n7, n28), i.e. the finest
+  tiers. No configuration with H >= M at that K: the cell is infeasible and is reported as such.
+  *Cells.* K in {4, 6, 8, 12} x M in {7, 14, 30, 45, 60, 90, 120} (the D63 bounds plus 45): table
+  of chosen configurations, H and feasibility.
+  *Runs.* The full grid (dev_d64a_full machines: worlds x q {1, .9, .5, .2, 0} x benign
+  {0, .01, .05} x 40 reps, count budgets) with the adopted restore (D64a verify_snap, w 0.75,
+  M = 60), policies SlowBurn, prior-only, Tower of Hanoi, GFS, `toh_eqh` and `gfs_eqh`
+  (configured for M = 60 at each K). The worlds grid (dev_d64a_blind_worlds) uses the SAME
+  machines with q in {1, .5, .2, 0}, so it is reported as that subset of the same run rather
+  than re-simulated.
+  *Report.* toh_eqh and gfs_eqh against SlowBurn and against prior-only, paired by row:
+  recovery difference and relative work-lost difference, 95% machine-cluster bootstrap CIs
+  (clusters (world, start, rep), 2000 resamples, seed 0). Pooled, per world and per K; full
+  grid, plus the worlds subset at q = 0 and q = 1. Question: at equal budget and equal horizon,
+  does SlowBurn still win on recovery, on work lost, or neither? Report only.
