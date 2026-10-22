@@ -870,3 +870,7 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   +18.3%, SlowBurn +18.6% work lost; recovery +0.004. v4 normal grid: 3911.8-3918.1 h vs hard
   2078.2 h (1.88x), still fails C2 (limit 2286.1); C1 8 / 8; rescue only at q = 1. Tables:
   `results/dev_d64a_{blind_worst,full,worst_all,v4_normal,v4_worst}/`.
+- **D65 scoring note (team, recorded 2026-10-22 20:20:13 +0530, BEFORE any D65 result is read).** Criteria (a)-(c)
+  are scored on SlowBurn (the method). Prior-only, GFS and Tower of Hanoi are printed for
+  reference only and do not enter the verdict. No criteria are added after the fact (in
+  particular not the early-world C2 check); (a)-(d) as committed in D65 are the whole rule.
