@@ -1,0 +1,56 @@
+# D66 retention audit (DEV only, descriptive, nothing selected; docs/baselines.md, recorded
+# before the run). Product retention defaults on the D63 attack grid; every product restored
+# with the adopted D64a verify_snap restore (frozen operating point, assumed hard bound M = 60,
+# blind weight 0.75). Benign churn: FSL Homes per-file rewrite days, the 48 complete verified
+# days (data/derived/fsl_churn_48d.json.gz), replayed circularly per machine.
+seed: 202
+experiment: dev_d66_retention_audit
+output_dir: results/dev_d66_retention_audit
+split: dev
+workers: 5
+
+warmup_days: 14
+discovery_delay: [1, 2, 3, 5, 7, 10, 14, 21, 30, 45, 60, 90, 120, 180, 270, 365, 400]
+reps: 40
+vault_calib_machines: 40
+
+worlds:                          # as D63
+  - {name: uniform, kind: uniform, window: [28, 280]}
+  - {name: early, kind: beta, a: 1, b: 3, window: [28, 280]}
+  - {name: late, kind: beta, a: 3, b: 1, window: [28, 280]}
+  - {name: bursty, kind: clusters, centres: [99, 139, 267], sd: 3, window: [28, 280]}
+
+hp:                              # v1 frozen operating point, unchanged (as D63)
+  p_attack_within_window: 0.05
+  prior_window_days: 60
+  penalty: 90.0
+  restore_quantile: 0.1
+  assumed_discovery: {kind: uniform, max_days: 60}
+  gate: 0.8
+  backbone: 0.25
+  null_pool: pooled
+  restore_rule: verified
+  restore_posterior: discovery
+  scan_eps: 0.001
+hp_override: {assumed_discovery: {kind: uniform, max_days: 60}, blind_weight: 0.75,
+              old_flags: verify_snap}
+
+scenario:                        # as D63, benign edits replaced by FSL churn
+  n_files: 40
+  file_types: [txt, csv, bin, docx, zip, png, jpg, mp3, zlib, lzma]
+  file_kib: [16, 96]
+  edits_per_day: 4.0             # unused with benign_churn: fsl
+  attack_start: 112
+  attack_files_per_day: 0.5
+  damage_model: striped
+  damage_fraction: 0.1
+  benign_churn: fsl
+
+sweep:
+  detect_prob: [0.0, 1.0]
+  benign_invalid_rate: [0.01]
+
+products: [dropbox_30d, dropbox_180d, dropbox_365d, gdrive_30d_100v, gdrive_30d_100v_created,
+           onedrive_personal_25v, onedrive_personal_25v_30d, onedrive_business_500v,
+           restic_docs_dwmy, restic_docs_within, restic_keep_within_7d, restic_keep_last_1,
+           netapp_arpai]

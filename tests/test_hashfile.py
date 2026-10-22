@@ -52,3 +52,18 @@ def test_rejects_bad_magic_and_truncation():
     h = read_header(f)
     with pytest.raises(EOFError):
         list(iter_files(f, h))
+
+
+def test_file_digests_match_records_and_change_with_chunks():
+    from slowburn.datasets.hashfile import iter_file_digests
+
+    a = [("/home/u/a.docx", 10, [(b"abcdef", 6, 1), (b"ghijkl", 4, 2)]),
+         ("/home/u/notes", 3, [(b"mnopqr", 3, 0)])]  # fmt: skip
+    b = [a[0], ("/home/u/notes", 3, [(b"mnopqX", 3, 0)])]  # one chunk hash differs
+    f = io.BytesIO(_v7(a))
+    da = list(iter_file_digests(f))
+    assert f.read() == b""  # consumed exactly, like iter_files
+    db = list(iter_file_digests(io.BytesIO(_v7(b))))
+    assert [(p, s) for p, s, _, _ in da] == [("/home/u/a.docx", 10), ("/home/u/notes", 3)]
+    assert stat.S_ISREG(da[0][2])
+    assert da[0][3] == db[0][3] and da[1][3] != db[1][3]

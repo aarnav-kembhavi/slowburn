@@ -104,6 +104,30 @@ def read_header(f: BinaryIO) -> Header:
     return h
 
 
+def iter_file_digests(f: BinaryIO, header: Header | None = None) -> Iterator[tuple]:
+    """Fast path for churn: yield (path, size, perm, digest) per file, where ``digest`` is an
+    8-byte BLAKE2b of the file's raw chunk records (sizes, hashes, ratios), so it changes
+    exactly when the chunk list changes. Reads each file's chunk block in one call."""
+    import hashlib
+
+    h = header or read_header(f)
+    if h.version < 4:
+        raise ValueError("iter_file_digests needs hash file version >= 4 (per-file metadata)")
+    rec = h.hash_bits // 8 + (h.version >= 6)
+    if h.chunking == VARIABLE:
+        rec += 4 if h.version >= 7 else 8
+    fh = FH_V5 if h.version >= 5 else FH_V4
+    for _ in range(h.files):
+        vals = fh.unpack(_read(f, fh.size))
+        fsize, perm = vals[0], vals[4] if h.version >= 5 else vals[3]
+        nch, plen, tlen = vals[-3], vals[-2], vals[-1]
+        path = _read(f, plen).decode("utf-8", "replace")
+        if stat.S_ISLNK(perm):
+            _read(f, tlen)
+        digest = hashlib.blake2b(_read(f, nch * rec), digest_size=8).digest()
+        yield path, fsize, perm, digest
+
+
 def iter_files(f: BinaryIO, header: Header | None = None) -> Iterator[FileRecord]:
     """Yield every file record with its chunks. ``f`` is positioned after the header if
     ``header`` is given, otherwise the header is read first."""

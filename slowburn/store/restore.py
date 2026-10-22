@@ -268,3 +268,65 @@ def snapshots_scanned(kept_days: Sequence[int], true_start: int,
         if j < true_start:
             return n
     return None
+
+
+def resolve_version(retained: Sequence[int], day: int) -> int:
+    """Per-file point-in-time restore: the newest retained version written on or before ``day``,
+    or the oldest retained version if the product kept none that old."""
+    older = [v for v in retained if v <= day]
+    return max(older) if older else min(retained)
+
+
+def point_in_time_restore(
+    retained: dict[str, Sequence[int]],
+    post: np.ndarray,
+    discovery_day: int,
+    histories: dict[str, FileHistory],
+    true_start: int,
+    gate: float,
+    scan_eps: float = 0.001,
+) -> dict:
+    """verify_snap (D64a) for per-file version histories (D66): candidate restore points are
+    every day 0..discovery that passes the gate, newest first; at candidate T each file resolves
+    to ``resolve_version(retained[f], T)``; a candidate is rejected if any resolved version is
+    flagged. Fallback: day 0. Selection ("select") and the accounting are verify_snap's."""
+    L = lower_quantile_start(post, scan_eps)
+    days = np.arange(discovery_day + 1)
+    pc = p_clean(post, days)
+    candidates = [int(j) for j in days[::-1] if pc[j] >= gate - 1e-12]
+    j_r, scanned, verified = 0, 0, 0
+    for j in candidates:
+        scanned += 1
+        if not any(resolve_version(retained[f], j) in h.flagged_days
+                   for f, h in histories.items()):  # fmt: skip
+            j_r, verified = j, 1
+            break
+    s_sel = max(j_r + 1, L)
+    residual, lost_file_days, restored = 0, 0, 0
+    for f, h in histories.items():
+        cur = version_day_at(h, discovery_day)
+        if any(d >= s_sel for d in h.change_days if d <= discovery_day) or (
+            cur > j_r and write_flag(f, h, cur)
+        ):
+            restored += 1
+            v = resolve_version(retained[f], j_r)
+            dirty = h.damaged_day is not None and h.damaged_day <= v
+            lost_file_days += sum(1 for d in h.change_days
+                                  if v < d <= discovery_day and d != h.damaged_day)  # fmt: skip
+        else:
+            dirty = h.damaged_day is not None and h.damaged_day <= discovery_day
+        residual += int(dirty)
+    out = _outcome(j_r, true_start, discovery_day, residual, lost_file_days, restored)
+    return {**out, "estimated_start": L, "verified": verified, "snapshots_scanned": scanned,
+            "gate_candidates": len(candidates)}  # fmt: skip
+
+
+def clean_point_held(retained: dict[str, Sequence[int]], histories: dict[str, FileHistory],
+                     true_start: int, discovery_day: int) -> int:  # fmt: skip
+    """1 if restoring every file to its version at day ``true_start - 1`` (per-file resolution
+    over what the product retained) leaves no damaged file."""
+    for f, h in histories.items():
+        if (h.damaged_day is not None and h.damaged_day <= discovery_day
+                and h.damaged_day <= resolve_version(retained[f], true_start - 1)):  # fmt: skip
+            return 0
+    return 1

@@ -92,6 +92,9 @@ class Scenario:
     cfg: ScenarioConfig
     file_types: dict[str, str] = field(default_factory=dict)
     damaged_on: dict[str, int] = field(default_factory=dict)  # file id -> day damaged
+    # optional real benign churn (D66): per day, the indices of the files rewritten that day
+    # (e.g. FSL Homes, ``datasets.fsl_churn.machine_schedule``); replaces the Poisson edits
+    edit_schedule: list[list[int]] | None = None
 
     def run(self, rng: np.random.Generator, source: DamageSource,
             aux_rng: np.random.Generator | None = None) -> Iterator[Day]:  # fmt: skip
@@ -140,10 +143,15 @@ class Scenario:
 
     def _benign_edits(self, day, files, damage, rng) -> None:
         cfg = self.cfg
-        lam = cfg.edits_per_day * cfg.weekday_multipliers[day % 7]
-        candidates = [f for f in files if f not in self.damaged_on]
-        n = min(len(candidates), int(rng.poisson(lam)))
-        for fid in rng.choice(candidates, size=n, replace=False) if n else []:
+        if self.edit_schedule is not None:
+            todo = [f"f{i:04d}" for i in self.edit_schedule[day]]
+            todo = [f for f in todo if f not in self.damaged_on]
+        else:
+            lam = cfg.edits_per_day * cfg.weekday_multipliers[day % 7]
+            candidates = [f for f in files if f not in self.damaged_on]
+            n = min(len(candidates), int(rng.poisson(lam)))
+            todo = rng.choice(candidates, size=n, replace=False) if n else []
+        for fid in todo:
             ftype = self.file_types[fid]
             if ftype in WHOLE_FILE_REWRITE_TYPES:
                 files[fid] = self._new_content(ftype, rng)  # a save rewrites the stream

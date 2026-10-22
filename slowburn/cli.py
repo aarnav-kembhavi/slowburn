@@ -113,6 +113,12 @@ def _dev_sweep(cfg: dict) -> None:
     print(run_dev_sweep(cfg).to_string(index=False))
 
 
+def _retention_audit(cfg: dict) -> None:
+    from slowburn.bench.retention_audit import run_retention_audit
+
+    print(run_retention_audit(cfg).to_string(index=False))
+
+
 def _preregister_grid(cfg: dict) -> None:
     from slowburn.bench.retention_experiment import preregister_grid
 
@@ -139,6 +145,7 @@ COMMANDS = {
     "theory-check": _theory_check,
     "retention": _retention,
     "dev-sweep": _dev_sweep,
+    "retention-audit": _retention_audit,
     "preregister-grid": _preregister_grid,
 }
 

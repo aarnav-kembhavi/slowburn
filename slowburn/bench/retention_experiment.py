@@ -128,6 +128,13 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
     n_days = trace_days(cfg, start)
     scen = Scenario(ScenarioConfig.from_dict({**scen_params, "days": n_days,
                                               "content": "tokens"}))  # fmt: skip
+    if p.get("benign_churn") == "fsl":  # D66: real per-file rewrite days from FSL Homes
+        from slowburn.datasets.fsl_churn import load_churn, machine_schedule
+
+        _, scen.edit_schedule = machine_schedule(load_churn(), child_rng(*key, "fsl_churn"),
+                                                 scen.cfg.n_files, n_days)  # fmt: skip
+    elif p.get("benign_churn", "poisson") != "poisson":
+        raise ValueError(f"unknown benign_churn {p['benign_churn']!r}")
     det = AbstractFileDetector(float(p.get("detect_prob", 0.0)), child_rng(*key, "detector"))
     agg = make_aggregator("file_exceed", alpha=0.5)  # p-values are 0/1: any alpha in (0,1)
     snapshots, obs, writes = [], [], []
