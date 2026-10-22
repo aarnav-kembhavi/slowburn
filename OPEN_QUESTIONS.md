@@ -933,3 +933,43 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   Expected mechanics, stated before the run: a count limit N loses a file's last clean version
   once r >= N (OneDrive personal at r = 25 and 100, Google at r = 100, OneDrive for Business never
   in this range).
+- **D67 NapierOne integration rule (team decision 2026-10-23; recorded BEFORE any code or run;
+  DEV only; no reselection of w, gate, alpha, M or any threshold).**
+  *Why the design looks like this:* retention runs use abstract tokens and an abstract detector
+  (q), where file content has no effect, so swapping the data there would change nothing. Real
+  data enters through a real detector on real bytes: both arms below run the retention
+  simulator in byte mode with the trained LightGBM chunk detector, and the detector's flags
+  replace the abstract q.
+  *Benign files.* NapierOne-tiny subsets mapped to the simulator's types (lzma has no NapierOne
+  counterpart and is dropped from BOTH arms; 9 types): txt <- TXT; csv <- CSV; bin <- BIN;
+  docx <- DOCX; zip <- ZIP-DEFLATE, ZIP-BZIP2, ZIP-LZMA, ZIP-PPMD, ZIP-HIGH-COMPRESSION;
+  png <- PNG-c0/c3/c5/c7/c9, PNG-FROM-WEB; jpg <- JPG-q001/q025/q050/q075/q100, JPG-from-web;
+  mp3 <- MP3; zlib <- ZLIB. Excluded: *-PASSWORD, *-NOMAGIC, *-ENCRYPTED (deliberately unusual;
+  reported as a later robustness check, not used now), RANSOMWARE-* and RANDOM-* (not benign
+  documents), executables (never extracted). Files are read from the inner zips in memory.
+  *Encrypted files.* All 30 NapierOne families (100 files each), spliced offset-aligned into
+  the damage masks (`NapierOneDamageSource`), exactly as the synthetic arm uses random bytes.
+  *Splits, seed 202, stream "napierone_split".* Per type, the pooled files are permuted and
+  capped at 100: 50% detector train, 20% detector calibration, 30% held out (detector AUROC
+  test). The held-out 30% is the only content for simulated machines: DEV machines take its
+  first half, the later fresh TEST set the second half (TEST files are not read now). Families
+  are permuted the same way: 18 train, 6 calibration, 6 held out (3 DEV, 3 TEST); DEV damage
+  bytes come from the 3 DEV families only.
+  *Machines.* Unchanged grid and seeds (dev_d64a_full, dev_d64a_blind_worlds settings; 40 files
+  per machine, types cycled as now). File i of a machine takes a file drawn (seeded by the
+  machine key and "napierone_content") from the DEV pool of its type, at most 1 MiB. Benign edits
+  replace chunks with chunks of another DEV-pool file of the same type (whole-file types: the
+  whole file). This edit model on real content is simulated and labelled so.
+  *Detector.* The NapierOne arm trains with configs/detector.yaml unchanged (same model, same
+  variants, default variant `validity`) on the NapierOne train/calibration splits. The synthetic
+  arm uses the existing synthetic detector (`results/detector/detector.pkl`, seed 11). A file is
+  flagged when its file-level p-value is <= 0.01, the frozen daily-statistic alpha. These flags
+  feed both the daily evidence and the verify_snap restore, as the abstract flags do now.
+  *Runs.* (1) Detector AUROC table with NapierOne benign and NapierOne damage, next to the
+  existing synthetic table. (2) The C1/C2/C3' full grid (dev_d64a_full: worlds x benign rate
+  {0, 0.01, 0.05} x 40 reps, all policies and budgets) and the worlds grid, in two paired arms
+  with the same machines and attack timing: synthetic bytes + synthetic detector, and NapierOne
+  bytes + NapierOne detector. The q axis does not exist with a real detector. The C3' blind
+  half (q = 0) is the absence of a detector, so it is unaffected by the data and stays as
+  reported (abstract). Reported side by side: synthetic (abstract q, current claims),
+  synthetic-bytes/real-detector, NapierOne-bytes/real-detector.
