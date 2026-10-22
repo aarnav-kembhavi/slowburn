@@ -47,12 +47,14 @@ from slowburn.retention.dp import (
     discovery_survival,
     retention_posterior,
 )
+from slowburn.retention.horizon import EqualHorizon
 from slowburn.sim.damage import RandomDamageSource
 from slowburn.sim.scenario import Scenario, ScenarioConfig
 from slowburn.sim.worlds import world_start
 from slowburn.store.restore import (
     HOURS_PER_DAY,
     FileHistory,
+    oracle_restore,
     selective_restore,
     snapshots_scanned,
     verified_restore,
@@ -63,8 +65,17 @@ from slowburn.utils.seed import child_rng
 
 SNAPSHOT_POLICIES = ("keep_last_n", "keep_first", "gfs", "tower_of_hanoi", "threshold_vault",
                      "prior_only", "slowburn", "oracle")  # fmt: skip
-# keep_first cannot meet a byte budget below |first U today| (D46): count budgets only
-COUNT_ONLY = frozenset({"keep_first"})
+# keep_first cannot meet a byte budget below |first U today| (D46): count budgets only; the
+# equal-horizon (D68) and online-checkpointing (D69) schedules are defined per snapshot count
+ORACLE_COLS = (
+    "clean_recovery",
+    "residual_damaged_files",
+    "restore_point",
+    "work_lost_whole_system_hours",
+    "work_lost_selective_file_hours",
+)
+COUNT_ONLY = frozenset({"keep_first", "toh_eqh", "gfs_eqh", "shamir_exact", "shamir_rr",
+                        "shamir_recursive"})  # fmt: skip
 # act only through auxiliary streams -> excluded from the machine seed key (paired machines)
 PAIRED_KEYS = frozenset({"detect_prob", "benign_invalid_rate"})
 SCENARIO_FIELDS = set(ScenarioConfig.__dataclass_fields__)
@@ -236,6 +247,9 @@ def make_policies(hp: dict, vault_threshold: float) -> dict:
         "prior_only": PosteriorDP(P, use_evidence=False, gate=gate, backbone=bb),
         "slowburn": PosteriorDP(P, use_evidence=True, gate=gate, backbone=bb),
         "oracle": Oracle(),
+        # D68 equal-horizon fixed schedules, configured for the assumed bound M at each K
+        "toh_eqh": EqualHorizon("toh", int(hp["assumed_discovery"]["max_days"])),
+        "gfs_eqh": EqualHorizon("gfs", int(hp["assumed_discovery"]["max_days"])),
         # ablations (Tier 2 F): no backbone; DP loss ignoring the restore gate; symmetric loss
         "slowburn_no_backbone": PosteriorDP(P, gate=gate, name="slowburn_no_backbone"),
         "slowburn_ungated_loss": PosteriorDP(
@@ -378,7 +392,8 @@ def evaluate_trace(
     budget_bytes = {K: bmult[K] * index.size(0) for K in bmult} if bmult else {}
     snap_names = [nm for nm in policy_names if nm != "amoeba_style"]
     pols = {bk: {nm: pol for nm, pol in make_policies(hp, float(p.get("vault_threshold", 0.0)))
-                 .items() if nm in snap_names and (bk[0] == "count" or nm not in COUNT_ONLY)}
+                 .items() if nm in snap_names and (bk[0] == "count" or nm not in COUNT_ONLY)
+                 and getattr(pol, "supports", lambda K: True)(bk[1])}  # D68: infeasible K
             for bk in Ks}  # fmt: skip
     held = {(bk, nm): {} for bk in Ks for nm in pols[bk]}
     kept_at = {(bk, nm): {} for bk in Ks for nm in pols[bk]}
@@ -489,6 +504,9 @@ def evaluate_trace(
                     r = selective_restore(kept, rpost, td, trace.histories, start,
                                           float(hp["restore_quantile"]))  # fmt: skip
                     r["snapshots_scanned"] = snapshots_scanned(kept, start, r["restore_point"])
+                if hp.get("oracle_restore_cols"):  # D69 (ii): same rows, known rollback point
+                    o = oracle_restore(kept, td, trace.histories, start)
+                    r = {**r, **{f"oracle_{k}": o[k] for k in ORACLE_COLS}}
                 ub = _unique_bytes(trace, kept)
                 rows.append({**common, "policy": nm, **r,
                              "snapshots_retained": len(kept), "retained_unique_bytes": ub,

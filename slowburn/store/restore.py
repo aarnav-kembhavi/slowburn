@@ -330,3 +330,15 @@ def clean_point_held(retained: dict[str, Sequence[int]], histories: dict[str, Fi
                 and h.damaged_day <= resolve_version(retained[f], true_start - 1)):  # fmt: skip
             return 0
     return 1
+
+
+def oracle_restore(kept_days: Sequence[int], discovery_day: int,
+                   histories: dict[str, FileHistory], true_start: int) -> dict:  # fmt: skip
+    """D69 (ii): restore from the newest kept snapshot older than the true start (the oldest kept
+    if none), every file changed after it restored. Separates retention quality from restore
+    quality: the rollback point is known, as in the online-checkpointing model."""
+    kept = sorted(kept_days)
+    clean = [j for j in kept if j < true_start]
+    j_r = max(clean) if clean else kept[0]
+    return _outcome(j_r, true_start, discovery_day,
+                    *_restore_files(histories, j_r, j_r + 1, discovery_day))  # fmt: skip

@@ -1045,3 +1045,16 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   with no second simulation.
   *Report.* Every Shamir scheme against SlowBurn, prior-only, Tower of Hanoi and GFS, paired, with
   cluster bootstrap CIs, under both restores. Report only.
+- **D68 amendment (2026-10-23, BEFORE any D68 run; configuration only, no result read).**
+  The configuration table (`results/dev_d68_equal_horizon/eqh_configs.csv`) shows the
+  pre-registered base-b Tower of Hanoi family never extends the horizon beyond base 2. Base 2
+  gives H = 3 / 15 / 63 / >= 400 at K = 4 / 6 / 8 / 12, i.e. 2^(K-2) - 1, tight. Larger bases are
+  worse: with "newest per level", m and m - b^j can share a level. A stride-p rotation (checked,
+  not adopted) fails at d = 0, since it does not hold yesterday. GFS tiers cannot reach the bound
+  at K = 4 or 6 for any M: blocks of 7, 28 and 91 days align, so on a quarter boundary every tier
+  holds yesterday. No family is added. At the run's M = 60: toh_eqh is feasible at K = 8 and
+  K = 12 (base 2, i.e. the existing Tower of Hanoi) and infeasible at K = 4 and 6; gfs_eqh is
+  feasible only at K = 12, with (7 daily, 2 weekly, 3 monthly, 0 quarterly), H = 76. Infeasible
+  cells are reported as such and get no rows. Noted for the report: H has no work-lost bound, so
+  keep-first (day 0 plus today) has an unbounded horizon with 2 slots; equal horizon alone is a
+  weak fairness criterion.
