@@ -48,9 +48,13 @@ def test_byte_index_matches_set_union(trace):
     assert idx.size(3) == len(trace.snapshots[3]) * trace.chunk_size
 
 
-def test_byte_index_refuses_reappearing_chunk():
-    with pytest.raises(ValueError, match="reappeared"):
-        ByteIndex([frozenset({b"a"}), frozenset({b"b"}), frozenset({b"a"})], 1)
+def test_byte_index_exact_union_when_a_chunk_reappears():
+    snaps = [frozenset({b"a"}), frozenset({b"b"}), frozenset({b"a", b"c"})]
+    idx = ByteIndex(snaps, 2)
+    assert idx.bits is not None
+    assert idx.unique_bytes([0, 2]) == 4  # the interval formula would give 6
+    assert idx.unique_bytes([0, 1, 2]) == 6
+    assert idx.size(2) == 4 and idx.unique_bytes([]) == 0
 
 
 def test_enforce_byte_budget_uses_the_policy_rule(trace):

@@ -1334,3 +1334,14 @@ lgbm_validity, uniform mean over the 9 shared types (lzma excluded on both sides
   1.000 for all). Synthetic detector: results/detector (seed 11, 2026-10-14).
 Reading: the synthetic table was saturated; real data opens a gap, concentrated in compressed
 containers (zip) and binaries, where real benign files are already high entropy.
+
+## 2026-10-23 02:40 D67 arms failed (attempt 1): byte accounting bug, fixed
+- Both D67 full-grid arms (synthetic bytes, NapierOne bytes) exited 1 in the tuning stage:
+  `ByteIndex` refused traces where a chunk disappears and later reappears ("a chunk reappeared:
+  interval accounting does not apply"). Byte mode with byte budgets had never been run before;
+  real and synthetic file bytes repeat chunks (shared headers, padding, files redrawn from a
+  small pool), token mode never does.
+- Fix (no spec change): such traces now use the exact union of chunk sets (one bitset per day).
+  Token-mode traces keep the interval formula, so every earlier result is unchanged. Test updated.
+- Attempt 1 logs kept as results/dev_d67_full_{synthetic,napierone}_run_attempt1.log. The arms
+  rerun as attempt 2 after D68 and D69 (one job at a time); a second failure is logged and skipped.
