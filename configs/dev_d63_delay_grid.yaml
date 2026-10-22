@@ -2,6 +2,7 @@
 # selected). Method v2 (blind weight 0.75); assumed hard bound M in {7..120} and the soft tail
 # (weight 0.1, core M = 60) against true delays 7-120 days; q in {0, 1}; benign 0.01. All four
 # budgets are run; the figure uses K = 8. True delay <= M counts as within the bound.
+# Restore: the adopted D64a verify_snap pipeline for every policy (D65 rejected; recorded before the run).
 seed: 202
 experiment: dev_d63_delay_grid
 output_dir: results/dev_d63_delay_grid
@@ -52,10 +53,10 @@ sweep:
 
 
 variants:
-  - {name: hard_M7, hp: {assumed_discovery: {kind: uniform, max_days: 7}, blind_weight: 0.75}}
-  - {name: hard_M14, hp: {assumed_discovery: {kind: uniform, max_days: 14}, blind_weight: 0.75}}
-  - {name: hard_M30, hp: {assumed_discovery: {kind: uniform, max_days: 30}, blind_weight: 0.75}}
-  - {name: hard_M60, hp: {assumed_discovery: {kind: uniform, max_days: 60}, blind_weight: 0.75}}
-  - {name: hard_M90, hp: {assumed_discovery: {kind: uniform, max_days: 90}, blind_weight: 0.75}}
-  - {name: hard_M120, hp: {assumed_discovery: {kind: uniform, max_days: 120}, blind_weight: 0.75}}
-  - {name: soft_M60_tail0.1, hp: {assumed_discovery: {kind: soft, max_days: 60, tail: 0.1, alpha: 1.0}, blind_weight: 0.75}}
+  - {name: hard_M7, hp: {assumed_discovery: {kind: uniform, max_days: 7}, blind_weight: 0.75, old_flags: verify_snap}}
+  - {name: hard_M14, hp: {assumed_discovery: {kind: uniform, max_days: 14}, blind_weight: 0.75, old_flags: verify_snap}}
+  - {name: hard_M30, hp: {assumed_discovery: {kind: uniform, max_days: 30}, blind_weight: 0.75, old_flags: verify_snap}}
+  - {name: hard_M60, hp: {assumed_discovery: {kind: uniform, max_days: 60}, blind_weight: 0.75, old_flags: verify_snap}}
+  - {name: hard_M90, hp: {assumed_discovery: {kind: uniform, max_days: 90}, blind_weight: 0.75, old_flags: verify_snap}}
+  - {name: hard_M120, hp: {assumed_discovery: {kind: uniform, max_days: 120}, blind_weight: 0.75, old_flags: verify_snap}}
+  - {name: soft_M60_tail0.1, hp: {assumed_discovery: {kind: soft, max_days: 60, tail: 0.1, alpha: 1.0}, blind_weight: 0.75, old_flags: verify_snap}}

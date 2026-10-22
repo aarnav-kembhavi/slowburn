@@ -891,3 +891,6 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   significant against the benign prior) no longer rejects a candidate, so lightly damaged
   snapshots verify; v2.1 recovers the D64a work-lost cost by giving back recovery.
   Tables: `results/dev_d65_{worst,full,worst_all,under}/`.
+- **D63 run amendment (2026-10-22, before the run): restore = the final adopted pipeline (D64a
+  verify_snap, D65 rejected) for every policy.** `configs/dev_d63_delay_grid.yaml` predates the
+  adoption; every variant now sets `old_flags: verify_snap`. Nothing else in D63 changes.
