@@ -1243,3 +1243,15 @@ Cost (`results/dev_d64a_worst`, worst-case grid, q = 0, paired old -> new): work
 +16.2043%, SlowBurn +16.6013%; recovery +0.010938 / +0.011563. Past the team's thresholds: stopped
 before the full-grid, worlds-grid, D57 and v4 reruns. Earlier diagnostics (unadopted, for
 reference only): `results/diag_d62_*` (options select / verify).
+
+## 2026-10-22 (step 1, D64b): every verification-dependent DEV result rerun under verify_snap
+
+- Reruns: `dev_d64a_blind_worst`, `dev_d64a_blind_worlds` (D57 table), `dev_d64a_full`,
+  `dev_d64a_worst_all` (old and new restore side by side, every policy), `dev_d64a_v4_normal`,
+  `dev_d64a_v4_worst`; same seed and machines; paired old-vs-new CSVs with machine-cluster
+  bootstrap CIs in each directory.
+- w = 0.75 passes all 8 blind units. claims.md C1 / C2 / C3' replaced; F1 / F3 rewritten from
+  the adopted pipeline; F2 numbers updated.
+- Main moves: work lost +25-27% (prior-only, SlowBurn) on the worlds grid, +16-19% worst case;
+  recovery +0.004-0.012; C3' -6.42% -> -4.72%; C2 vs GFS not significant in the early world.
+- Fix during analysis: the pairing key now includes the variant (multi-variant runs).

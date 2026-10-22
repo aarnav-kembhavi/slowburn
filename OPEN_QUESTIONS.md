@@ -855,3 +855,18 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   (d) the 3b test, restated: with q = 1 a snapshot whose damaged-version flag count is
   significant under the test must not verify (unit test before any run).
   If any fails, v2.1 is rejected and the step 1 numbers stand. v2.1 is reported either way.
+- **D64b outcome (2026-10-22): step 1 complete; w = 0.75 passes all 8 blind units; claims.md
+  updated.** Every row of every rerun restored with verify_snap (checked from `hp_old_flags`);
+  every pairing complete with retention identical row for row. D57 units at w 0.75 (worlds
+  bursty / early / late / uniform; worst K 4 / 6 / 8 / 12): excess 0.0058 / -0.0008 / -0.0021 /
+  -0.0021; 0.0038 / 0.0038 / 0.0063 / -0.0113, all Holm p >= 0.39: 8 / 8 pass (w 0.5: 7 / 8;
+  w 0: 0 / 8; reporting only, no reselection). Full grid, count, old -> new pooled: prior-only
+  0.9806 -> 0.9845, 1721.7 -> 2148.5 h (+24.8% [22.6, 27.0]); SlowBurn 0.9827 -> 0.9864,
+  1611.1 -> 2047.1 h (+27.1% [24.7, 29.4]); GFS +0.03%, Tower of Hanoi +2.9%, keep-last-N and
+  oracle unchanged. C3' -6.42% -> -4.72% [-5.46, -3.93]. At q = 0 SlowBurn now loses +0.85%
+  [+0.03, +1.65] more work than prior-only (recovery equal). C2 against GFS in the early world
+  no longer significant: SlowBurn -3.0% [-9.5, +3.9], prior-only +1.7% [-5.1, +8.6] (flagged
+  in claims.md for the team). Worst case, every policy (old restore run alongside): prior-only
+  +18.3%, SlowBurn +18.6% work lost; recovery +0.004. v4 normal grid: 3911.8-3918.1 h vs hard
+  2078.2 h (1.88x), still fails C2 (limit 2286.1); C1 8 / 8; rescue only at q = 1. Tables:
+  `results/dev_d64a_{blind_worst,full,worst_all,v4_normal,v4_worst}/`.
