@@ -1261,3 +1261,9 @@ reference only): `results/diag_d62_*` (options select / verify).
 - Significance-based snapshot accept rule (D60 Beta-Binomial, alpha 0.05): work lost -15% / -22%
   (worst case / full grid) but SlowBurn recovery -0.012 to -0.020 per world and -0.019 on the
   worst case, failing criterion (a). Step 1 numbers in claims.md stand; no further iterations.
+
+## 2026-10-22 (D63): delay characterisation sweep under the adopted restore
+
+- `results/dev_d63_delay_grid`; guideline figure and CSVs in `paper/generated/`. Under-estimated
+  rows: nothing recovers at q = 0; at q = 1 Tower of Hanoi beats SlowBurn for short bounds
+  (M 7-30), SlowBurn wins at M 60-90. claims.md F1 updated with the fixed-schedule numbers.

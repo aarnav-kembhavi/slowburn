@@ -894,3 +894,18 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
 - **D63 run amendment (2026-10-22, before the run): restore = the final adopted pipeline (D64a
   verify_snap, D65 rejected) for every policy.** `configs/dev_d63_delay_grid.yaml` predates the
   adoption; every variant now sets `old_flags: verify_snap`. Nothing else in D63 changes.
+- **D63 outcome (2026-10-22; descriptive, nothing selected; adopted verify_snap restore).**
+  `results/dev_d63_delay_grid` (exit 0), figure `fig_delay_guideline_{recovery,work_lost_h,
+  scatter}` and CSVs in `paper/generated/` (K = 8; all budgets in
+  `delay_grid_cells_all_budgets.csv`). Pre-registered question, under-estimated rows (hard M,
+  true delay > M), paired, one-sided McNemar, Holm over 30 rows: at q = 0 no policy recovers
+  anything (all 0; ties). At q = 1 a fixed schedule DOES beat SlowBurn where the bound is short:
+  Tower of Hanoi at M 7 / 14 / 30 (0.708 / 0.634 / 0.525 vs SlowBurn 0 / 0.230 / 0.142), GFS at
+  M 7 (0.348 vs 0); SlowBurn beats both at M 60 / 90 (0.972 / 1.0 vs GFS 0, ToH 0.366 / 0.100).
+  Prior-only beats SlowBurn at q = 1 for M 14 / 30 / 60 (0.250 / 0.333 / 1.0 vs 0.230 / 0.142 /
+  0.972). Pooled under-estimated rows, q = 1: ToH 0.565, prior-only 0.333, SlowBurn 0.286, GFS
+  0.165; q = 0: 0 for all. Edge effect (not a bug, reported): at true delay = M the uniform 1..M
+  prior gives the start day only 1/M mass, so the DP may keep no snapshot before it; the
+  diagonal is below 1 (SlowBurn 0.76 / 0.66 / 0.71 at M 14 / 30 / 60) and at K = 8, M = 7 the
+  DP keeps exactly days d-7..d (recovery 0 at delay 7 for both DP policies; K 4 / 6 / 12 keep
+  older snapshots and recover 0.78-1.0).

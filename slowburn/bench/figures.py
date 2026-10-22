@@ -624,9 +624,10 @@ def delay_guideline() -> list[Path]:
                 if c == 0:
                     ax.set_ylabel("Assumed bound M (days)")
         fig.colorbar(im, ax=axes, shrink=0.7, label=label)
-        fig.text(0.01, 0.01, f"DEV, budget K = {DELAY_K}, method v2 (blind weight 0.75), benign "
-                 f"invalid rate 0.01, {int(cells.rows.min())} machines per cell; true delay <= M "
-                 "is within the bound", color=MUTED, fontsize=6.5)  # fmt: skip
+        fig.text(0.01, 0.01, f"DEV, budget K = {DELAY_K}, method v2 (blind weight 0.75, "
+                 f"verify_snap restore), benign invalid rate 0.01, {int(cells.rows.min())} "
+                 "machines per cell; true delay <= M is within the bound", color=MUTED,
+                 fontsize=6.5)  # fmt: skip
         paths += _save(fig, f"fig_delay_guideline_{metric}")
     # recovery vs work lost, each assumed bound a point (pooled over true delays)
     pts = (cells.groupby(["assumed", "policy", "detect_prob"])[["recovery", "work_lost_h"]]

@@ -57,8 +57,11 @@ assumed hard bound, recovery at q = 0 / 0.2 / 0.5: 0 / 0 / 0.0026 (M = 14) and 0
 (M = 30), SlowBurn and prior-only alike. At q = 1, SlowBurn / prior-only: M = 14: 0.1495 /
 0.1568; M = 30: 0.8891 / 0.9852, each equal to the policy's clean-retained fraction
 (`results/dev_d64a_under`). Evidence-driven retention trades beyond-bound coverage for lower
-work lost inside the bound. Measured for prior-only
-and SlowBurn only; GFS / Tower of Hanoi beyond the bound wait for the D63 sweep. The earlier
+work lost inside the bound. Fixed schedules (D63, K = 8, benign 0.01, all
+under-estimated rows pooled): q = 0: 0 for every policy; q = 1: Tower of Hanoi 0.565,
+prior-only 0.333, SlowBurn 0.286, GFS 0.165. With a short bound (M 7 / 14 / 30) Tower of Hanoi
+recovers more than SlowBurn at q = 1 (0.708 / 0.634 / 0.525 vs 0 / 0.230 / 0.142, Holm p <
+0.05); SlowBurn recovers more at M 60 / 90 (`paper/generated/delay_grid_under_vs_fixed_K8.csv`). The earlier
 "collapses to 0 even with a perfect detector" was an artifact of the old restore's scan window
 (CHANGELOG 2026-10-22). Over-estimating is safe but costs work lost (D52: assumed 90 / 120 vs
 60 days, +492.3 / +1084.2 h; old restore, not rerun).
@@ -82,5 +85,6 @@ three times and dropped (D55b, D56, D60).
 
 - D65 (v2.1, significance-based snapshot accept rule): REJECTED (recovery -0.012 to -0.020 per
   world, criterion a); these numbers stand, no further accept-rule iterations.
-- Guideline figure (assumed vs true delay heatmaps, recovery vs work-lost scatter): D63 sweep.
+- Guideline figure: done (D63, `paper/generated/fig_delay_guideline_*`); caption must state
+  the edge effect at true delay = M (D63 outcome).
 - Fresh TEST confirmation of C1, C2, C3' and F1 (under-estimated rows included).
