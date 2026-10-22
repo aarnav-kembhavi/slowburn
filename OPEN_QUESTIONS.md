@@ -1001,3 +1001,47 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   (clusters (world, start, rep), 2000 resamples, seed 0). Pooled, per world and per K; full
   grid, plus the worlds subset at q = 0 and q = 1. Question: at equal budget and equal horizon,
   does SlowBurn still win on recovery, on work lost, or neither? Report only.
+- **D69 Worst-case-optimal online checkpointing baselines (Bar-On, Dinur, Dunkelman, Hod,
+  Keller, Ronen, Shamir, "Tight Bounds on Online Checkpointing Algorithms", arXiv 1704.02659v2;
+  team JOB 2, labelled "D68" by the team; recorded BEFORE any code or run; DEV only).**
+  *Mapping.* The paper keeps k checkpoints in [0, T], with 0 and the present T as free virtual
+  checkpoints. Our budget K counts today's snapshot, which plays the role of T, so k = K - 1.
+  *Algorithms implemented* (paper notation, update times t_i, pattern p_i = freshness index):
+  (a) exact optimal schedules the paper gives in closed form: k = 3 Round-Robin with G = golden
+  ratio (Prop. 3.2, q3 = 1.5278641); k = 4 the (2, gamma)-cyclic algorithm, gamma the largest
+  root of x^3 - x^2 - 2x + 1, pattern (3, 1), S4 = (1, g, g^3 - g^2, g^2) (Prop. 3.4,
+  q4 = 1.5398927); k = 5 the (2, G)-geometric algorithm, G = 1/(1 - r5), pattern (3, 1),
+  S5 = (1, G^2, G^3, G^4, G^5) (Prop. 3.3, q5 = 1.4707341). In our grid these apply at
+  K = 4 (k = 3) and K = 6 (k = 5); k = 4 (K = 5) is implemented and tested but not in the grid.
+  (b) best single-ratio geometric family: Round-Robin with G = 1/(1 - r), r the smallest root
+  of x = (1 - x)^(k - 1) (Prop. 3.1); the paper's rule, not tuned (k = 4: 5 r~4 = 1.58836, the
+  best geometric 4-checkpoint efficiency).
+  (c) Recursive(G*, K*) (Section 4): K* = {k_j = floor(2^-j k), j = 0..m; 0}, m = floor(log2 k)
+  - 1, pattern p_{k+i} = 1 + k_{mu(i)+1}, update times G^i; G* = the G > 1 minimising
+  r(G, K*) = max of (1a), (1b), (1c) (equivalently the paper's "smallest root" rule).
+  The paper specifies (c) fully. The optimal k = 6..10 schedules of Table 1 are NOT used: the
+  table gives patterns and gamma, but the update times come from an LP that is not printed.
+  So K = 8 (k = 7) and K = 12 (k = 11) use (b) and (c) only.
+  *Daily discrete time.* The continuous algorithm runs with time unit s days, s the smallest
+  integer for which the initial checkpoints fall on distinct days. At the end of day d the held
+  set is today's snapshot plus floor(T_j) for the algorithm's checkpoints after every update with
+  t_i < d + 1. An update at t_i stores day floor(t_i), which is today's snapshot when it happens,
+  so the policy never needs a snapshot it has dropped.
+  *Unit tests.* Continuous efficiency of each sequence, measured at update times, equals the
+  paper's q_k (above, plus the Recursive values of Tables 3 and 4 where k matches) within 1e-6.
+  Discrete efficiency (max over days 2,000..200,000 of the longest gap / (d / (k + 1))) is
+  reported. Normalisation note: the team's targets (c3 ~ 1.1459, c5 ~ 1.2256, geometric
+  c4 ~ 1.2707) equal q_k * k / (k + 1), i.e. the ideal gap taken as T/k instead of the paper's
+  T/(k + 1). Both are reported. The paper's own definition (T/(k + 1)) is the primary one.
+  *Runs.* Count budgets K in {4, 6, 8, 12}. Grids: the full grid (dev_d64a_full machines;
+  the worlds grid is its q in {1, .5, .2, 0} subset, same machines), the worst case
+  (dev_d64a_worst_all machines, q in {0, .5, 1}), and the D63 delay grid (q in {0, 1}, every
+  assumed-bound variant). Policies: SlowBurn, prior-only, Tower of Hanoi, GFS,
+  shamir_exact (K 4, 6), shamir_rr, shamir_recursive.
+  *Restores, for EVERY policy.* (i) The adopted D64a verify_snap. (ii) An oracle restore: the
+  newest kept snapshot older than the true start (the oldest kept if none), with every file
+  changed after it restored. (ii) separates retention quality from restore quality; the paper's
+  model assumes the rollback point is known. (ii) is computed on the same rows as extra columns,
+  with no second simulation.
+  *Report.* Every Shamir scheme against SlowBurn, prior-only, Tower of Hanoi and GFS, paired, with
+  cluster bootstrap CIs, under both restores. Report only.
