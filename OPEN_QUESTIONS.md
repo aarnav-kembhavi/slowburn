@@ -921,3 +921,15 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   days are not needed). Output: recovery and "clean point held" vs true delay, first grid delay
   with recovery < 0.5 and < 0.1. Stated before the run: with this attack model (one damaging write
   per file) no count limit >= 2 can drop a file's last clean version.
+- **D66 amendment (team, 2026-10-23; recorded BEFORE any D66 result is read, before the run):
+  rewrites per damaged file, r.** Simulation parameter only (no code rewrites real files):
+  r = damaged versions per damaged file (r = 1 is the main rule, the simulator's single damaging
+  write; r - 1 extra damaged versions are added). Timing, fixed now: all r damaged versions carry
+  the damage day (written that day, before the next daily snapshot), so time windows and daily
+  snapshots are unaffected and only per-file COUNT limits see them. r in {1, 2, 5, 25, 100},
+  reported as labelled variants `<product>_r<r>` for the count-limit products
+  (gdrive_30d_100v, gdrive_30d_100v_created, onedrive_personal_25v, onedrive_personal_25v_30d,
+  onedrive_business_500v); every other product and every headline row stays at r = 1.
+  Expected mechanics, stated before the run: a count limit N loses a file's last clean version
+  once r >= N (OneDrive personal at r = 25 and 100, Google at r = 100, OneDrive for Business never
+  in this range).
