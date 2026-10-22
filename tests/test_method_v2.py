@@ -231,3 +231,45 @@ def test_d60_refuses_unreproduced_hard_variant():
     with pytest.raises(ValueError, match="reproduce"):
         mv.d60_select(normal, worst, under, {0.05: {60: "v4_60", 14: "v4_14", 30: "v4_30"}},
                       "hard")  # fmt: skip
+
+
+# ---- D64b: old vs new pairing, machine-cluster bootstrap ----------------------------------
+
+
+def test_cluster_bootstrap_ratio():
+    from slowburn.bench.stats import cluster_bootstrap_ratio
+
+    x = np.array([1.0, 3.0, 2.0, 6.0])
+    m, lo, hi = cluster_bootstrap_ratio(x, np.ones(4), ["a", "a", "b", "b"])
+    assert m == pytest.approx(3.0) and lo == pytest.approx(2.0) and hi == pytest.approx(4.0)
+    r = cluster_bootstrap_ratio([1.0, 1.0], [10.0, 10.0], [0, 1])
+    assert r == pytest.approx((0.1, 0.1, 0.1))
+
+
+def _run(recovery, work_lost, kept=4):
+    import pandas as pd
+
+    from slowburn.bench.method_v2 import RETENTION_COLS
+
+    n = len(recovery)
+    d = pd.DataFrame({"attack_start": range(n), "true_start": range(n), "rep": 0,
+                      "benign_invalid_rate": 0.01, "discovery_delay": 7, "budget": 4,
+                      "detect_prob": 0.0, "budget_kind": "count", "policy": "slowburn",
+                      "split": "dev", "clean_recovery": recovery,
+                      "work_lost_whole_system_hours": work_lost})  # fmt: skip
+    for c in RETENTION_COLS:
+        d[c] = kept
+    return d
+
+
+def test_pair_old_new_and_deltas():
+    from slowburn.bench.method_v2 import pair_old_new, paired_deltas
+
+    old, new = _run([1, 0, 1, 1], [100.0] * 4), _run([1, 1, 1, 1], [100.0, 120, 100, 120])
+    t = paired_deltas(pair_old_new(old, new)).iloc[0]
+    assert t.pairs == 4 and t.recovery_delta == pytest.approx(0.25)
+    assert t.work_lost_rel == pytest.approx(0.10) and t.work_lost_h_delta == pytest.approx(10.0)
+    with pytest.raises(ValueError, match="retention differs"):
+        pair_old_new(old, _run([1] * 4, [100.0] * 4, kept=5))
+    with pytest.raises(ValueError, match="pairing incomplete"):
+        pair_old_new(old, new.iloc[:3])

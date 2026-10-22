@@ -80,3 +80,18 @@ def bootstrap_mean_ci(
     boots = x[rng.integers(0, len(x), size=(n_boot, len(x)))].mean(axis=1)
     q = (1 - ci) / 2
     return float(x.mean()), float(np.quantile(boots, q)), float(np.quantile(boots, 1 - q))
+
+
+def cluster_bootstrap_ratio(num, den, clusters, n_boot: int = 2000, ci: float = 0.95,
+                            seed: int = 0) -> tuple[float, float, float]:  # fmt: skip
+    """sum(num) / sum(den) with a percentile CI from resampling whole clusters (D64b): pass
+    den = 1 for a mean, (new - old, old) for a relative change."""
+    num, den = np.asarray(num, float), np.asarray(den, float)
+    codes = np.unique(np.asarray(clusters), return_inverse=True)[1].ravel()
+    n = int(codes.max()) + 1
+    s_num, s_den = np.bincount(codes, num, n), np.bincount(codes, den, n)
+    w = np.random.default_rng(seed).multinomial(n, np.full(n, 1 / n), size=n_boot)
+    boots = (w @ s_num) / (w @ s_den)
+    q = (1 - ci) / 2
+    return (float(s_num.sum() / s_den.sum()), float(np.quantile(boots, q)),
+            float(np.quantile(boots, 1 - q)))  # fmt: skip

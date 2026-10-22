@@ -264,3 +264,91 @@ def d60_select(normal_df, worst_df, under_df, tails, hard_normal: str) -> dict:
         adopt = bool(held & {"0.2", "0.5"})
     return {"board": board, "units": pd.concat(units, ignore_index=True), "rescue": rescue,
             "chosen_tail": chosen, "adopt": adopt, "hard_g2_work_lost": hard_wl}  # fmt: skip
+
+
+# ---- D64b: old vs adopted restore on the same machines --------------------------------------
+
+RETENTION_COLS = ["snapshots_retained", "retained_unique_bytes", "clean_snapshot_retained",
+                  "newest_clean_kept", "oldest_retained_age"]  # fmt: skip
+METRICS = {"recovery": "clean_recovery", "work_lost_h": "work_lost_whole_system_hours"}
+
+
+def _row_key(df: pd.DataFrame) -> list[str]:
+    return [k for k in [*PAIR_KEY, "true_start", "detect_prob", "budget_kind", "policy"] if k in df]
+
+
+def _clusters(df: pd.DataFrame) -> pd.Series:
+    """One cluster per simulated machine (world, true start, rep): shared across q and b."""
+    cols = [c for c in ("world", "true_start", "rep") if c in df]
+    return df[cols].astype(str).agg("|".join, axis=1)
+
+
+def pair_old_new(old: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
+    """Row-for-row pairing of two runs on the same machines; raises unless every row pairs and
+    retention (the kept set) is identical, so only the restore differs."""
+    key = _row_key(new)
+    cols = key + list(METRICS.values()) + RETENTION_COLS
+    m = old[cols].merge(new[cols], on=key, suffixes=("_old", "_new"), validate="one_to_one")
+    if len(m) != len(old) or len(m) != len(new):
+        raise ValueError(f"pairing incomplete: old {len(old)}, new {len(new)}, paired {len(m)}")
+    for c in RETENTION_COLS:
+        a, b = m[f"{c}_old"], m[f"{c}_new"]
+        if not ((a == b) | (a.isna() & b.isna())).all():
+            raise ValueError(f"retention differs in {c}")
+    return m
+
+
+def paired_deltas(m: pd.DataFrame, by=("policy",), n_boot: int = 2000) -> pd.DataFrame:
+    """Per group of a paired frame: old and new means, new - old with a machine-cluster bootstrap
+    95% CI, and for work lost the relative change with its CI."""
+    from slowburn.bench.stats import cluster_bootstrap_ratio
+
+    rows = []
+    for g, x in m.groupby(list(by)):
+        r = dict(zip(by, g if isinstance(g, tuple) else (g,), strict=True), pairs=len(x))
+        cl = _clusters(x)
+        for name, col in METRICS.items():
+            o, n_ = x[f"{col}_old"].to_numpy(float), x[f"{col}_new"].to_numpy(float)
+            r[f"{name}_old"], r[f"{name}_new"] = o.mean(), n_.mean()
+            d, lo, hi = cluster_bootstrap_ratio(n_ - o, np.ones(len(o)), cl, n_boot)
+            r.update({f"{name}_delta": d, f"{name}_delta_lo": lo, f"{name}_delta_hi": hi})
+        rel = cluster_bootstrap_ratio(x.work_lost_whole_system_hours_new
+                                      - x.work_lost_whole_system_hours_old,
+                                      x.work_lost_whole_system_hours_old, cl, n_boot)  # fmt: skip
+        r.update(dict(zip(("work_lost_rel", "work_lost_rel_lo", "work_lost_rel_hi"), rel,
+                          strict=True)))  # fmt: skip
+        rows.append(r)
+    return pd.DataFrame(rows)
+
+
+def evidence_reduction(df: pd.DataFrame, by=(), n_boot: int = 2000) -> pd.DataFrame:
+    """C3': SlowBurn vs prior-only relative work-lost change on paired machines (count budgets),
+    with SlowBurn minus prior-only recovery; machine-cluster bootstrap CIs."""
+    from slowburn.bench.stats import cluster_bootstrap_ratio
+
+    d = df[df.budget_kind == "count"] if "budget_kind" in df else df
+    key = [k for k in _row_key(d) if k != "policy"]
+    cols = key + list(METRICS.values())
+    sb, po = d[d.policy == "slowburn"][cols], d[d.policy == "prior_only"][cols]
+    m = sb.merge(po, on=key, suffixes=("_sb", "_po"), validate="one_to_one")
+    if len(m) != len(sb) or len(m) != len(po):
+        raise ValueError("SlowBurn / prior-only pairing incomplete")
+    groups = m.groupby(list(by)) if by else [((), m)]
+    rows = []
+    for g, x in groups:
+        cl = _clusters(x)
+        wl = "work_lost_whole_system_hours"
+        rel = cluster_bootstrap_ratio(x[f"{wl}_sb"] - x[f"{wl}_po"], x[f"{wl}_po"], cl, n_boot)
+        rec = cluster_bootstrap_ratio(x.clean_recovery_sb - x.clean_recovery_po,
+                                      np.ones(len(x)), cl, n_boot)  # fmt: skip
+        rows.append({**dict(zip(by, g if isinstance(g, tuple) else (g,), strict=True)),
+                     "pairs": len(x),
+                     "recovery_slowburn": x.clean_recovery_sb.mean(),
+                     "recovery_prior_only": x.clean_recovery_po.mean(),
+                     "work_lost_slowburn": x[f"{wl}_sb"].mean(),
+                     "work_lost_prior_only": x[f"{wl}_po"].mean(),
+                     "work_lost_rel": rel[0], "work_lost_rel_lo": rel[1],
+                     "work_lost_rel_hi": rel[2],
+                     "recovery_delta": rec[0], "recovery_delta_lo": rec[1],
+                     "recovery_delta_hi": rec[2]})  # fmt: skip
+    return pd.DataFrame(rows)
