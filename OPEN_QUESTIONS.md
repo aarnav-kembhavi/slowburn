@@ -826,3 +826,32 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   the 8 units: stop and report, no reselection. The new numbers replace C1 / C2 / C3' in
   docs/claims.md whatever they are; F1 and F3 are rewritten from the adopted pipeline (team
   text). The D65 accept-rule iteration is pre-registered only after step 1 lands.
+- **D65 Method v2.1: significance-based snapshot accept rule (team, 2026-10-22; committed
+  BEFORE any step 1 result is read and before any code or run).** One pre-registered DEV
+  iteration on top of the adopted D64a pipeline; no further accept-rule iterations either way.
+  Rule. For each gated candidate j (gate, hard-bound posterior, newest-first order, oldest-kept
+  fallback, "select" file selection and the v4 walk-back all unchanged from D64a), let n = the
+  number of files with a version in j (every version j holds, no L window) and x = how many of
+  those versions carry their shared write-time flag. j verifies unless x is significant under
+  the D60 walk-back test (`slowburn/store/restore.py:186`, `deep_damage`): one-sided
+  Beta-Binomial tail P(X >= x | n, a0, b0) < alpha, with (a0, b0) the cell's fleet-pooled
+  benign prior (the same `null_prior` D60 uses) and alpha = 0.05 (D60's value). No new
+  parameters. Correction recorded: the team's first wording said "the same binomial test already
+  used for daily evidence"; the daily evidence is the Bayesian changepoint model and has no
+  alpha-level test, so the test meant is the D60 walk-back test above, not a plain binomial at
+  the pooled mean rate.
+  Multiplicity. The test is applied per candidate during the walk with no multiplicity
+  correction; the per-candidate false reject rate (about alpha on a clean snapshot) is accepted
+  as part of the rule. alpha is not changed after results.
+  Runs (DEV, w 0.75, paired against the step 1 / D64b runs on the same machines): worst-case
+  grid at q = 0 (from `dev_d64a_blind_worst`, w 0.75), full grid (from `dev_d64a_full`), the
+  D57 worlds grid at w 0.75 (from `dev_d64a_blind_worlds`) for the blind units; under-estimated
+  grid and worst case with every policy for reporting.
+  Adoption: ALL must hold, on the worst case q = 0 and the full grid, paired vs step 1:
+  (a) clean recovery not lower by more than 0.01 on any grid or world (full grid per world,
+  count budgets; worst case pooled);
+  (b) whole-system work lost lower (point estimate) on the worst case and on the full grid;
+  (c) all 8 D57 blind units at w = 0.75 still pass;
+  (d) the 3b test, restated: with q = 1 a snapshot whose damaged-version flag count is
+  significant under the test must not verify (unit test before any run).
+  If any fails, v2.1 is rejected and the step 1 numbers stand. v2.1 is reported either way.
