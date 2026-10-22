@@ -909,3 +909,15 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   diagonal is below 1 (SlowBurn 0.76 / 0.66 / 0.71 at M 14 / 30 / 60) and at K = 8, M = 7 the
   DP keeps exactly days d-7..d (recovery 0 at delay 7 for both DP policies; K 4 / 6 / 12 keep
   older snapshots and recover 0.78-1.0).
+- **D66 Retention audit of product defaults (team request 2026-10-23; DEV only, descriptive,
+  nothing selected, claims.md unchanged; recorded BEFORE any audit code or run).** Rules, sources
+  and the simulation mapping are fixed in `docs/baselines.md` (Dropbox 30/180/365 d, Google Drive
+  30 d or 100 newer versions, OneDrive personal 25 versions (+ 30 d variant), OneDrive for
+  Business 500 versions, restic documented forget presets, NetApp ARP/AI 12 h / locked until
+  response / 7 d). Grid = D63 attack grid, q in {0, 1}, benign 0.01, delays 1..400 days; adopted
+  restore (D64a verify_snap, M = 60) for every product, per-file products through a point-in-time
+  analogue of verify_snap. Per-file churn from FSL Homes, the 48 complete verified days only
+  (2011-09-16..2011-11-03; the per-file rewrite process is replayed circularly, so the missing 12
+  days are not needed). Output: recovery and "clean point held" vs true delay, first grid delay
+  with recovery < 0.5 and < 0.1. Stated before the run: with this attack model (one damaging write
+  per file) no count limit >= 2 can drop a file's last clean version.
