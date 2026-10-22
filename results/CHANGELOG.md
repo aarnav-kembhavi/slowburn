@@ -1267,3 +1267,21 @@ reference only): `results/diag_d62_*` (options select / verify).
 - `results/dev_d63_delay_grid`; guideline figure and CSVs in `paper/generated/`. Under-estimated
   rows: nothing recovers at q = 0; at q = 1 Tower of Hanoi beats SlowBurn for short bounds
   (M 7-30), SlowBurn wins at M 60-90. claims.md F1 updated with the fixed-schedule numbers.
+
+## 2026-10-22 (late): FSL fetch stopped below the free-space floor; G1 wording
+
+**Fetch stopped by hand at 42.8 GB free (floor 45 GB).** The per-archive guard checks each
+file alone, so parallel in-flight downloads and other writers on C: took free space below the
+floor without a StopFetch. Fetcher and watchdog processes killed, scheduled task "SlowBurn FSL
+download watchdog" disabled; nothing deleted (2 `.part` files, 0.36 GB, resume later).
+State (data/MANIFEST.json): FSL block 2011-09-16..2011-12-03, 60 days, 13 users, 767 files,
+55.95 GB planned; 619 files / 43.59 GB present with published SHA-256 match, 0 mismatches.
+Complete and verified: 48 of 60 days (contiguous, 2011-09-16..2011-11-03); 2011-11-04 has 8 of
+13 users; the last 11 days have none; 12.36 GB missing. No user is complete over the 60 days.
+NapierOne on disk 43.69 GB, not ~20 GB: archives kept next to their extractions (benign zip
+17.74 + extracted 17.74; encrypted zips 3.91 + extracted 4.30).
+
+**G1 (docs/claims.md):** Theorem 2(a)'s 48,686-case check is Tower of Hanoi only, K in
+{4, 5, 6, 8}, d = 0..2^(K-2) - 1 inclusive with s >= 2d, held set only. The D63 zero at K = 8,
+M = 7, delay 7 is prior-only and SlowBurn (DP), not Tower of Hanoi (held 1.0, restored 0.80 at
+q = 0). Wording fixed to state horizon, history condition and held-not-restored.

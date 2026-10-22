@@ -49,6 +49,26 @@ and not significantly worse after Holm (largest excess 0.00625, K = 8 worst case
 worlds 0.00583 bursty, Holm p 0.392; `results/dev_d64a_blind_worst/d57_units.csv`). Worst case
 q = 0 work lost: +0.55% [-0.38, +1.47].
 
+## Guarantee (theory, docs/theory.md, NEEDS HUMAN REVIEW)
+
+**G1. Tower of Hanoi with K snapshots holds a clean snapshot at discovery for every delay
+d <= 2^(K-2) - 1 days, provided the attack started at least 2d days into the history, with
+whole-system work lost <= 3d (Theorem 2(a)).** Numerical check: 48,686 (K, discovery day,
+delay) cases, K in {4, 5, 6, 8} (2,381 / 4,715 / 9,239 / 32,351), 600 days, every d from 0 to
+2^(K-2) - 1 inclusive (3 / 7 / 15 / 63) with s >= 2d, 0 failures (`tests/test_theory.py`).
+Scope, stated wherever G1 is cited:
+- It is about what is HELD, not what is restored. D63 (K = 8, delay 7, q = 0): Tower of Hanoi
+  holds a clean snapshot in every row but the restore recovers 0.80.
+- Its range is the rotation's own horizon 2^(K-2) - 1, not the assumed bound M. It says nothing
+  about any policy at d = M.
+- It does not cover the DP policies. SlowBurn's backbone is R = round(0.25 K) slots, so the
+  inherited guarantee (Theorem 2(c)) covers d = 0 at K = 8 and d <= 1 at K = 12, nothing at
+  K = 4 (R = 1). Prior-only and SlowBurn have no worst-case guarantee: at K = 8, M = 7, true
+  delay 7, both hold no clean snapshot (D63 edge effect), while Tower of Hanoi does.
+The shorthand "the fixed rotation keeps a clean copy for any discovery delay within its range"
+is true only with these three qualifiers (horizon 2^(K-2) - 1, history s >= 2d, held not
+restored); do not use it without them.
+
 ## Findings
 
 **F1. Beyond the assumed bound, recovery is ~0 unless the detector is near perfect, and even
