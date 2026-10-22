@@ -1058,3 +1058,18 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   cells are reported as such and get no rows. Noted for the report: H has no work-lost bound, so
   keep-first (day 0 plus today) has an unbounded horizon with 2 slots; equal horizon alone is a
   weak fairness criterion.
+- **D70 Pareto summary (team overnight queue 2026-10-23, JOB 5, labelled "D69" by the team;
+  recorded BEFORE any code or run; DEV, descriptive, nothing selected).** Panels: each start-time
+  world (uniform, early, late, bursty) x each count budget K in {4, 6, 8, 12}. Points: mean clean
+  recovery and mean whole-system work lost per policy over the panel's rows of the full grid
+  (dev_d64a_full machines: q in {1, .9, .5, .2, 0}, benign {0, .01, .05}, delays 7-60, 40 reps),
+  under (i) the adopted verify_snap restore and (ii) the oracle restore. Policies on these machines:
+  SlowBurn, prior-only, Tower of Hanoi, GFS (from D69's run), shamir_exact/rr/recursive (D69),
+  toh_eqh/gfs_eqh (D68; verify_snap only, since D68 has no oracle columns; cells as feasible).
+  Pareto optimal = no other policy in the same panel and restore has recovery >= and work lost
+  <= with one strict. The D66 product defaults run on DIFFERENT machines (FSL churn, delays
+  1-400, no budget K), so they are drawn on every panel as separately marked reference points
+  from their own grid (restricted to delays 7-60, verify_snap and their "held" curve). They are
+  NOT included in the Pareto comparison: mixing machine sets would be invalid. Also written: the
+  q = 0 and q = 1 panels separately. CSVs and figures in paper/generated/
+  (`pareto_points.csv`, `fig_pareto_<restore>.png`).
