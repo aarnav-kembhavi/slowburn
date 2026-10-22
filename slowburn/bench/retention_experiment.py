@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -28,7 +29,7 @@ from slowburn.inference.changepoint import (
 )
 from slowburn.inference.daily import make_aggregator
 from slowburn.inference.obsmodels import BetaBinomialExceedance, fit_pooled_null_prior
-from slowburn.inference.pipeline import AbstractFileDetector
+from slowburn.inference.pipeline import AbstractFileDetector, score_day
 from slowburn.retention.amoeba import AmoebaStyle, Write, fit_weights
 from slowburn.retention.base import (
     GFS,
@@ -126,8 +127,19 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
     scen_params = {k: v for k, v in p.items() if k in SCENARIO_FIELDS}
     start = scen_params.get("attack_start")
     n_days = trace_days(cfg, start)
+    evidence = p.get("evidence", "abstract")
+    if evidence not in ("abstract", "detector"):
+        raise ValueError(f"unknown evidence {evidence!r}")
+    content = "bytes" if evidence == "detector" else "tokens"  # D67: a real detector reads bytes
     scen = Scenario(ScenarioConfig.from_dict({**scen_params, "days": n_days,
-                                              "content": "tokens"}))  # fmt: skip
+                                              "content": content}))  # fmt: skip
+    damage_source = RandomDamageSource(child_rng(*key, "damage"))
+    if p.get("data_source", "synthetic") == "napierone":  # D67: real benign and encrypted bytes
+        if evidence != "detector":
+            raise ValueError("data_source napierone needs evidence: detector (byte mode)")
+        scen.content_pool, damage_source = _napierone(p["napierone_dir"])
+    elif p.get("data_source", "synthetic") != "synthetic":
+        raise ValueError(f"unknown data_source {p['data_source']!r}")
     if p.get("benign_churn") == "fsl":  # D66: real per-file rewrite days from FSL Homes
         from slowburn.datasets.fsl_churn import load_churn, machine_schedule
 
@@ -135,19 +147,24 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
                                                  scen.cfg.n_files, n_days)  # fmt: skip
     elif p.get("benign_churn", "poisson") != "poisson":
         raise ValueError(f"unknown benign_churn {p['benign_churn']!r}")
-    det = AbstractFileDetector(float(p.get("detect_prob", 0.0)), child_rng(*key, "detector"))
-    agg = make_aggregator("file_exceed", alpha=0.5)  # p-values are 0/1: any alpha in (0,1)
+    if evidence == "detector":  # D67: trained detector, flag = file p-value <= frozen alpha
+        det, flag_alpha = _load_detector(p["detector_path"]), float(p["flag_alpha"])
+        agg = make_aggregator("file_exceed", alpha=flag_alpha)
+    else:
+        det = AbstractFileDetector(float(p.get("detect_prob", 0.0)), child_rng(*key, "detector"))
+        agg = make_aggregator("file_exceed", alpha=0.5)  # p-values are 0/1: any alpha in (0,1)
+        flag_alpha = 0.0
     snapshots, obs, writes = [], [], []
     versions: dict[str, tuple] = {}
     change_days: dict[str, list[int]] = {}
     flagged_days: dict[str, set[int]] = {}
     recent_changes: list[int] = []
-    for day in scen.run(child_rng(*key), RandomDamageSource(child_rng(*key, "damage")),
+    for day in scen.run(child_rng(*key), damage_source,
                         child_rng(*key, "benign_invalid")):  # fmt: skip
         snapshots.append(frozenset(c for chunks in day.files.values() for c in chunks))
-        scores = det.score_day(day)
+        scores = score_day(det, day) if evidence == "detector" else det.score_day(day)
         obs.append(agg(scores))
-        flagged = {f for f, pv in scores.file_pvals.items() if pv == 0}
+        flagged = {f for f, pv in (scores.file_pvals or {}).items() if pv <= flag_alpha}
         for f in flagged:
             flagged_days.setdefault(f, set()).add(day.day)
         files_today = day.changed_files
@@ -172,6 +189,36 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
                                 frozenset(flagged_days.get(f, ())))
                  for f, d in change_days.items()}  # fmt: skip
     return MachineTrace(start, n_days, snapshots, obs, histories, writes, scen.cfg.chunk_size)
+
+
+@lru_cache(maxsize=4)
+def _load_detector(path: str):
+    import pickle
+
+    with resolve_path(path).open("rb") as fh:
+        return pickle.load(fh)
+
+
+@lru_cache(maxsize=2)
+def _napierone(root: str):
+    """DEV content pool and DEV-family damage source (D67); TEST pools are never read here."""
+    from slowburn.detector.datasets import NapierOneDamageSource
+    from slowburn.detector.napierone import ContentPool, encrypted_samples, family_splits
+
+    r = resolve_path(root)
+    fams = family_splits(r)["sim_dev"]
+    return ContentPool(r, "sim_dev"), NapierOneDamageSource(r, samples=encrypted_samples(r, fams))
+
+
+def _data_labels(p: dict) -> dict:
+    """What produced a row's files, damage and evidence (synthetic and real data never mix)."""
+    if p.get("evidence", "abstract") == "abstract":
+        return {"benign_source": "synthetic", "damage_source": "abstract_token",
+                "evidence": f"abstract_q{p.get('detect_prob')}"}  # fmt: skip
+    src = p.get("data_source", "synthetic")
+    return {"benign_source": src,
+            "damage_source": "napierone" if src == "napierone" else "synthetic_random",
+            "evidence": f"detector:{p['detector_path']}@{p['flag_alpha']}"}  # fmt: skip
 
 
 # ---- policies ---------------------------------------------------------------------------
@@ -417,8 +464,7 @@ def evaluate_trace(
                                              for h_ in trace.histories.values()),
                       # best achievable (oracle) work lost: restore from day s - 1
                       "work_lost_ideal_hours": (td - (start - 1)) * HOURS_PER_DAY,
-                      "benign_source": "synthetic", "damage_source": "abstract_token",
-                      "evidence": f"abstract_q{p.get('detect_prob')}",
+                      **_data_labels(p),
                       "p_started_at_discovery": float(1 - post[-1]),
                       "sim_s": sim_s, "infer_ms_per_day": 1000 * infer_s / n,
                       "dp_ms_per_decision": 1000 * dp_s / max(dp_calls, 1)}  # fmt: skip

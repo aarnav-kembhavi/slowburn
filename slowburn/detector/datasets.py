@@ -7,6 +7,7 @@ is driven by glob patterns from config rather than a hardcoded structure.
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -44,9 +45,17 @@ class NapierOneDamageSource:
 
     name = "napierone"
 
-    def __init__(self, root: str | Path, encrypted_glob: str = "encrypted/**/*"):
+    def __init__(self, root: str | Path, encrypted_glob: str = "encrypted/**/*",
+                 samples: list[Path] | None = None):  # fmt: skip
         self.root = napierone_root(root)
-        self.samples = _files(self.root, encrypted_glob)
+        # numbered samples only: each family folder also holds a descriptor PDF (D67)
+        self.samples = (
+            samples
+            if samples is not None
+            else [p for p in _files(self.root, encrypted_glob) if re.match(r"\d{4}-", p.name)]
+        )
+        if not self.samples:
+            raise DatasetMissingError(f"no encrypted samples under {self.root}")
         self._cache: dict[Path, bytes] = {}
 
     def _sample(self, file_key: str) -> bytes:

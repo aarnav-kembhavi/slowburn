@@ -95,6 +95,9 @@ class Scenario:
     # optional real benign churn (D66): per day, the indices of the files rewritten that day
     # (e.g. FSL Homes, ``datasets.fsl_churn.machine_schedule``); replaces the Poisson edits
     edit_schedule: list[list[int]] | None = None
+    # optional real benign content (D67): an object with ``draw(file_type, rng) -> bytes``
+    # (``detector.napierone.ContentPool``); replaces the synthetic generator in byte mode
+    content_pool: object | None = None
 
     def run(self, rng: np.random.Generator, source: DamageSource,
             aux_rng: np.random.Generator | None = None) -> Iterator[Day]:  # fmt: skip
@@ -135,6 +138,10 @@ class Scenario:
             yield Day(day, {k: list(v) for k, v in files.items()}, changed, invalid)
 
     def _new_content(self, ftype: str, rng: np.random.Generator) -> list[bytes]:
+        if self.content_pool is not None:
+            if self.cfg.content != "bytes":
+                raise ValueError("a content pool needs content: bytes")
+            return chunk_bytes(self.content_pool.draw(ftype, rng), self.cfg.chunk_size)
         lo, hi = self.cfg.file_kib
         size = int(rng.integers(lo, hi + 1)) * 1024
         if self.cfg.content == "tokens":

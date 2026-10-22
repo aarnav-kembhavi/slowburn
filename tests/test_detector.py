@@ -164,9 +164,11 @@ def test_napierone_missing_fails_loudly(tmp_path):
 def test_napierone_damage_source_reads_offset_aligned(tmp_path):
     enc = tmp_path / "encrypted" / "familyA"
     enc.mkdir(parents=True)
-    (enc / "a.docx.locked").write_bytes(bytes(range(256)) * 4)
+    (enc / "0001-docx.docx.locked").write_bytes(bytes(range(256)) * 4)
+    (enc / "familyA.pdf").write_bytes(b"%PDF descriptor, not a sample")
     src = NapierOneDamageSource(tmp_path, encrypted_glob="encrypted/**/*")
     assert src.name == "napierone"
+    assert [p.name for p in src.samples] == ["0001-docx.docx.locked"]  # descriptor PDF skipped
     out = src.bytes_for("f1", 10, 20)
     assert len(out) == 20
     big = src.bytes_for("f1", 0, 3000)  # longer than the sample: wraps, never fails
