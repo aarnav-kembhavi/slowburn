@@ -106,7 +106,69 @@ accounting does not penalise.)
 
 ## 3. NapierOne false-flag rate
 
-PENDING: re-simulation of the D67 machines is running (results/dev_d71_false_flags).
+Re-simulation of exactly the D67 eval machines of both arms (same tasks and seeds; 480 machines
+per arm, 160 per benign rate). Run 12:36 to 14:04, exit 0. Scripts:
+paper/scripts/d71_false_flags.py (counting), paper/scripts/d71_false_flag_report.py (tables).
+Tables: results/dev_d71_false_flags/*.csv. A version counts as flagged if the detector flags it
+(file p <= 0.01) on the day it is written. Descriptive shares, no CIs.
+
+Benign flag rate per version (pooled over benign rates; damaged = true damage, i.e. detection):
+
+| arm | day 0 | rewrite | damaged (detected) |
+|---|---|---|---|
+| synthetic | 0.033 | 0.021 | 1.000 |
+| NapierOne | 0.057 | 0.045 | 0.746 |
+
+By injected benign invalid rate (day 0 and rewrites together):
+
+| arm | rate 0 | rate .01 | rate .05 |
+|---|---|---|---|
+| synthetic, all types | 0.003 | 0.013 | 0.049 |
+| NapierOne, all types | 0.036 | 0.041 | 0.060 |
+| NapierOne, zip | 0.397 | 0.405 | 0.428 |
+| NapierOne, all types except zip | 0.0004 | 0.005 | 0.025 |
+
+Per file type, NapierOne at rate 0: zip 0.397, bin 0.003, every other type 0. Zip versions are
+99% of NapierOne benign flags at rate 0, 88% at .01 and 63% at .05. Injected benign invalid
+versions are never flagged on NapierOne csv, txt or bin (rate stays 0 / 0 / 0.003 at .05), while
+on synthetic bytes every type tracks the injected rate (about .05 at .05).
+
+Per machine (benign versions):
+
+| arm | rate | median flag rate | p90 | median flagged versions | share with any day-0 flag |
+|---|---|---|---|---|---|
+| synthetic | 0 | 0.002 | 0.006 | 2 | 0.38 |
+| synthetic | .01 | 0.013 | 0.018 | 9 | 0.61 |
+| synthetic | .05 | 0.049 | 0.061 | 34 | 0.94 |
+| NapierOne | 0 | 0.036 | 0.045 | 23 | 0.91 |
+| NapierOne | .01 | 0.041 | 0.052 | 26 | 0.93 |
+| NapierOne | .05 | 0.061 | 0.074 | 38 | 0.98 |
+
+Clean snapshots (day 14 to start - 1) holding at least one flagged benign version:
+
+| arm | rate 0 | rate .01 | rate .05 |
+|---|---|---|---|
+| synthetic | 0.09 | 0.36 | 0.84 |
+| NapierOne | 0.87 | 0.90 | 0.96 |
+
+Reading:
+- The JOB 3 explanation holds in direction and size: at rate 0, 87% of clean NapierOne snapshots
+  hold a flagged benign version against 9% on synthetic bytes. Section 1 shows that a clean
+  snapshot with a flagged version is skipped by verify_snap and costs work lost, not recovery.
+  NapierOne at every rate sits above synthetic at rate .05 on this measure, the cell where
+  section 1 found verify_snap 134% behind the oracle.
+- The cause is one file type, not real bytes in general. Benign NapierOne zip files are flagged
+  40% of the time; every other NapierOne type is flagged at or below its synthetic rate
+  (largest excess: mp3 at rate .05, 0.052 vs 0.047). This is a detector property on real zip files (high entropy containers) and is
+  reported, not fixed (no detector or threshold change on DEV per the D71 spec).
+- Second difference: true damage is detected in 75% of NapierOne damaged versions against 100%
+  on synthetic (bin 0.40, csv 0.69, jpg 0.61, txt 0.72). That raises missed damage, which section
+  1 identifies as the only recovery failure mode with a clean snapshot held. It did not show up
+  as a recovery loss in JOB 3 under count budgets, but it is a caveat on any NapierOne recovery
+  number.
+- The injected benign rate is a weaker knob on NapierOne than on synthetic bytes, because its
+  invalid versions on text-like types are not detected. The benign-rate axis therefore does not
+  mean the same thing in the two arms.
 
 ## 4. JOB 3 byte-budget comparison in the report script
 
