@@ -342,3 +342,51 @@ def oracle_restore(kept_days: Sequence[int], discovery_day: int,
     j_r = max(clean) if clean else kept[0]
     return _outcome(j_r, true_start, discovery_day,
                     *_restore_files(histories, j_r, j_r + 1, discovery_day))  # fmt: skip
+
+
+def oracle_file_restore(kept_days: Sequence[int], discovery_day: int,
+                        histories: dict[str, FileHistory]) -> dict:  # fmt: skip
+    """D71 (c): per-file oracle ceiling. Every file damaged by discovery is restored to the
+    newest of its versions held in any kept snapshot that is truly clean (version day < damage
+    day); undamaged files are untouched. Recovery fails iff a damaged file has no clean held
+    version. Work lost counts the benign versions discarded (``work_lost_selective_file_hours``)."""
+    residual, lost_file_days, restored = 0, 0, 0
+    for h in histories.values():
+        if h.damaged_day is None or h.damaged_day > discovery_day:
+            continue
+        restored += 1
+        held = {version_day_at(h, j) for j in kept_days}
+        clean = [v for v in held if 0 <= v < h.damaged_day]
+        if not clean:
+            residual += 1
+            continue
+        v = max(clean)
+        lost_file_days += sum(1 for d in h.change_days
+                              if v < d <= discovery_day and d != h.damaged_day)  # fmt: skip
+    return {"files_restored": restored, "residual_damaged_files": residual,
+            "clean_recovery": int(residual == 0),
+            "work_lost_selective_file_hours": lost_file_days * HOURS_PER_DAY}  # fmt: skip
+
+
+def restore_diagnosis(kept_days: Sequence[int], post: np.ndarray, histories: dict[str, FileHistory],
+                      true_start: int, gate: float, restore_point: int,
+                      clean_recovery: int) -> dict:  # fmt: skip
+    """D71: why verify_snap's restore point ``restore_point`` differs from j*, the newest kept
+    snapshot older than the true start. Cause labels as pre-registered (OPEN_QUESTIONS D71)."""
+    clean = [j for j in kept_days if j < true_start]
+    if not clean:
+        return {"diag_clean_held": 0, "diag_cause": "no_clean_held", "diag_false_flag_day0": 0}
+    js = max(clean)
+    day0 = 0
+    if restore_point == js:
+        cause = "picked_clean_point" if clean_recovery else "residual_outside_scope"
+    elif restore_point >= true_start:
+        cause = "missed_damage"
+    elif float(p_clean(post, [js])[0]) < gate - 1e-12:
+        cause = "gated_out"
+    else:
+        flagged = [(h, version_day_at(h, js)) for h in histories.values()
+                   if version_day_at(h, js) in h.flagged_days]  # fmt: skip
+        cause = "false_flag" if flagged else "other"
+        day0 = int(any(v == 0 for _, v in flagged))
+    return {"diag_clean_held": 1, "diag_cause": cause, "diag_false_flag_day0": day0}

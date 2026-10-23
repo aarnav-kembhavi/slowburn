@@ -55,7 +55,9 @@ from slowburn.sim.worlds import world_start
 from slowburn.store.restore import (
     HOURS_PER_DAY,
     FileHistory,
+    oracle_file_restore,
     oracle_restore,
+    restore_diagnosis,
     selective_restore,
     snapshots_scanned,
     verified_restore,
@@ -512,6 +514,11 @@ def evaluate_trace(
                 if hp.get("oracle_restore_cols"):  # D69 (ii): same rows, known rollback point
                     o = oracle_restore(kept, td, trace.histories, start)
                     r = {**r, **{f"oracle_{k}": o[k] for k in ORACLE_COLS}}
+                if hp.get("restore_diag_cols"):  # D71: per-file oracle ceiling, restore diagnosis
+                    f = oracle_file_restore(kept, td, trace.histories)
+                    r = {**r, **{f"filoracle_{k}": v for k, v in f.items()},
+                         **restore_diagnosis(kept, rpost, trace.histories, start, g_r,
+                                             r["restore_point"], r["clean_recovery"])}  # fmt: skip
                 ub = _unique_bytes(trace, kept)
                 rows.append({**common, "policy": nm, **r,
                              "snapshots_retained": len(kept), "retained_unique_bytes": ub,
