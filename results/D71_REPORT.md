@@ -269,8 +269,9 @@ bytes for those types. At rate 0 NapierOne now has fewer benign flags than synth
 
 ### 6a. Caveats on every NapierOne C2 / C3' number above (team, 2026-10-23)
 
-- Injected benign invalid csv/txt versions are never flagged on NapierOne, so the benign-rate
-  stress axis is weaker there than on synthetic bytes. The larger NapierOne effects (C3' -11.9%
+- Injected benign invalid csv/txt versions are never flagged (so the false flag stress axis is
+  weaker there). This is about benign versions only: NapierOne damage is detected (csv 0.83,
+  txt 0.94). The larger NapierOne effects (C3' -11.9%
   vs synthetic -9.0%; C2 -34.4% / -35.7% vs -27.6% / -30.2%) may partly reflect a lower effective
   false-flag rate, not only real-byte behaviour.
 - The NapierOne DEV pools are small (zip = 5 files, png 5, zlib 5, docx 13, others 14 to 15).

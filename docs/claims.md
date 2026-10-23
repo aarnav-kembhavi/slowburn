@@ -5,7 +5,7 @@ damage** (abstract chunk tokens, random-token damage, abstract detector with det
 probability q), unless marked NapierOne. See docs/data_card.md.
 
 **NapierOne check (D67 after the D71b validator fix, 2026-10-23, DEV): C1, C2 (vs default GFS /
-Tower of Hanoi configurations) and C3' hold on NapierOne bytes, provisionally.** [NapierOne caveats: (1) injected benign invalid csv/txt versions are never flagged, so the benign-rate stress axis is weaker on NapierOne than on synthetic bytes, and the larger NapierOne effects may partly reflect a lower effective false-flag rate; (2) the DEV pools are small (zip = 5 files), so NapierOne numbers are provisional until the pools are enlarged under the D75 rule.] The pre-fix verdict (C2 and C3' do not hold) is withdrawn: it came from a
+Tower of Hanoi configurations) and C3' hold on NapierOne bytes, provisionally.** [NapierOne caveats: (1) injected benign invalid csv/txt versions are never flagged (so the false flag stress axis is weaker there; damage itself is detected, csv 0.83, txt 0.94), and the larger NapierOne effects may partly reflect a lower effective false-flag rate; (2) the DEV pools are small (zip = 5 files), so NapierOne numbers are provisional until the pools are enlarged under the D75 rule.] The pre-fix verdict (C2 and C3' do not hold) is withdrawn: it came from a
 validator bug (PPMd zips marked invalid because Python zipfile cannot decode PPMd; 7-Zip reads
 them; OPEN_QUESTIONS D71b), not from real benign bytes. Pre-fix outputs kept as
 `results/*_v1`. Arms on the same machines, w 0.75, verify_snap: the
@@ -68,7 +68,7 @@ Tower of Hanoi +0.427 [+0.416, +0.439]; work lost vs GFS **-34.4% [-37.7, -30.8]
 Hanoi **-35.7% [-38.3, -32.9]**, significant in every world (vs GFS: bursty -36.6%, early
 -12.4% [-19.1, -4.9], late -44.7%, uniform -33.0%). Synthetic bytes: -27.6% [-31.0, -24.0] /
 -30.2% [-32.8, -27.5]. **C2 (vs default GFS / Tower of Hanoi configurations)
-holds on NapierOne bytes, provisionally.** [NapierOne caveats: (1) injected benign invalid csv/txt versions are never flagged, so the benign-rate stress axis is weaker on NapierOne than on synthetic bytes, and the larger NapierOne effects may partly reflect a lower effective false-flag rate; (2) the DEV pools are small (zip = 5 files), so NapierOne numbers are provisional until the pools are enlarged under the D75 rule.] (Pre-fix: vs GFS +7.9% [+3.8, +12.2],
+holds on NapierOne bytes, provisionally.** [NapierOne caveats: (1) injected benign invalid csv/txt versions are never flagged (so the false flag stress axis is weaker there; damage itself is detected, csv 0.83, txt 0.94), and the larger NapierOne effects may partly reflect a lower effective false-flag rate; (2) the DEV pools are small (zip = 5 files), so NapierOne numbers are provisional until the pools are enlarged under the D75 rule.] (Pre-fix: vs GFS +7.9% [+3.8, +12.2],
 vs Tower of Hanoi -2.3% [-5.3, +0.9]; withdrawn, D71b.)
 
 **C3'. Evidence reduces work lost by 4.7% [3.9, 5.5] at equal recovery. With a blind detector
@@ -85,7 +85,7 @@ NapierOne bytes (D67, post-D71b), SlowBurn vs prior-only: count budgets recovery
 [-0.000, +0.001], work lost **-11.9% [-13.4, -10.5]** (synthetic bytes -9.0% [-10.1, -7.9]);
 every world significant (bursty -13.5%, early -10.5%, late -11.4%, uniform -12.1%). Byte budgets:
 recovery +0.045 [+0.033, +0.057], work lost -9.7% [-11.4, -8.0] (synthetic bytes +0.086,
--16.2%). **C3' holds on NapierOne bytes, provisionally.** [NapierOne caveats: (1) injected benign invalid csv/txt versions are never flagged, so the benign-rate stress axis is weaker on NapierOne than on synthetic bytes, and the larger NapierOne effects may partly reflect a lower effective false-flag rate; (2) the DEV pools are small (zip = 5 files), so NapierOne numbers are provisional until the pools are enlarged under the D75 rule.] Pre-fix (withdrawn, D71b): count budgets +1.5% [+0.2,
+-16.2%). **C3' holds on NapierOne bytes, provisionally.** [NapierOne caveats: (1) injected benign invalid csv/txt versions are never flagged (so the false flag stress axis is weaker there; damage itself is detected, csv 0.83, txt 0.94), and the larger NapierOne effects may partly reflect a lower effective false-flag rate; (2) the DEV pools are small (zip = 5 files), so NapierOne numbers are provisional until the pools are enlarged under the D75 rule.] Pre-fix (withdrawn, D71b): count budgets +1.5% [+0.2,
 +2.8]. The pre-fix reversal was the PPMd validator bug: the two PPMd zips in the 5-file DEV zip
 pool were marked invalid, so 40% of benign zip versions were flagged and 87% of clean snapshots
 held a flagged version (post-fix 0.5%, synthetic bytes 9%); verify_snap skipped those clean
