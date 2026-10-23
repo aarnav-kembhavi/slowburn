@@ -2,8 +2,13 @@
 
 **Data (correction 2026-10-23): every number below uses synthetic benign files and synthetic
 damage** (abstract chunk tokens, random-token damage, abstract detector with detection
-probability q). NapierOne is downloaded but not yet used; no claim here rests on real file
-contents. See docs/data_card.md.
+probability q), unless marked NapierOne. See docs/data_card.md.
+
+**NapierOne check (D67, 2026-10-23, DEV, team decision): C1 (recovery) stands; C2 and C3' as
+stated do NOT hold on NapierOne bytes.** Arms on the same machines, w 0.75, verify_snap: the
+abstract q grid (the numbers below), synthetic bytes with the synthetic detector, NapierOne
+benign bytes with NapierOne damage and the detector trained on NapierOne (file flag p <= 0.01).
+Outputs: `results/dev_d67_compare/`, `results/OVERNIGHT_REPORT.md` (JOB 3).
 
 All numbers are DEV (seed 202), count budgets K in {4, 6, 8, 12}, method v2 = blind weight 0.75
 with the fixed 0.8 gate, restored with the ADOPTED restore (D64a verify_snap: every version in a
@@ -42,6 +47,11 @@ Paired SlowBurn vs GFS: -25.5% [-31.2, -18.8] / -3.0% [-9.5, +3.9] / -33.9% [-38
 -20.9% [-27.1, -12.8], pooled -23.4% [-26.8, -19.8]; vs Tower of Hanoi pooled -26.7% [-29.1,
 -24.2], every world significant (`results/dev_d64a_full/c2_vs_fixed_schedules.csv`). Reported
 as is (team decision 2026-10-22, no post hoc rescue).
+NapierOne bytes (D67): the recovery gap holds (vs GFS +0.426 [+0.408, +0.446], vs Tower of
+Hanoi +0.427 [+0.416, +0.439], count budgets) but the work-lost gap does not: vs GFS +7.9%
+[+3.8, +12.2] (SlowBurn loses MORE), vs Tower of Hanoi -2.3% [-5.3, +0.9] (not significant).
+Synthetic bytes: -27.6% [-31.0, -24.0] / -30.2% [-32.8, -27.5]. **C2 does not hold as stated on
+NapierOne bytes.**
 
 **C3'. Evidence reduces work lost by 4.7% [3.9, 5.5] at equal recovery. With a blind detector
 (q = 0), recovery is non-inferior (pre-registered, 8 of 8 units) but work lost is 0.85% [0.03,
@@ -53,6 +63,13 @@ Blind units (4 worlds, 4 budgets on the worst-case grid, D57): all within 1 poin
 and not significantly worse after Holm (largest excess 0.00625, K = 8 worst case, Holm p 0.629;
 worlds 0.00583 bursty, Holm p 0.392; `results/dev_d64a_blind_worst/d57_units.csv`). Worst case
 q = 0 work lost: +0.55% [-0.38, +1.47].
+NapierOne bytes (D67), SlowBurn vs prior-only: count budgets recovery +0.000 [+0.000, +0.000],
+work lost **+1.5% [+0.2, +2.8]** (evidence INCREASES work lost; synthetic bytes -9.0% [-10.1,
+-7.9]); by world bursty +2.4% [+0.1, +4.8], early +0.3% [-1.3, +1.9], late +0.8% [-2.2, +3.6],
+uniform +2.2% [-0.2, +4.8]. Byte budgets: recovery +0.039 [+0.027, +0.050], work lost -4.7%
+[-6.2, -3.2] (synthetic bytes +0.086, -16.2%). **C3' does not hold as stated on NapierOne bytes
+with count budgets.** Suspected cause (more false flags on real benign files) is under test
+(D71); not yet a conclusion.
 
 ## Guarantee (theory, docs/theory.md, NEEDS HUMAN REVIEW)
 

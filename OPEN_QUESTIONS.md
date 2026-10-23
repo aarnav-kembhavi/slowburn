@@ -1073,3 +1073,55 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   NOT included in the Pareto comparison: mixing machine sets would be invalid. Also written: the
   q = 0 and q = 1 panels separately. CSVs and figures in paper/generated/
   (`pareto_points.csv`, `fig_pareto_<restore>.png`).
+
+## Team decisions after the overnight run (2026-10-23)
+
+- C2 and C3' as stated do not hold on NapierOne bytes (D67); recorded in docs/claims.md with the
+  JOB 3 numbers. Recovery claims (C1) stand.
+- Bar-On et al. online checkpointing (D69: shamir_exact / shamir_rr / shamir_recursive) replaces
+  GFS / Tower of Hanoi as the main retention baseline. GFS and Tower of Hanoi stay as secondary.
+- No method changes to SlowBurn retention. No new restore method until the team has seen the
+  D71 gap table.
+
+- **D71 restore diagnostics (team list 2026-10-23, items 1-3; recorded BEFORE any code or run;
+  DEV, descriptive, report only, nothing selected or tuned).**
+  Machines: exactly the D69 full grid (dev_d69_full: seed 202, the four worlds, reps 40, delays
+  7-60, q in {1, .9, .5, .2, 0}, benign {0, .01, .05}, count budgets K in {4, 6, 8, 12}, w 0.75,
+  hard M 60). Policies: prior-only, SlowBurn, GFS, Tower of Hanoi, shamir_exact / rr / recursive,
+  toh_eqh, gfs_eqh (equal horizon only where D68 found a configuration; others at every
+  supported K). One new run, `configs/dev_d71_oracle_gap.yaml`, adds to every row:
+  1. **Oracle gap.** (a) the adopted verify_snap restore (unchanged), (b) the D69 oracle
+     SNAPSHOT restore (newest kept snapshot older than the true start; every file changed after it
+     restored). Reported per policy x q in {0, .2, .5, 1} x K, on the full grid (pooled over
+     worlds) and the worlds grid (by world): recovery and whole-system work lost under (a) and (b)
+     and the paired gap (a) - (b), recovery as a difference, work lost as a ratio, 95%
+     machine-cluster bootstrap CIs (2000 resamples, seed 0). q = .9 is run (same machines) but not
+     tabled.
+     Restore-choice diagnosis, rows where a clean snapshot was retained (some kept j < true
+     start; j* = the newest such), verify_snap's restore point j_r classified as:
+     - `picked_clean_point`: j_r = j*;
+     - `missed_damage`: j_r >= true start (a dirty snapshot verified because its damaged
+       versions were not flagged);
+     - `false_flag`: j_r < j*, j* passed the gate and was rejected by a flag; every flagged
+       version in j* is benign by construction. Sub-label whether a flagged version was the
+       file's day-0 (creation) version;
+     - `gated_out`: j_r < j* and j* failed the 0.8 gate;
+     - and separately `residual_outside_scope`: j_r clean but damaged files remain (damaged files
+       outside the restore set, i.e. unflagged and changed only before L).
+     Reported: share of all rows with j_r != j* and with failed recovery despite a held clean
+     snapshot, and the shares by cause, per policy x q (pooled K), with cluster bootstrap CIs.
+  2. **Per-file oracle ceiling.** (c) every damaged file restored from the newest version held
+     in any kept snapshot that is truly clean (version day < its damage day); undamaged files
+     untouched. Recovery = every damaged file has such a version. Work lost = benign versions
+     discarded (file-days x 24 h, the `work_lost_selective_file_hours` accounting of (a) and
+     (b)). Reported for (a), (b), (c) on the same rows; (c) is the upper bound of any per-file
+     restore over that retention. Whole-system work lost is not defined for (c).
+  3. **NapierOne false-flag rate.** Re-simulate exactly the D67 eval machines of both arms
+     (dev_d67_full_synthetic / dev_d67_full_napierone, same tasks and seeds) and count, for every
+     clean file version written (day 0 creation and later benign rewrites separately), whether
+     the detector flagged it (file p <= 0.01). Report the benign flag rate per arm x file type x
+     benign_invalid_rate, the per-machine distribution (median, 90th percentile, share of
+     machines with >= 1 flagged day-0 version), and the share of clean snapshots (j < true
+     start, j >= 14) holding >= 1 flagged version, which is what verify_snap rejects. This tests
+     the JOB 3 explanation (more false flags on real bytes); it is not tuned on.
+  Outputs: results/dev_d71_*; tables in results/D71_REPORT.md.
