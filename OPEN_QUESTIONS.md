@@ -1462,3 +1462,50 @@ attacker). Brackets: machine-cluster bootstrap CIs on the evaluation half.
 
 **No adoption criteria** (evaluation only). Every defence's worst case is reported, including
 SlowBurn's and FLEET's, whichever way it goes.
+
+### D73 amendment (team decision 2026-10-23, before any D73 run)
+
+K_avg = 4 cells are reported as "no reallocation room (floor 3 of 4)", not as a result for or
+against FLEET. (Measured fact for the record: at K_avg = 4 the floor is 3, leaving N extra slots
+in the whole fleet, one per machine on average.) The pre-registered adoption criteria apply to
+the K_avg in {6, 8} cells only: criterion 1 in every (N, K_avg in {6, 8}, f, m) cell; criterion 2
+pooled over K_avg in {6, 8}; criterion 3 over the 9 (f, m) cells pooled over N and K_avg in
+{6, 8}. Primary restore: A (verify_snap), unless the D72 report adopts method C, in which case C.
+
+### D75 pool enlargement rule (team decision 2026-10-23, before any download)
+
+Purpose: enlarge the NapierOne simulation content pools (DEV and the fresh TEST pool) before the
+fresh test set. The detector stays exactly as it is.
+- Types short of unused files: txt, csv, bin, docx, mp3, zlib (NapierOne-tiny has exactly 100
+  files each, all already in the detector train / calibration / held-out sets). Source: the next
+  larger official NapierOne release, the per-subset "small" archives (1,000 files per subset) on
+  the NapierOne S3 bucket (s3://napierone.com, https://s3.eu-north-1.amazonaws.com/napierone.com,
+  registry.opendata.aws/napierone), keys NapierOne/Data/<T>/<T>-small.zip with the published
+  NapierOne/Data/<T>/<T>-small_zip_hashes.txt, for T in TXT, CSV, BIN, DOCX, MP3, ZLIB (the same
+  subsets the simulator maps today, D67 TYPE_SUBSETS). Listed sizes on 2026-10-23: TXT 1.018 GB,
+  CSV 0.046, BIN 0.200, DOCX 0.343, MP3 0.879, ZLIB 4.074 GB. The combined NapierOne-small.zip
+  (152.5 GB) is not used. The exact key, byte count, published SHA-256 and our SHA-256 of every
+  archive are recorded in data/manifest and the data card.
+- zip, png, jpg: no download; their existing unused NapierOne-tiny files (not in any detector
+  split) are the source.
+- Per type: from the candidate files of size <= 1 MiB (the simulator's limit), drop every file
+  whose content SHA-256 equals that of any file already in the detector training, calibration or
+  held-out sets (all 100 per type of the tiny set, all subsets of the type), and drop exact
+  duplicates within the candidates (keep the lexicographically first member name); then draw a
+  seeded random sample of up to 200 files (permutation from child_rng(202, "d75_pool", type),
+  first 200 in that order). The sample is split in half by that order: first half added to the
+  simulation DEV pool, second half to the simulation TEST pool (rounded so DEV gets the extra
+  file). Files per type, before and after, are reported.
+- New files go only to the simulation evaluation pools, never to detector training or
+  calibration. The old pools stay reproducible: configs name the pool version (v1 = the D67
+  pools, v2 = enlarged).
+- Disk: one archive at a time: check free space and the data cap first, download, verify bytes
+  and the published SHA-256, extract only the sampled members (untrusted-archive rules of the
+  data card), delete the archive before the next one. 45 GB floor and 100 GB data cap at all
+  times. If a single archive cannot fit within floor and cap, stop and report sizes; the rule is
+  not changed.
+- Afterwards: rerun the NapierOne arms of D67 and D72 on the v2 pools (same seeds, configs
+  otherwise unchanged) and report v1 pools vs v2 pools side by side.
+- Order: after the D72 report, D72-C2R and D73; the download may overlap D73 only if disk and the
+  one-heavy-job rule allow (a download is not a heavy compute job; the extraction and hashing are
+  short).

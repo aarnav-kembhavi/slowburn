@@ -72,7 +72,11 @@ def paired(d: pd.DataFrame, base: str, X: str) -> pd.DataFrame:
     return m
 
 
+NO_ROOM = 4  # D73 amendment: K_avg = 4 is "no reallocation room (floor 3 of 4)", not scored
+
+
 def criteria(d: pd.DataFrame, primary: str) -> pd.DataFrame:
+    d = d[d.K_avg != NO_ROOM]
     out = []
     for arm in sorted(d.arm.unique()):
         for base in ("a_equal", "b_churn"):
@@ -114,6 +118,14 @@ def main(primary: str = "A"):
         [c for c in d if c.startswith(("fleet_clean_", "work_lost_", "residual_", "slots_"))]
     ].mean()
     summ.reset_index().to_csv(OUT / "summary.csv", index=False)
+    k4 = (
+        d[d.K_avg == NO_ROOM]
+        .groupby(["arm", "method"])[[f"fleet_clean_{primary}", f"work_lost_file_hours_{primary}"]]
+        .mean()
+    )
+    k4.reset_index().to_csv(OUT / "k4_no_reallocation_room.csv", index=False)
+    print("== K_avg = 4: no reallocation room (floor 3 of 4); descriptive only")
+    print(k4.round(3).to_string())
     c = criteria(d, primary)
     c.to_csv(OUT / "criteria.csv", index=False)
     print(c.round(4).to_string(index=False))
