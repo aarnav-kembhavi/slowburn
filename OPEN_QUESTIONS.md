@@ -1161,3 +1161,70 @@ Fix (spec):
   (NapierOne flag rates). The synthetic arm is unaffected (synthetic zips are deflate) and is
   not rerun.
 - One job at a time; disk floor rules as before. D72 is not run until this is reported.
+
+### D72: per-file restore under noisy detection (team spec 2026-10-23; registered before code; not run until D71b is reported)
+
+DEV only, no test set, no reselection of w, gate, M, budgets or flag alpha. Retention is
+unchanged (no method change to SlowBurn retention).
+
+Restore methods, all on the same retained snapshots and the same write-time detector draws
+(D64a: each version is flagged or not once, when written), for every retention policy:
+SlowBurn, prior-only, Bar-On recursive, Bar-On round robin, GFS, Tower of Hanoi.
+- A. verify_snap snapshot restore (current, D64a).
+- B. Independent per-file walk-back (industry baseline, as in Druva US 11755420): each file is
+  restored from its newest retained version that is unflagged; a file whose live version is
+  unflagged is left as is; if no retained version is unflagged, the oldest retained version.
+- C. Monotone per-file restore. Per file, the versions are clean ... clean, damaged ... damaged
+  (threat model: a damaged file is never benignly rewritten). Bayesian changepoint over the
+  file's versions (retained versions plus the live version, oldest first, v_1 < ... < v_n),
+  changepoint tau in {1, ..., n} (first damaged version) or none:
+  - P(flag | damaged) = q, q ~ Beta(1, 1), integrated out (Beta-Binomial over the damaged
+    segment);
+  - P(flag | clean) = b_f, b_f ~ Beta(a_t, b_t) for the file's type t, integrated out over
+    the clean segment. (a_t, b_t): the D31 fleet-pooled prior (`fit_pooled_null_prior`, same
+    attack-free calibration machines, same method of moments and cap) fitted per type from the
+    per-type flagged and changed file counts. Mean = the pooled per-type benign rate, strength
+    = the pooled concentration of that fit. No new tuned parameter.
+  - onset prior: the existing restore-time attack-start posterior p(S) (the one the gate and
+    verify_snap already use; "not started" included). Given S, tau is uniform over the file's
+    versions written on or after S plus "none" (onset cannot precede the start); p(tau) is this
+    mixed over p(S).
+  - P(v_j clean) = P(tau > j | flags). The file is restored from its newest version with
+    P(clean) >= 0.95 (alpha 0.05, as in D60); the live version counts, so a file whose live
+    version passes is left as is. If none passes, the oldest retained version.
+- D. Oracle per file (ceiling, D71 (c)). E. Oracle snapshot (D71 (b)).
+
+Metrics (fixed now): clean recovery (every file clean after the restore); residual damaged
+files; per-file work lost in file-hours, headline (benign versions discarded, the
+`work_lost_selective_file_hours` accounting: file-days between the restored version and the
+newest clean version x 24 h); whole-system work lost, secondary (for A and E as now; for B, C,
+D: (discovery day - oldest restored version day) x 24 h over the restored files, 0 if none).
+
+Grids (same machines as before, count budgets): full (dev_d69_full machines), worlds
+(dev_d64a_blind_worlds machines), worst case (dev_d69_worst machines); q in {0, 0.2, 0.5, 1}; K in
+{4, 6, 8, 12}. Bytes: the D67 synthetic-bytes and NapierOne-bytes arms (trained detectors, after
+D71b), every policy above.
+
+Adoption criteria for C. All must hold against A and against B, paired, machine-cluster
+bootstrap 95% CIs (world x true start x rep, 2000 resamples, seed 0), in each scored unit:
+abstract-detector grids at q in {0.2, 0.5, 1} (each q separately) and the two byte arms (no q;
+the trained detector):
+  a. recovery not lower by more than 0.01 in any world (lower CI bound >= -0.01);
+  b. residual damaged files not higher (upper CI bound of the mean difference <= 0);
+  c. per-file work lost lower (point estimate) pooled and in at least 3 of 4 worlds.
+q = 0 is reported, not scored. Also reported: the share of the oracle gap (A minus D) closed by
+B and by C, for per-file work lost and for recovery, overall and separately for zip and non-zip
+files. If C fails, it is reported as failed; no second iteration without a new
+pre-registration.
+
+Points Claude Code fixed where the team text left them open (team to confirm before the run):
+1. Onset prior: uniform over admissible versions given S, mixed over p(S). The alternative
+   (onset at the file's first version after S) would make every post-start version near
+   certainly dirty and reduce C to a snapshot restore.
+2. Evidence: flags of the retained and live versions only (as written: "all retained versions");
+   flags of versions no snapshot kept are not used.
+3. Per-type prior: no per-type pooled count exists in the code; the D31 fit is per machine and
+   pooled over types. It is refitted per type on the same calibration machines.
+4. Scoring units "on synthetic and on NapierOne, q in {0.2, 0.5, 1}": the byte arms have no q, so
+   they are scored as one unit each; the abstract grids carry the q split.
+5. Whole-system work lost for per-file methods as defined above.
