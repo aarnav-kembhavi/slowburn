@@ -9,6 +9,9 @@ stated do NOT hold on NapierOne bytes.** Arms on the same machines, w 0.75, veri
 abstract q grid (the numbers below), synthetic bytes with the synthetic detector, NapierOne
 benign bytes with NapierOne damage and the detector trained on NapierOne (file flag p <= 0.01).
 Outputs: `results/dev_d67_compare/`, `results/OVERNIGHT_REPORT.md` (JOB 3).
+**Caveat on every NapierOne recovery number (D71 item 3):** the detector flags only 0.746 of
+truly damaged NapierOne versions (bin 0.40, jpg 0.61, csv 0.69, txt 0.72; synthetic 1.000).
+Missed damage is the only recovery failure mode when a clean snapshot is held (D71 item 1).
 
 All numbers are DEV (seed 202), count budgets K in {4, 6, 8, 12}, method v2 = blind weight 0.75
 with the fixed 0.8 gate, restored with the ADOPTED restore (D64a verify_snap: every version in a
@@ -68,8 +71,14 @@ work lost **+1.5% [+0.2, +2.8]** (evidence INCREASES work lost; synthetic bytes 
 -7.9]); by world bursty +2.4% [+0.1, +4.8], early +0.3% [-1.3, +1.9], late +0.8% [-2.2, +3.6],
 uniform +2.2% [-0.2, +4.8]. Byte budgets: recovery +0.039 [+0.027, +0.050], work lost -4.7%
 [-6.2, -3.2] (synthetic bytes +0.086, -16.2%). **C3' does not hold as stated on NapierOne bytes
-with count budgets.** Suspected cause (more false flags on real benign files) is under test
-(D71); not yet a conclusion.
+with count budgets.** Cause (D71 item 3, `results/D71_REPORT.md` section 3): benign zip false
+flags. Benign NapierOne zip versions are flagged at 0.397 at injected benign rate 0 and are 99%
+of all benign NapierOne flags at that rate (every other NapierOne type 0.0004 pooled, at or below
+synthetic); 87% of clean NapierOne snapshots hold a flagged benign version vs 9% on synthetic
+bytes, and a flagged clean snapshot is skipped by verify_snap, which costs work lost, not
+recovery (D71 item 1). The same mechanism drives the C2 work-lost reversal. Evidence is
+descriptive (no rerun with zip excluded); a zip ground-truth check (validator bug vs detector
+property) is in progress and may change this paragraph.
 
 ## Guarantee (theory, docs/theory.md, NEEDS HUMAN REVIEW)
 
