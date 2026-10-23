@@ -1228,3 +1228,38 @@ Points Claude Code fixed where the team text left them open (team to confirm bef
 4. Scoring units "on synthetic and on NapierOne, q in {0.2, 0.5, 1}": the byte arms have no q, so
    they are scored as one unit each; the abstract grids carry the q split.
 5. Whole-system work lost for per-file methods as defined above.
+
+### D71b amendment (team, 2026-10-23)
+
+Accepted as a validator bug (PPMd; the external tool decides). The NapierOne detector rebuild
+from the unchanged config and seed (configs/detector_napierone.yaml, seed 11, flag alpha 0.01
+unchanged) is part of D71b. Old detector: results/detector_napierone_v1. After the reruns:
+old vs new for the D67 NapierOne arm and D71 item 3, then the C2 / C3' NapierOne verdict in
+docs/claims.md is updated with the new numbers whichever way they go, and the zip-cause
+paragraph is reworded or removed.
+
+Known limitations recorded (no change now): NapierOne DEV content pools are small (files
+<= 1 MiB per type: txt 15, csv 15, bin 15, docx 13, zip 5, png 5, jpg 14, mp3 15, zlib 5);
+before the fresh test set is generated the pools are enlarged per type under a seeded,
+stratified rule written here first. CSV / TXT strict UTF-8 failures (0.158 / 0.042 of benign
+detector-data files) are not changed; they produce no benign flags at injected rate 0
+(D71 item 3); rechecked after the pools are enlarged.
+
+### D72 amendment (team confirmation 2026-10-23, before any D72 code or run)
+
+The five open points are confirmed, with point 1 stated exactly:
+1. Onset prior. For a given attack start S, let n_S be the number of the file's versions
+   (retained plus live) written on or after day S. The changepoint has n_S + 1 outcomes: the
+   first damaged version is one of those n_S versions, or "no damage"; each outcome has mass
+   1 / (n_S + 1). Versions written before S cannot be damaged. The prior is this mixed over the
+   restore-time attack-start posterior p(S); "not started" gives "no damage" mass 1.
+2. Evidence: flags of the retained versions plus the live version only.
+3. Per-type benign prior refit on the attack-free calibration machines. Checked in the code:
+   these are RetentionTask family "vault_calib" with attack_start None, and the machine seed key
+   (registry.machine_key) includes the family, so they share no random stream with the "eval"
+   machines that are scored. They do draw file contents from the same NapierOne DEV content pool
+   (byte arms) as the eval machines; the machines are disjoint, the pool is not.
+4. Each real-byte arm is scored as one unit (no q).
+5. Whole-system work lost for per-file restores = (discovery day - oldest restored version day)
+   x 24 h, secondary.
+D72 runs after the D71b old vs new report, on the post-fix detector.
