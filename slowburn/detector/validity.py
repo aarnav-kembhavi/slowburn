@@ -3,7 +3,8 @@
 Runs on the complete file, never on a single chunk: a chunk from the middle of a deflate stream
 cannot be decoded on its own. Checks use each format's own integrity mechanisms:
 
-    zip, docx  every member's CRC-32 (zipfile.testzip), docx also needs word/document.xml
+    zip, docx  every member's CRC-32 (zipfile; PPMd members, which zipfile cannot decode,
+               via pyppmd, D71b), docx also needs word/document.xml
     png        signature, every chunk's CRC-32, IHDR first, IEND last, IDAT inflates
     jpg        marker structure, and in entropy-coded data every 0xFF is followed by a
                legal byte (0x00 stuffing, RST0-7 or EOI); must end with EOI
@@ -30,6 +31,8 @@ import struct
 import zipfile
 import zlib
 
+import pyppmd
+
 VALID, INVALID, NOT_APPLICABLE = 1.0, 0.0, -1.0
 CHECKED_TYPES = frozenset({"zip", "docx", "png", "jpg", "mp3", "zlib", "lzma", "txt", "csv"})
 
@@ -44,14 +47,50 @@ def file_validity(data: bytes, file_type: str) -> float:
         return INVALID
 
 
+ZIP_PPMD = 98  # APPNOTE compression method 98: PPMd version I, rev 1
+
+
+def _zip_members_ok(zf: zipfile.ZipFile, data: bytes) -> bool:
+    """Every member decodes and matches its CRC-32. zipfile raises NotImplementedError on PPMd
+    members, which 7-Zip and other standard tools read, so those are decoded here (D71b)."""
+    for info in zf.infolist():
+        if info.compress_type == ZIP_PPMD:
+            if not _ppmd_member_ok(data, info):
+                return False
+        else:
+            with zf.open(info) as fh:  # reading to the end checks the CRC-32 (BadZipFile)
+                while fh.read(1 << 20):
+                    pass
+    return True
+
+
+def _ppmd_member_ok(data: bytes, info: zipfile.ZipInfo) -> bool:
+    if info.flag_bits & 0x1:  # encrypted: no password, as zipfile would refuse it
+        return False
+    off = info.header_offset
+    if data[off : off + 4] != b"PK":
+        return False
+    name_len, extra_len = struct.unpack("<HH", data[off + 26 : off + 30])
+    start = off + 30 + name_len + extra_len
+    raw = data[start : start + info.compress_size]
+    if len(raw) != info.compress_size or len(raw) < 2:
+        return False
+    (props,) = struct.unpack("<H", raw[:2])  # order - 1, memory MiB - 1, restore method
+    order, mem_mib, restore = (props & 0xF) + 1, ((props >> 4) & 0xFF) + 1, props >> 12
+    out = pyppmd.Ppmd8Decoder(order, mem_mib << 20, restore_method=restore).decode(
+        raw[2:], info.file_size
+    )
+    return len(out) == info.file_size and zlib.crc32(out) == info.CRC
+
+
 def _zip_ok(data: bytes) -> bool:
     with zipfile.ZipFile(io.BytesIO(data)) as zf:
-        return zf.testzip() is None
+        return _zip_members_ok(zf, data)
 
 
 def _docx_ok(data: bytes) -> bool:
     with zipfile.ZipFile(io.BytesIO(data)) as zf:
-        if zf.testzip() is not None:
+        if not _zip_members_ok(zf, data):
             return False
         return zf.read("word/document.xml").lstrip().startswith(b"<?xml")
 

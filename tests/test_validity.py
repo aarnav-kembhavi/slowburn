@@ -96,3 +96,49 @@ def test_whole_chunk_damage_is_caught(ftype):
 def test_text_damage_is_caught():
     hits = [file_validity(_damaged("txt", "striped", 0.05, s), "txt") == 0.0 for s in range(10)]
     assert all(hits)
+
+
+def _ppmd_zip(payload: bytes, name: bytes = b"a.txt") -> bytes:
+    """A one-member zip with compression method 98 (PPMd I rev 1), which zipfile cannot write."""
+    import struct
+
+    import pyppmd
+
+    order, mem_mib, restore = 6, 16, 0
+    enc = pyppmd.Ppmd8Encoder(order, mem_mib << 20, restore_method=restore)
+    body = struct.pack("<H", (order - 1) | ((mem_mib - 1) << 4) | (restore << 12))
+    body += enc.encode(payload) + enc.flush(endmark=False)
+    crc, n = zlib.crc32(payload), len(payload)
+    local = struct.pack("<IHHHHHIIIHH", 0x04034B50, 63, 0, 98, 0, 0, crc, len(body), n,
+                        len(name), 0) + name  # fmt: skip
+    central = struct.pack("<IHHHHHHIIIHHHHHII", 0x02014B50, 63, 63, 0, 98, 0, 0, crc,
+                          len(body), n, len(name), 0, 0, 0, 0, 0, 0) + name  # fmt: skip
+    cd_off = len(local) + len(body)
+    end = struct.pack("<IHHHHIIH", 0x06054B50, 0, 0, 1, 1, len(central), cd_off, 0)
+    return local + body + central + end
+
+
+def test_ppmd_zip_members_are_checked_not_rejected():
+    """D71b: zipfile raises NotImplementedError on PPMd members; 7-Zip reads them. A valid PPMd
+    zip is valid, and a flipped byte in the member data is caught by the CRC-32."""
+    payload = b"benign text, repeated for the model. " * 200
+    data = _ppmd_zip(payload)
+    with zipfile.ZipFile(io.BytesIO(data)) as zf, pytest.raises(NotImplementedError):
+        zf.testzip()
+    assert file_validity(data, "zip") == 1.0
+    bad = bytearray(data)
+    bad[30 + len(b"a.txt") + 40] ^= 0xFF
+    assert file_validity(bytes(bad), "zip") == 0.0
+
+
+def test_napierone_dev_ppmd_zips_are_valid():
+    from pathlib import Path
+
+    from slowburn.detector.napierone import ContentPool, read_benign
+
+    if not Path("data/napierone/benign/ZIP-PPMD-tiny.zip").exists():
+        pytest.skip("NapierOne data not present")
+    pool = ContentPool("data/napierone")
+    ppmd = [f for f in pool.files["zip"] if f.subset == "ZIP-PPMD"]
+    assert len(ppmd) == 2
+    assert all(file_validity(read_benign(pool.root, f), "zip") == 1.0 for f in ppmd)
