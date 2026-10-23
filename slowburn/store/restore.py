@@ -390,3 +390,149 @@ def restore_diagnosis(kept_days: Sequence[int], post: np.ndarray, histories: dic
         cause = "false_flag" if flagged else "other"
         day0 = int(any(v == 0 for _, v in flagged))
     return {"diag_clean_held": 1, "diag_cause": cause, "diag_false_flag_day0": day0}
+
+
+# ---- D72: per-file restore under noisy detection --------------------------------------------
+
+
+def held_versions(h: FileHistory, kept_days: Sequence[int], discovery_day: int) -> list[int]:
+    """The file's versions a restore can choose from: those held in kept snapshots plus the live
+    version at discovery, oldest first."""
+    vs = {version_day_at(h, j) for j in kept_days if j <= discovery_day}
+    vs.add(version_day_at(h, discovery_day))
+    return sorted(v for v in vs if v >= 0)
+
+
+def snapshot_choice(histories: dict[str, FileHistory], j_r: int, s_sel: int, discovery_day: int,
+                    select: bool = False) -> dict[str, int]:  # fmt: skip
+    """Per-file view of a snapshot restore (``_restore_files``): file -> restored version day,
+    for the files the restore touches."""
+    out = {}
+    for fid, h in histories.items():
+        cur = version_day_at(h, discovery_day)
+        if any(d >= s_sel for d in h.change_days if d <= discovery_day) or (
+            select and cur > j_r and write_flag(fid, h, cur)
+        ):
+            out[fid] = version_day_at(h, j_r)
+    return out
+
+
+def walkback_file_choice(kept_days: Sequence[int], discovery_day: int,
+                         histories: dict[str, FileHistory]) -> dict[str, int]:  # fmt: skip
+    """D72 B: each file from its newest held unflagged version (the live version counts, so a
+    file whose live version is unflagged is left as is); the oldest held version if all are
+    flagged."""
+    out = {}
+    for fid, h in histories.items():
+        vs = held_versions(h, kept_days, discovery_day)
+        clean = [v for v in vs if v not in h.flagged_days]
+        v = max(clean) if clean else vs[0]
+        if v != vs[-1]:
+            out[fid] = v
+    return out
+
+
+def _seq_betaln(k: np.ndarray, m: np.ndarray, a: float, b: float) -> np.ndarray:
+    """log P(a given 0/1 sequence with k ones in m draws), rate ~ Beta(a, b) integrated out."""
+    from scipy.special import betaln
+
+    return betaln(a + k, b + m - k) - betaln(a, b)
+
+
+def changepoint_clean_probs(flags: Sequence[int], days: Sequence[int], start_cdf, a: float,
+                            b: float) -> np.ndarray:  # fmt: skip
+    """D72 C: P(version i is clean | flags) for one file's versions (oldest first).
+
+    Monotone changepoint tau (first damaged version) in {1..n} or none. Clean segment: flag rate
+    b_f ~ Beta(a, b); damaged segment: q ~ Beta(1, 1); both integrated out. Onset prior (D72
+    amendment): given start S, tau is uniform over the n_S versions written on or after S plus
+    "none" (mass 1 / (n_S + 1) each), mixed over P(S); ``start_cdf(d)`` = P(S <= d), with
+    "not started" as the remaining mass."""
+    x = np.asarray(flags, float)
+    n = len(x)
+    F = np.array([0.0] + [float(start_cdf(d)) for d in days])
+    m = np.append(np.diff(F), 1.0 - F[-1])  # m[k-1] = P(first admissible version is k), k=1..n+1
+    w = m / (n - np.arange(1, n + 2) + 2)  # each admissible outcome's share
+    cw = np.cumsum(w)
+    prior = np.append(cw[:n], cw[-1])  # tau = 1..n, then none
+    cs = np.concatenate([[0.0], np.cumsum(x)])
+    i = np.arange(1, n + 2)  # tau; n + 1 = none
+    k_c, m_c = cs[i - 1], i - 1.0
+    k_d, m_d = cs[n] - cs[i - 1], n - (i - 1.0)
+    ll = _seq_betaln(k_c, m_c, a, b) + _seq_betaln(k_d, m_d, 1.0, 1.0)
+    with np.errstate(divide="ignore"):
+        lp = np.log(prior) + ll
+    lp -= lp.max()
+    post = np.exp(lp)
+    post /= post.sum()
+    # version j (1-based) is clean iff tau > j
+    return np.array([post[j:].sum() for j in range(1, n + 1)])
+
+
+def changepoint_file_choice(kept_days: Sequence[int], post: np.ndarray, discovery_day: int,
+                            histories: dict[str, FileHistory], file_types: dict[str, str],
+                            type_priors: dict[str, tuple],
+                            alpha: float = 0.05) -> dict[str, int]:  # fmt: skip
+    """D72 C: each file from its newest held version with P(clean) >= 1 - alpha (the live
+    version counts); the oldest held version if none passes. ``post`` is the restore-time start
+    posterior over days 0..t plus a final "not started" entry."""
+    p = np.asarray(post, float)
+    p = p / p.sum()
+    cdf = np.cumsum(p[:-1])
+
+    def start_cdf(d: int) -> float:
+        return float(cdf[min(d, len(cdf) - 1)]) if d >= 0 else 0.0
+
+    out = {}
+    for fid, h in histories.items():
+        vs = held_versions(h, kept_days, discovery_day)
+        a, b = type_priors[file_types[fid]]
+        pc = changepoint_clean_probs([int(v in h.flagged_days) for v in vs], vs, start_cdf, a, b)
+        ok = [v for v, c in zip(vs, pc, strict=True) if c >= 1 - alpha - 1e-12]
+        v = max(ok) if ok else vs[0]
+        if v != vs[-1]:
+            out[fid] = v
+    return out
+
+
+def oracle_file_choice(kept_days: Sequence[int], discovery_day: int,
+                       histories: dict[str, FileHistory]) -> dict[str, int]:  # fmt: skip
+    """D72 D (= D71 (c)): every damaged file to its newest truly clean held version; a damaged
+    file without one is left (and stays damaged)."""
+    out = {}
+    for fid, h in histories.items():
+        if h.damaged_day is None or h.damaged_day > discovery_day:
+            continue
+        clean = [v for v in held_versions(h, kept_days, discovery_day) if v < h.damaged_day]
+        if clean:
+            out[fid] = max(clean)
+    return out
+
+
+def per_file_outcome(choice: dict[str, int], histories: dict[str, FileHistory],
+                     discovery_day: int, file_types: dict[str, str]) -> dict:  # fmt: skip
+    """D72 metrics of a per-file restore ``choice`` (file -> restored version day; other files
+    untouched): residual damaged files, clean recovery, per-file work lost (benign versions
+    discarded x 24 h), whole-system work lost ((discovery - oldest restored version) x 24 h, 0 if
+    nothing is restored), and the zip / non-zip split of residuals and per-file work lost."""
+    res = {"zip": 0, "nonzip": 0}
+    lost = {"zip": 0, "nonzip": 0}
+    for fid, h in histories.items():
+        g = "zip" if file_types.get(fid) == "zip" else "nonzip"
+        if fid in choice:
+            v = choice[fid]
+            dirty = h.damaged_day is not None and h.damaged_day <= v
+            lost[g] += sum(1 for d in h.change_days
+                           if v < d <= discovery_day and d != h.damaged_day)  # fmt: skip
+        else:
+            dirty = h.damaged_day is not None and h.damaged_day <= discovery_day
+        res[g] += int(dirty)
+    residual = res["zip"] + res["nonzip"]
+    return {"files_restored": len(choice), "residual_damaged_files": residual,
+            "clean_recovery": int(residual == 0),
+            "work_lost_file_hours": (lost["zip"] + lost["nonzip"]) * HOURS_PER_DAY,
+            "work_lost_whole_hours": ((discovery_day - min(choice.values())) * HOURS_PER_DAY
+                                      if choice else 0),
+            "residual_zip": res["zip"], "residual_nonzip": res["nonzip"],
+            "work_lost_file_hours_zip": lost["zip"] * HOURS_PER_DAY,
+            "work_lost_file_hours_nonzip": lost["nonzip"] * HOURS_PER_DAY}  # fmt: skip

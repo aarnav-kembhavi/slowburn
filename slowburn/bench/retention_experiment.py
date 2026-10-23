@@ -14,7 +14,7 @@ selective restore and record metrics.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 
 import numpy as np
@@ -55,12 +55,17 @@ from slowburn.sim.worlds import world_start
 from slowburn.store.restore import (
     HOURS_PER_DAY,
     FileHistory,
+    changepoint_file_choice,
+    oracle_file_choice,
     oracle_file_restore,
     oracle_restore,
+    per_file_outcome,
     restore_diagnosis,
     selective_restore,
+    snapshot_choice,
     snapshots_scanned,
     verified_restore,
+    walkback_file_choice,
     walkback_restore,
 )
 from slowburn.utils.config import resolve_path
@@ -121,6 +126,7 @@ class MachineTrace:
     histories: dict[str, FileHistory]
     writes: list[list[Write]]  # per day
     chunk_size: int
+    file_types: dict[str, str] = field(default_factory=dict)  # file -> declared type (D72)
 
 
 def trace_days(cfg: dict, start: int | None) -> int:
@@ -202,7 +208,9 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
     histories = {f: FileHistory(tuple(d), scen.damaged_on.get(f),
                                 frozenset(flagged_days.get(f, ())))
                  for f, d in change_days.items()}  # fmt: skip
-    return MachineTrace(start, n_days, snapshots, obs, histories, writes, scen.cfg.chunk_size)
+    return MachineTrace(
+        start, n_days, snapshots, obs, histories, writes, scen.cfg.chunk_size, dict(scen.file_types)
+    )
 
 
 @lru_cache(maxsize=4)
@@ -264,6 +272,29 @@ def make_policies(hp: dict, vault_threshold: float) -> dict:
         ),  # fmt: skip
         "slowburn_symmetric": PosteriorDP(None, gate=gate, backbone=bb, name="slowburn_symmetric"),
     }
+
+
+def _per_file_cols(kept, rpost, td: int, trace: MachineTrace, start: int, r: dict,
+                   old_flags: str, p: dict, alpha: float) -> dict:  # fmt: skip
+    """D72: per-file metrics of restore methods A (the verify_snap restore in ``r``), B (per-file
+    walk-back), C (monotone changepoint), D (per-file oracle), E (oracle snapshot)."""
+    if old_flags != "verify_snap" or "type_null_priors" not in p:
+        raise ValueError("D72 columns need verify_snap and the per-type null priors")
+    h, ft = trace.histories, trace.file_types
+    j_a = r["restore_point"]
+    clean = [j for j in kept if j < start]
+    j_e = max(clean) if clean else min(kept)
+    choices = {
+        "A": snapshot_choice(h, j_a, max(j_a + 1, r["estimated_start"]), td, select=True),
+        "B": walkback_file_choice(kept, td, h),
+        "C": changepoint_file_choice(kept, rpost, td, h, ft, p["type_null_priors"], alpha),
+        "D": oracle_file_choice(kept, td, h),
+        "E": snapshot_choice(h, j_e, j_e + 1, td),
+    }
+    out = {}
+    for m, c in choices.items():
+        out |= {f"pf{m}_{k}": v for k, v in per_file_outcome(c, h, td, ft).items()}
+    return out
 
 
 def _unique_bytes(trace: MachineTrace, days) -> int:
@@ -450,7 +481,8 @@ def evaluate_trace(
     base = {
         k: v
         for k, v in p.items()
-        if k not in ("amoeba_weights", "null_prior", "budget", "byte_budget_mult")
+        if k
+        not in ("amoeba_weights", "null_prior", "budget", "byte_budget_mult", "type_null_priors")
     }
     hp_cols = {"hp_p_attack_within_window": hp["p_attack_within_window"],
                "hp_penalty": hp["penalty"], "hp_gate": gate,
@@ -519,6 +551,21 @@ def evaluate_trace(
                     r = {**r, **{f"filoracle_{k}": v for k, v in f.items()},
                          **restore_diagnosis(kept, rpost, trace.histories, start, g_r,
                                              r["restore_point"], r["clean_recovery"])}  # fmt: skip
+                if hp.get("per_file_cols"):  # D72: restore methods A-E on the same rows
+                    r = {
+                        **r,
+                        **_per_file_cols(
+                            kept,
+                            rpost,
+                            td,
+                            trace,
+                            start,
+                            r,
+                            old_flags,
+                            p,
+                            float(hp["per_file_cols"]["alpha"]),
+                        ),
+                    }
                 ub = _unique_bytes(trace, kept)
                 rows.append({**common, "policy": nm, **r,
                              "snapshots_retained": len(kept), "retained_unique_bytes": ub,
@@ -566,9 +613,13 @@ def attack_free_calibration(cfg: dict, setting: dict, split: str, n_machines: in
       changed file totals after warm-up;
     * for each K in ``byte_ks``, the byte-budget multiplier (D46): the median, over machines and
       days after warm-up, of the unique bytes of the newest K snapshots divided by the machine's
-      day-0 snapshot size (the keep-last-K footprint)."""
+      day-0 snapshot size (the keep-last-K footprint);
+    * per file type, the same D31 fit on that type's flagged and written versions after warm-up
+      (D72 per-type benign prior; same machines, same method)."""
     warmup = int(cfg["warmup_days"])
     peaks, ks, ns = [], [], []
+    tk: dict[str, list[int]] = {}
+    tn: dict[str, list[int]] = {}
     foot: dict[int, list[float]] = {int(K): [] for K in byte_ks}
     for r in range(n_machines):
         clean = {**setting, "attack_start": None}
@@ -577,6 +628,16 @@ def attack_free_calibration(cfg: dict, setting: dict, split: str, n_machines: in
         peaks.append(max([o.value for o in after], default=0.0))
         ks.append(sum(o.k for o in after))
         ns.append(sum(o.n for o in after))
+        mk: dict[str, int] = {}
+        mn: dict[str, int] = {}
+        for fid, h in trace.histories.items():
+            ft = trace.file_types[fid]
+            vs = [d for d in h.change_days if d >= warmup]
+            mn[ft] = mn.get(ft, 0) + len(vs)
+            mk[ft] = mk.get(ft, 0) + sum(d in h.flagged_days for d in vs)
+        for ft in mn:
+            tk.setdefault(ft, []).append(mk[ft])
+            tn.setdefault(ft, []).append(mn[ft])
         if foot:
             idx = ByteIndex(trace.snapshots, trace.chunk_size)
             for K in foot:
@@ -584,7 +645,8 @@ def attack_free_calibration(cfg: dict, setting: dict, split: str, n_machines: in
                             for t in range(warmup + K - 1, trace.n_days)]  # fmt: skip
     thr = float(np.quantile(peaks, 1 - fa, method="higher"))
     mult = {K: float(np.median(v)) for K, v in foot.items()}
-    return thr, fit_pooled_null_prior(np.array(ks), np.array(ns)), mult
+    tprior = {ft: fit_pooled_null_prior(np.array(tk[ft]), np.array(tn[ft])) for ft in tk}
+    return thr, fit_pooled_null_prior(np.array(ks), np.array(ns)), mult, tprior
 
 
 def vault_threshold(cfg: dict, setting: dict, split: str, n_machines: int,
@@ -633,9 +695,11 @@ def build_tasks(cfg: dict, split: str, log=print) -> list[RetentionTask]:
     seed = int(cfg["seed"])
     tasks = []
     for setting in grid:
-        w, thr, prior, mult = calib[(setting.get("detect_prob"),
-                                     setting.get("benign_invalid_rate"))]  # fmt: skip
+        w, thr, prior, mult, tprior = calib[(setting.get("detect_prob"),
+                                             setting.get("benign_invalid_rate"))]  # fmt: skip
         params = {**setting, "vault_threshold": thr, "null_prior": tuple(map(float, prior))}
+        if cfg.get("type_null_priors"):  # D72: per-type benign prior for restore method C
+            params["type_null_priors"] = {ft: tuple(map(float, ab)) for ft, ab in tprior.items()}
         if w is not None:
             params["amoeba_weights"] = tuple(map(float, w))
         if mult:

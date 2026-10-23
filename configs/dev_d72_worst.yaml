@@ -1,0 +1,53 @@
+# D72 (OPEN_QUESTIONS D72 + amendment): per-file restore methods A-E on the same rows, count budgets,
+# policies SlowBurn, prior-only, Bar-On recursive / round robin, GFS, Tower of Hanoi. Copied from configs/dev_d69_worst.yaml.
+# q .2 added (paired key: same machines).
+# D69 (OPEN_QUESTIONS): Bar-On et al. online checkpointing baselines; dev_d64a_worst_all machines
+# Count budgets only; verify_snap restore plus oracle-restore columns on every row.
+# D64a step 1 rerun (team decision 2026-10-22): every policy restores with the adopted
+# verify_snap (every version in the candidate scanned with the shared write-time flags,
+# D29 any-flag rule, select). Copied from configs/dev_v2_worst_method.yaml: same seed, grid and
+# machines; only the experiment name, output dir and variants differ.
+seed: 202
+experiment: dev_d72_worst
+output_dir: results/dev_d72_worst
+split: dev
+workers: 5
+
+warmup_days: 14
+discovery_delay: [7, 14, 30, 45, 60]
+budgets: [4, 6, 8, 12]
+reps: 5
+vault_calib_machines: 40
+type_null_priors: true         # D72: per-type benign prior (restore method C)
+policies: [prior_only, slowburn, shamir_recursive, shamir_rr, gfs, tower_of_hanoi]
+
+hp:                              # v1 frozen operating point, unchanged (configs/frozen.yaml)
+  p_attack_within_window: 0.05
+  prior_window_days: 60
+  penalty: 90.0
+  restore_quantile: 0.1
+  assumed_discovery: {kind: uniform, max_days: 60}
+  gate: 0.8
+  backbone: 0.25
+  null_pool: pooled
+  restore_rule: verified
+  restore_posterior: discovery
+  scan_eps: 0.001
+
+scenario:
+  n_files: 40
+  file_types: [txt, csv, bin, docx, zip, png, jpg, mp3, zlib, lzma]
+  file_kib: [16, 96]
+  edits_per_day: 4.0
+  attack_start: 112              # used only by calibration machines (attack-free anyway)
+  attack_files_per_day: 0.5
+  damage_model: striped
+  damage_fraction: 0.1
+
+sweep:
+  attack_start: [112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143]
+  detect_prob: [1.0, 0.5, 0.2, 0.0]
+  benign_invalid_rate: [0.01]
+
+variants:
+  - {name: w075_vsnap, hp: {blind_weight: 0.75, old_flags: verify_snap, oracle_restore_cols: true, per_file_cols: {alpha: 0.05}}}
