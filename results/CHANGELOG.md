@@ -1364,3 +1364,14 @@ containers (zip) and binaries, where real benign files are already high entropy.
 - D71 item 3 NapierOne: benign flag rate at rate 0 0.036 -> 0.0004; clean snapshots holding a
   flagged version 0.88 -> 0.005; damaged versions detected 0.746 -> 0.947.
 - Details: results/D71_REPORT.md section 6.
+
+## 2026-10-24: D72 and D72-C2R (DEV)
+
+- D72: per-file restore method C (monotone changepoint) NOT adopted under scoring option (iii):
+  fails vs A (recovery, residuals) whenever detection is imperfect, and vs B (per-file work lost)
+  everywhere. B is near the per-file oracle with perfect detection and collapses otherwise.
+  results/D72_REPORT.md section 1. D73 primary restore stays A; D74 per-file restore is B.
+- D72-C2R: C2 holds vs default GFS / ToH (D67 numbers reproduced exactly) and, small and not in
+  the early world, vs Bar-On recursive / round robin; fails vs the equal-horizon GFS / ToH
+  configurations. docs/claims.md C2 restated. results/D72_REPORT.md section 2.
+- D73 started 2026-10-24 (results/overnight_queue.log).

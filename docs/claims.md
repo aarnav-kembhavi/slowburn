@@ -51,9 +51,16 @@ SlowBurn 0.9793, GFS 0.6025, Tower of Hanoi 0.5926; at q = 0 prior-only 0.9456, 
 world.
 
 **C2. ... with less work lost than the default GFS / Tower of Hanoi configurations.** Scope
-(team decision 2026-10-23): C2 is stated only against the default GFS / Tower of Hanoi
-configurations until the D72-C2R report restates it against Bar-On recursive, Bar-On round robin
-and the equal-horizon GFS / Tower of Hanoi variants on both synthetic and NapierOne bytes.
+(team decision 2026-10-23): C2 is stated against the default GFS / Tower of Hanoi configurations.
+**Restated against stronger baselines (D72-C2R, 2026-10-24, synthetic / NapierOne bytes, count
+budgets; results/D72_REPORT.md section 2):** against Bar-On recursive -4.4% [-7.5, -1.1] /
+-3.4% [-6.3, -0.3] and Bar-On round robin -6.8% / -5.1% (recovery equal): holds pooled but
+small and not uniform (early world +10% to +11%, SlowBurn worse, CI above 0). Against the
+equal-horizon configurations (horizon >= M; GFS-eqh exists only at K = 12, ToH-eqh at K 8 and
+12) **C2 fails**: SlowBurn loses more work, vs GFS-eqh +16.1% [+12.1, +20.1] / +6.9% [+3.6,
++10.5] at equal recovery, vs ToH-eqh +10.1% [+6.3, +13.9] / +3.0% [-0.5, +6.4] with recovery
++0.059. The +0.43 recovery advantage over default GFS / ToH does not survive any stronger
+baseline. NapierOne numbers carry the caveats in the header.
 Lower work lost than default GFS / Tower of Hanoi pooled (-23.4% vs GFS,
 -26.7% vs Tower of Hanoi) and in 3 of 4 attack worlds; in the early world SlowBurn vs GFS is
 -3.0% [-9.5, +3.9], not significant. Whole-system work lost (h) bursty / early / late /
