@@ -266,3 +266,15 @@ Still true post-fix: injected benign invalid versions of NapierOne csv and txt a
 (0 at rate .05; bin 0.003), so the benign-rate axis is weaker on NapierOne than on synthetic
 bytes for those types. At rate 0 NapierOne now has fewer benign flags than synthetic bytes
 (synthetic bin is flagged at 0.022).
+
+### 6a. Caveats on every NapierOne C2 / C3' number above (team, 2026-10-23)
+
+- Injected benign invalid csv/txt versions are never flagged on NapierOne, so the benign-rate
+  stress axis is weaker there than on synthetic bytes. The larger NapierOne effects (C3' -11.9%
+  vs synthetic -9.0%; C2 -34.4% / -35.7% vs -27.6% / -30.2%) may partly reflect a lower effective
+  false-flag rate, not only real-byte behaviour.
+- The NapierOne DEV pools are small (zip = 5 files, png 5, zlib 5, docx 13, others 14 to 15).
+  All NapierOne numbers are provisional until the pools are enlarged under the D75 rule.
+- C2 here is against the default GFS / Tower of Hanoi configurations only. It is restated against
+  Bar-On recursive, Bar-On round robin and the equal-horizon GFS / Tower of Hanoi variants on
+  both byte arms by D72-C2R (OPEN_QUESTIONS), right after D72.

@@ -21,6 +21,7 @@ UNITS = {  # unit -> (run dir, scored q values or None for a trained-detector ar
     "bytes_napierone": ("results/dev_d72_bytes_napierone", None),
 }
 POL = ("slowburn", "prior_only", "shamir_recursive", "shamir_rr", "gfs", "tower_of_hanoi")
+REQUIRED = ("slowburn", "shamir_recursive")  # D72 amendment 2, option (iii); others reported only
 M = "ABCDE"
 pd.set_option("display.width", 250, "display.max_columns", 60, "display.max_rows", 2000)
 
@@ -105,6 +106,7 @@ def main():
             print(f"missing {run}")
             continue
         d = load(run, qs)
+        d = d[d.policy.isin(POL)]  # eqh policies (byte arms) are for D72-C2R only
         s = d.groupby(["policy", "q"]).apply(summary, include_groups=False).reset_index()
         s.insert(0, "unit", unit)
         summ.append(s)
@@ -113,11 +115,17 @@ def main():
         crit += criteria(d, unit, "all_policies")
     s, c = pd.concat(summ), pd.DataFrame(crit)
     s.to_csv(OUT / "summary.csv", index=False)
+    c["required"] = c.scope.isin(REQUIRED)
     c.to_csv(OUT / "criteria.csv", index=False)
+    v = c[c.required].groupby(["unit", "q", "vs"])["all"].agg(["all", "size"]).reset_index()
+    v = v.rename(columns={"all": "adopt_passes", "size": "required_policies"})
+    v.to_csv(OUT / "verdict.csv", index=False)
     print(s.round(3).to_string(index=False))
     print(c[["unit", "scope", "q", "vs", "a_recovery", "b_residual", "c_work_lost", "all",
              "pooled_rec_diff", "pooled_res_diff", "pooled_fwl_rel", "worlds_lower_wl"]]
           .round(4).to_string(index=False))  # fmt: skip
+    print("== verdict (criteria a-c must pass under SlowBurn AND Bar-On recursive)")
+    print(v.to_string(index=False))
 
 
 if __name__ == "__main__":

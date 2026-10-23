@@ -20,7 +20,7 @@ budgets: [4, 6, 8, 12]          # snapshot-count budgets
 reps: 40                        # distinct attack starts per world (and evidence cell)
 vault_calib_machines: 40        # attack-free DEV machines: fleet null prior, byte multipliers
 type_null_priors: true         # D72: per-type benign prior (restore method C)
-policies: [prior_only, slowburn, shamir_recursive, shamir_rr, gfs, tower_of_hanoi]
+policies: [prior_only, slowburn, shamir_recursive, shamir_rr, gfs, tower_of_hanoi, gfs_eqh, toh_eqh]  # D72 amendment 2: eqh for D72-C2R
 
 # start window: day 28 (two weeks after warm-up) to day 280 (40 weeks)
 worlds:

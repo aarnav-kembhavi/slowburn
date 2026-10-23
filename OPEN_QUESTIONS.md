@@ -1263,3 +1263,34 @@ The five open points are confirmed, with point 1 stated exactly:
 5. Whole-system work lost for per-file restores = (discovery day - oldest restored version day)
    x 24 h, secondary.
 D72 runs after the D71b old vs new report, on the post-fix detector.
+
+### D72 amendment 2 (team decision 2026-10-23, before any D72 run)
+
+1. Scoring scope, option (iii): adoption criteria a, b and c (C vs A and C vs B) must pass on
+   BOTH SlowBurn and Bar-On recursive (shamir_recursive) retention. Prior-only, Bar-On round
+   robin, GFS and Tower of Hanoi are reported only. The pooled all-policies row is reported only.
+   C is adopted only if every criterion passes under both required policies.
+2. The two byte-arm configs (dev_d72_bytes_synthetic, dev_d72_bytes_napierone) also run the
+   equal-horizon variants gfs_eqh and toh_eqh (D68 definition, horizon >= M = 60). Retention
+   only; they are reported, not scored for D72. The full and worst grids are unchanged.
+
+### D72-C2R: C2 restated against stronger baselines (reporting job, registered 2026-10-23, runs right after D72)
+
+Question: does C2 (SlowBurn loses less work than fixed schedules) hold against Bar-On recursive,
+Bar-On round robin and the equal-horizon GFS / Tower of Hanoi configurations, not only the
+default GFS / Tower of Hanoi?
+- Data: the D72 byte-arm outputs (results/dev_d72_bytes_synthetic, results/dev_d72_bytes_napierone),
+  post-D71b detector, count budgets K in {4, 6, 8, 12}, w 0.75, verify_snap restore (the adopted
+  restore, column clean_recovery / work_lost_whole_system_hours). No new simulation.
+- Comparisons: SlowBurn vs each of gfs, tower_of_hanoi, shamir_recursive, shamir_rr, gfs_eqh,
+  toh_eqh; paired on the same machine rows (method_v2.policy_vs_policy); recovery difference and
+  relative whole-system work lost; 95% machine-cluster bootstrap CIs (2000 resamples, seed 0);
+  pooled, by world, by budget; each arm separately.
+- Sanity check: the SlowBurn / GFS / ToH rows reproduce the D67 post-fix numbers (same seed and
+  machines); any mismatch is reported.
+- Reporting rule: C2 is stated per baseline, per arm, with CIs, whichever way it goes. "Holds"
+  against a baseline means the pooled work-lost CI is below 0 and recovery is not lower (CI of
+  the difference includes or exceeds 0). No reselection of w, gate or thresholds.
+- Until this report exists, claims.md states C2 only "vs default GFS / Tower of Hanoi
+  configurations".
+- Output: results/dev_d72_c2r/, script paper/scripts/d72_c2r_report.py.
