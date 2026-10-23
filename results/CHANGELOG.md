@@ -1345,3 +1345,22 @@ containers (zip) and binaries, where real benign files are already high entropy.
   Token-mode traces keep the interval formula, so every earlier result is unchanged. Test updated.
 - Attempt 1 logs kept as results/dev_d67_full_{synthetic,napierone}_run_attempt1.log. The arms
   rerun as attempt 2 after D68 and D69 (one job at a time); a second failure is logged and skipped.
+
+## 2026-10-23 D71b: PPMd zip validator bug fixed; NapierOne detector rebuilt; D67 NapierOne arm and D71 item 3 rerun
+
+- Bug: `file_validity` marked PPMd-compressed zips INVALID because Python `zipfile` raises
+  NotImplementedError on compression method 98. 7-Zip (`7z t`) reads them. 2 of the 5 DEV zip
+  pool files are PPMd, so 40% of benign NapierOne zip versions were flagged. Rule fixed by the
+  team before the check (OPEN_QUESTIONS D71b): the external tool decides.
+- Fix (e44df6e): PPMd members are decoded with pyppmd (new dependency) and CRC-32 checked; tests
+  `test_ppmd_zip_members_are_checked_not_rejected`, `test_napierone_dev_ppmd_zips_are_valid`.
+  Synthetic content is unaffected (synthetic zips are deflate).
+- NapierOne detector rebuilt from the unchanged config and seed (flag alpha 0.01 unchanged; old
+  as results/detector_napierone_v1): file-level AUROC zip 0.884 -> 1.000, 9-type mean 0.985 ->
+  0.997, other types within 0.016.
+- D67 NapierOne arm (old outputs `_v1`): C3' work lost SlowBurn vs prior-only +1.5% -> -11.9%
+  [-13.4, -10.5]; C2 vs GFS +7.9% -> -34.4%, vs Tower of Hanoi -2.3% -> -35.7%; recovery
+  unchanged. C2 and C3' now hold on NapierOne bytes (docs/claims.md updated).
+- D71 item 3 NapierOne: benign flag rate at rate 0 0.036 -> 0.0004; clean snapshots holding a
+  flagged version 0.88 -> 0.005; damaged versions detected 0.746 -> 0.947.
+- Details: results/D71_REPORT.md section 6.

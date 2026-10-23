@@ -148,6 +148,10 @@ Deviations:
 
 ## JOB 3: NapierOne integration (D67)
 
+**SUPERSEDED for the NapierOne arm (2026-10-23, D71b):** the NapierOne numbers in this job were
+produced with a validator bug (PPMd zips marked invalid). Post-fix, C2 and C3' hold on NapierOne
+bytes; see results/D71_REPORT.md section 6 and docs/claims.md.
+
 Status: done on attempt 2. Attempt 1 failed for both arms (exit 1 at 02:34, after about 80
 minutes in the tuning stage) on a byte-accounting bug.
 - Cause: `ByteIndex` refused traces where a chunk disappears and later reappears. Real and

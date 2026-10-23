@@ -4,14 +4,19 @@
 damage** (abstract chunk tokens, random-token damage, abstract detector with detection
 probability q), unless marked NapierOne. See docs/data_card.md.
 
-**NapierOne check (D67, 2026-10-23, DEV, team decision): C1 (recovery) stands; C2 and C3' as
-stated do NOT hold on NapierOne bytes.** Arms on the same machines, w 0.75, verify_snap: the
+**NapierOne check (D67 after the D71b validator fix, 2026-10-23, DEV): C1, C2 and C3' hold on
+NapierOne bytes.** The pre-fix verdict (C2 and C3' do not hold) is withdrawn: it came from a
+validator bug (PPMd zips marked invalid because Python zipfile cannot decode PPMd; 7-Zip reads
+them; OPEN_QUESTIONS D71b), not from real benign bytes. Pre-fix outputs kept as
+`results/*_v1`. Arms on the same machines, w 0.75, verify_snap: the
 abstract q grid (the numbers below), synthetic bytes with the synthetic detector, NapierOne
 benign bytes with NapierOne damage and the detector trained on NapierOne (file flag p <= 0.01).
-Outputs: `results/dev_d67_compare/`, `results/OVERNIGHT_REPORT.md` (JOB 3).
-**Caveat on every NapierOne recovery number (D71 item 3):** the detector flags only 0.746 of
-truly damaged NapierOne versions (bin 0.40, jpg 0.61, csv 0.69, txt 0.72; synthetic 1.000).
-Missed damage is the only recovery failure mode when a clean snapshot is held (D71 item 1).
+Outputs: `results/dev_d67_compare/` (post-fix; pre-fix `results/dev_d67_compare_v1/`),
+`results/D71_REPORT.md` (D71b section).
+**Caveat on every NapierOne recovery number (D71 item 3, post-fix):** the detector flags 0.947 of
+truly damaged NapierOne versions (bin 0.88, csv 0.83, jpg 0.94, txt 0.94, every other type
+>= 0.97; synthetic 1.000). Missed damage is the only recovery failure mode when a clean
+snapshot is held (D71 item 1).
 **Further NapierOne caveats (D71b):** the DEV content pools are small (files <= 1 MiB per type:
 txt 15, csv 15, bin 15, docx 13, zip 5, png 5, jpg 14, mp3 15, zlib 5) and are to be enlarged
 before the fresh test set; strict UTF-8 validity fails on 16% of benign CSV and 4% of benign TXT
@@ -54,11 +59,12 @@ Paired SlowBurn vs GFS: -25.5% [-31.2, -18.8] / -3.0% [-9.5, +3.9] / -33.9% [-38
 -20.9% [-27.1, -12.8], pooled -23.4% [-26.8, -19.8]; vs Tower of Hanoi pooled -26.7% [-29.1,
 -24.2], every world significant (`results/dev_d64a_full/c2_vs_fixed_schedules.csv`). Reported
 as is (team decision 2026-10-22, no post hoc rescue).
-NapierOne bytes (D67): the recovery gap holds (vs GFS +0.426 [+0.408, +0.446], vs Tower of
-Hanoi +0.427 [+0.416, +0.439], count budgets) but the work-lost gap does not: vs GFS +7.9%
-[+3.8, +12.2] (SlowBurn loses MORE), vs Tower of Hanoi -2.3% [-5.3, +0.9] (not significant).
-Synthetic bytes: -27.6% [-31.0, -24.0] / -30.2% [-32.8, -27.5]. **C2 does not hold as stated on
-NapierOne bytes.**
+NapierOne bytes (D67, post-D71b, count budgets): recovery vs GFS +0.426 [+0.408, +0.445], vs
+Tower of Hanoi +0.427 [+0.416, +0.439]; work lost vs GFS **-34.4% [-37.7, -30.8]**, vs Tower of
+Hanoi **-35.7% [-38.3, -32.9]**, significant in every world (vs GFS: bursty -36.6%, early
+-12.4% [-19.1, -4.9], late -44.7%, uniform -33.0%). Synthetic bytes: -27.6% [-31.0, -24.0] /
+-30.2% [-32.8, -27.5]. **C2 holds on NapierOne bytes.** (Pre-fix: vs GFS +7.9% [+3.8, +12.2],
+vs Tower of Hanoi -2.3% [-5.3, +0.9]; withdrawn, D71b.)
 
 **C3'. Evidence reduces work lost by 4.7% [3.9, 5.5] at equal recovery. With a blind detector
 (q = 0), recovery is non-inferior (pre-registered, 8 of 8 units) but work lost is 0.85% [0.03,
@@ -70,19 +76,15 @@ Blind units (4 worlds, 4 budgets on the worst-case grid, D57): all within 1 poin
 and not significantly worse after Holm (largest excess 0.00625, K = 8 worst case, Holm p 0.629;
 worlds 0.00583 bursty, Holm p 0.392; `results/dev_d64a_blind_worst/d57_units.csv`). Worst case
 q = 0 work lost: +0.55% [-0.38, +1.47].
-NapierOne bytes (D67), SlowBurn vs prior-only: count budgets recovery +0.000 [+0.000, +0.000],
-work lost **+1.5% [+0.2, +2.8]** (evidence INCREASES work lost; synthetic bytes -9.0% [-10.1,
--7.9]); by world bursty +2.4% [+0.1, +4.8], early +0.3% [-1.3, +1.9], late +0.8% [-2.2, +3.6],
-uniform +2.2% [-0.2, +4.8]. Byte budgets: recovery +0.039 [+0.027, +0.050], work lost -4.7%
-[-6.2, -3.2] (synthetic bytes +0.086, -16.2%). **C3' does not hold as stated on NapierOne bytes
-with count budgets.** Cause (D71 item 3, `results/D71_REPORT.md` section 3): benign zip false
-flags. Benign NapierOne zip versions are flagged at 0.397 at injected benign rate 0 and are 99%
-of all benign NapierOne flags at that rate (every other NapierOne type 0.0004 pooled, at or below
-synthetic); 87% of clean NapierOne snapshots hold a flagged benign version vs 9% on synthetic
-bytes, and a flagged clean snapshot is skipped by verify_snap, which costs work lost, not
-recovery (D71 item 1). The same mechanism drives the C2 work-lost reversal. Evidence is
-descriptive (no rerun with zip excluded); a zip ground-truth check (validator bug vs detector
-property) is in progress and may change this paragraph.
+NapierOne bytes (D67, post-D71b), SlowBurn vs prior-only: count budgets recovery +0.000
+[-0.000, +0.001], work lost **-11.9% [-13.4, -10.5]** (synthetic bytes -9.0% [-10.1, -7.9]);
+every world significant (bursty -13.5%, early -10.5%, late -11.4%, uniform -12.1%). Byte budgets:
+recovery +0.045 [+0.033, +0.057], work lost -9.7% [-11.4, -8.0] (synthetic bytes +0.086,
+-16.2%). **C3' holds on NapierOne bytes.** Pre-fix (withdrawn, D71b): count budgets +1.5% [+0.2,
++2.8]. The pre-fix reversal was the PPMd validator bug: the two PPMd zips in the 5-file DEV zip
+pool were marked invalid, so 40% of benign zip versions were flagged and 87% of clean snapshots
+held a flagged version (post-fix 0.5%, synthetic bytes 9%); verify_snap skipped those clean
+snapshots, which cost work lost, not recovery (D71 item 1).
 
 ## Guarantee (theory, docs/theory.md, NEEDS HUMAN REVIEW)
 

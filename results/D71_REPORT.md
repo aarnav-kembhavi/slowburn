@@ -104,7 +104,11 @@ verify_snap, in file-hours.
 restored file. Low file-hours for GFS reflect its failed recoveries, which the file-hour
 accounting does not penalise.)
 
-## 3. NapierOne false-flag rate
+## 3. NapierOne false-flag rate (PRE-FIX; superseded by section 6, D71b)
+
+The NapierOne numbers in this section were produced with the validator bug found in D71b (PPMd
+zips marked invalid). Kept for the record; the post-fix numbers are in section 6. Synthetic
+numbers are unaffected.
 
 Re-simulation of exactly the D67 eval machines of both arms (same tasks and seeds; 480 machines
 per arm, 160 per benign rate). Run 12:36 to 14:04, exit 0. Scripts:
@@ -176,6 +180,7 @@ Done (cdbbc81). paper/scripts/overnight/d67_report.py now writes
 results/dev_d67_compare/bytes_c1_pooled.csv and bytes_slowburn_vs.csv. The regenerated numbers
 equal the ad hoc ones (NapierOne vs prior-only +0.0385, -4.68%; synthetic +0.0857, -16.16%).
 The ad hoc entry in OVERNIGHT_REPORT.md is marked superseded.
+Post-D71b regeneration: NapierOne +0.045, -9.67% (section 6); synthetic unchanged.
 
 ## 5. Bar-On Table 3 discrepancy
 
@@ -213,3 +218,51 @@ smallest root of x^(k/2) - x - 1. The paper defines G* as the minimiser of r(G, 
 - **Caveat:** this rests on our reading of (1a)-(1c) and of the Recursive update pattern. The
   simulation check rules out an error in the r formula but not a misreading of the construction.
   Table 4 matching at k = 3, 7, 15 is the evidence that the construction is read correctly.
+
+## 6. D71b: zip ground truth, validator fix, old vs new
+
+Rule, check and fix: OPEN_QUESTIONS D71b (5cc9e04, amendment 133868f); fix e44df6e. The flagged
+benign zip versions were the 2 PPMd zips of the 5-file DEV zip pool; Python zipfile raises
+NotImplementedError on PPMd, 7z t reads all 5, the flag came from the validity bit (file p 0.006,
+0.244 with validity forced to 1). Verdict: validator bug. PPMd members are now decoded (pyppmd)
+and CRC-checked; the NapierOne detector was rebuilt from the unchanged config and seed (flag
+alpha 0.01 unchanged; old detector results/detector_napierone_v1). Reruns 15:37 to 17:46, exit 0.
+
+Detector, file-level AUROC (lgbm_validity; results/detector_napierone/auroc_d71b_old_vs_new.csv):
+zip 0.884 -> 1.000 (striped 10%), all 9 types uniform mean 0.985 -> 0.997; other types move by at
+most 0.016 (bin 0.979 -> 0.969). Benign zip invalid rate in the detector test split 0.233 -> 0.
+
+D67 NapierOne arm, count budgets (results/dev_d67_compare vs results/dev_d67_compare_v1):
+
+| quantity | pre-fix | post-fix |
+|---|---|---|
+| SlowBurn recovery / work lost (h) | 0.9999 / 2915 | 0.9999 / 1724 |
+| prior-only recovery / work lost (h) | 0.9998 / 2873 | 0.9998 / 1957 |
+| C3' SlowBurn vs prior-only, work lost | +1.5% [+0.2, +2.8] | -11.9% [-13.4, -10.5] |
+| C2 SlowBurn vs GFS, work lost | +7.9% [+3.8, +12.2] | -34.4% [-37.7, -30.8] |
+| C2 SlowBurn vs Tower of Hanoi, work lost | -2.3% [-5.3, +0.9] | -35.7% [-38.3, -32.9] |
+| C2 recovery vs GFS / ToH | +0.426 / +0.427 | +0.426 / +0.427 |
+| byte budgets, SlowBurn vs prior-only | +0.039 rec, -4.7% | +0.045 rec, -9.7% |
+
+Post-fix, C3' holds in every world (-10.5% to -13.5%) and C2 in every world against both fixed
+schedules. Synthetic bytes for comparison: C3' -9.0%, C2 -27.6% / -30.2%.
+
+D71 item 3, NapierOne arm (results/dev_d71_false_flags vs results/dev_d71_false_flags_v1):
+
+| quantity | pre-fix | post-fix | synthetic |
+|---|---|---|---|
+| benign flag rate, rate 0 / .01 / .05 | 0.036 / 0.041 / 0.061 | 0.0004 / 0.007 / 0.030 | 0.003 / 0.013 / 0.049 |
+| benign zip flag rate, rate 0 | 0.397 | 0 | 0 |
+| clean snapshots holding a flagged version, rate 0 / .01 / .05 | 0.88 / 0.90 / 0.96 | 0.005 / 0.24 / 0.71 | 0.09 / 0.36 / 0.84 |
+| damaged versions detected | 0.746 | 0.947 | 1.000 |
+
+Damage detection per type post-fix: bin 0.88, csv 0.83, jpg 0.94, txt 0.94, mp3 0.97, docx,
+png, zip, zlib 1.00. The rise is not a threshold change: the raw score needed for file p <= 0.01
+is 0.99996 before and 0.99997 after. It comes from the retrained model's scores; the likely
+reason (not tested separately) is that the 5 benign PPMd training zips no longer carry
+validity 0, so the model no longer learns that an invalid file can be benign.
+
+Still true post-fix: injected benign invalid versions of NapierOne csv and txt are never flagged
+(0 at rate .05; bin 0.003), so the benign-rate axis is weaker on NapierOne than on synthetic
+bytes for those types. At rate 0 NapierOne now has fewer benign flags than synthetic bytes
+(synthetic bin is flagged at 0.022).
