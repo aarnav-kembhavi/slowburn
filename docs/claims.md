@@ -12,6 +12,10 @@ Outputs: `results/dev_d67_compare/`, `results/OVERNIGHT_REPORT.md` (JOB 3).
 **Caveat on every NapierOne recovery number (D71 item 3):** the detector flags only 0.746 of
 truly damaged NapierOne versions (bin 0.40, jpg 0.61, csv 0.69, txt 0.72; synthetic 1.000).
 Missed damage is the only recovery failure mode when a clean snapshot is held (D71 item 1).
+**Further NapierOne caveats (D71b):** the DEV content pools are small (files <= 1 MiB per type:
+txt 15, csv 15, bin 15, docx 13, zip 5, png 5, jpg 14, mp3 15, zlib 5) and are to be enlarged
+before the fresh test set; strict UTF-8 validity fails on 16% of benign CSV and 4% of benign TXT
+files (known limitation, unchanged; no benign flags at injected rate 0).
 
 All numbers are DEV (seed 202), count budgets K in {4, 6, 8, 12}, method v2 = blind weight 0.75
 with the fixed 0.8 gate, restored with the ADOPTED restore (D64a verify_snap: every version in a

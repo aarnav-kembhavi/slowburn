@@ -18,6 +18,22 @@ downloaded but not yet used by any experiment.**
 The rows below marked NapierOne describe the planned use (decision of 2026-10-23: integrate
 before the fresh test set), not the results reported so far.
 
+**Update (2026-10-23, later):** NapierOne bytes are now used by the D67 byte arm and D71
+diagnostics (`configs/dev_d67_full_napierone.yaml`, detector `configs/detector_napierone.yaml`);
+the paragraph above describes the state before D67.
+
+**Known limitations of the NapierOne use (D71b):**
+- Small DEV content pools. Simulated machines draw benign contents from the DEV pool files of at
+  most 1 MiB: txt 15, csv 15, bin 15, docx 13, zip 5, png 5, jpg 14, mp3 15, zlib 5. A file type
+  with 5 files is a handful of distinct contents repeated across every machine. The pools are to
+  be enlarged per type (seeded, stratified, rule in OPEN_QUESTIONS first) before the fresh test
+  set is generated.
+- Strict UTF-8 validity fails on 0.158 of benign NapierOne CSV and 0.042 of benign TXT files in
+  the detector data (real files in other encodings). Not changed; at injected benign rate 0 they
+  produce no benign flags in the simulated machines (D71 item 3). Rechecked after the pools grow.
+- Zip validity before D71b: PPMd-compressed zips were wrongly invalid (Python zipfile does not
+  decode PPMd); fixed with a PPMd decoder, detector rebuilt (results/CHANGELOG.md).
+
 ## What is real and what is simulated
 
 | component | source | real or simulated |
