@@ -1294,3 +1294,121 @@ default GFS / Tower of Hanoi?
 - Until this report exists, claims.md states C2 only "vs default GFS / Tower of Hanoi
   configurations".
 - Output: results/dev_d72_c2r/, script paper/scripts/d72_c2r_report.py.
+
+## Ambitious scope (team, 2026-10-23): D73 to D77, USENIX Security 2027 cycle 2
+
+Target: register 2027-01-19, submit 2027-01-26. Rules for D73 to D77: each D entry is written
+here and committed before its code; DEV only until the single frozen test run (week of
+2026-12-15; frozen_v2.yaml covering every adopted method and every baseline goes to the team
+before any test run); no tuning on test; every result reported, failures included; defensive
+only (the attacker exists only as simulation parameters and public dataset files; no
+encryptors, no evasion code, nothing touching systems we do not own); one heavy job at a time,
+disk floors as before, failed twice = log and move on; results/STATUS_WEEKLY.md every Sunday.
+Order: D72 and D72-C2R first; D73 code may be written while D72 runs; D73 runs after the D72
+reports.
+
+### D73: fleet-aware retention (registered 2026-10-23, before any D73 code)
+
+Question: when N machines share one snapshot budget, does reallocating slots across machines by
+a fleet-pooled start posterior (FLEET) lose less per-file work than fixed per-machine splits,
+without losing recovery?
+
+**Fleet model (simulation parameters only).**
+- Fleet of N machines, N in {20, 100}. Shared budget B = N * K_avg snapshots, K_avg in {4, 6, 8}.
+- Machines: the D72 scenario (40 files, 9 types, striped 10% damage, same detectors), each with
+  its own seeded content and churn. Churn heterogeneity (so that a churn-proportional split
+  differs from an equal split): each machine's edits_per_day = 4.0 * exp(0.75 * z), z ~ N(0, 1)
+  from child_rng(seed, "fleet_churn", rep, i), fixed now.
+- Attack: fleet start S0 drawn from the four D72 worlds (uniform, early, late, bursty; window
+  [28, 280]). Infected set: exactly max(1, round(f * N)) machines, f in {0.05, 0.2, 0.5}, chosen
+  uniformly (seeded). One infected machine (patient zero) starts at S0; every other infected
+  machine starts at S0 + L_i, L_i ~ Geometric on {0, 1, ...} with mean m in {0, 2, 7} days
+  (m = 0: all at S0). Per-machine damage and evidence as in D72 from its own start.
+- One discovery day for the fleet: td = S0 + d, d in {7, 14, 30, 45, 60}. A machine whose start
+  is after td is uninfected at discovery.
+- Arms: synthetic bytes with the synthetic detector, and NapierOne bytes with the post-D71b
+  NapierOne detector (as D67 / D72); benign_invalid_rate 0.01 (the middle D67 value) only.
+
+**Methods (each machine always holds today's snapshot; budget sum <= B every day).**
+- (a) equal split: K_avg slots per machine, Bar-On recursive (shamir_recursive) per machine.
+- (b) churn-proportional split: k_i = k_min + extra slots split over machines proportionally to
+  machine i's mean daily changed files over warm-up days 0..13 (largest remainder rounding,
+  sum = B), fixed for the whole run, Bar-On recursive per machine at k_i. The 14 warm-up days
+  are benign by construction (starts >= day 28); using them from day 0 is a 14-day benign
+  lookahead, stated as such.
+- (c) FLEET: every machine keeps a floor of k_min = max(3, K_avg / 2) slots (3 / 3 / 4; Bar-On
+  recursive is undefined at budget 2, measured) under the Bar-On recursive schedule at budget k_min (forced set, never deleted, so the Bar-On guarantee at
+  k_min is preserved per machine). The other E = B - N * k_min slots are reallocated daily.
+  Each day, each machine's candidates are its held snapshots plus today's. Machine i's value of
+  holding k_i slots is V_i(k_i) = -c_i * L_i(k_i), where L_i(k) is the minimum expected loss (in
+  days, the SlowBurn DP loss: penalty 90, gate 0.8, the frozen operating point) over subsets of
+  size k of its candidates containing its floor set and today's snapshot, under machine i's
+  fleet retention posterior pi_i (below), and c_i is machine i's mean daily changed files over
+  warm-up (so c_i * days approximates per-file work lost). pi_i carries the not-started /
+  not-infected mass, so L_i already equals P(machine i infected and started) times the expected
+  loss given infection: the spec's "expected per-file work lost saved times P(machine
+  infected)". Allocation: start from keep-all (k_i = number of candidates); while the total
+  exceeds B, remove one slot from the machine whose next removal increases c_i * L_i least
+  (ties: larger k_i, then lower machine index); never below the floor. This is greedy marginal
+  gain run from the top: snapshots are deleted only when the budget forces it (D37), and only
+  losses at the next one or two removals are ever needed. Machine i then keeps the D37 DP
+  selection (dp_select) of size k_i with the floor forced.
+  - Fleet posterior (hierarchical, fixed now): fleet start a has the frozen geometric timing
+    prior (p_attack_within_window 0.05 per 60 days, warm-up 14); each machine is infected
+    independently with probability rho and starts at a + L, L ~ Geometric with mean mu,
+    truncated at 45 days; rho and mu are integrated over fixed grids, rho in {0.02, 0.05, 0.1,
+    0.2, 0.35, 0.5} (weights proportional to Beta(1, 3) density) and mu in {0.5, 2, 5, 10}
+    (equal weights). Machine likelihoods L_i(s) are each machine's single-changepoint
+    likelihoods from its own daily statistic (the D72 evidence model, method v2 w 0.75, the
+    fleet-pooled benign null prior from attack-free calibration machines), so the per-machine
+    model is unchanged; only the prior over starts is coupled. pi_i(s) is the exact marginal of
+    s_i (leave-one-out product over the other machines), conditioned on "fleet not discovered by
+    day t" under the frozen assumed discovery distribution (uniform, max 60) applied to the
+    fleet start a. Patient zero (L = 0 for one machine) is not modelled: a stated mismatch.
+  - Correctness check (fixed now): on small cases (N in {2, 3, 4}, E <= 6, random posteriors and
+    candidate sets, 500 cases) compare the greedy allocation's total c_i * L_i with the exact
+    optimum by brute force over all allocations; report the share of cases where greedy is
+    optimal and the largest relative excess. A unit test asserts greedy equals brute force on
+    concave cases. The check is reported; greedy is not replaced if it is suboptimal.
+- Reported-only references (not adoption criteria): (d) SlowBurn per machine at K_avg each
+  (no sharing; separates the fleet effect from the SlowBurn DP); (e) FLEET-indep: the same
+  reallocation with each machine's own SlowBurn posterior (no hierarchical pooling).
+
+**Restore at discovery, per infected machine** (rows for every method): verify_snap (D64a)
+with the machine's fleet posterior at discovery (conditioned on discovery at td through a)
+for (c) and (e), its own posterior for (a), (b), (d); D72 method C if D72 adopts it, otherwise
+D72 method B is reported; oracle snapshot and oracle per file.
+
+**Metrics.** Primary: fleet clean recovery (1 iff every machine infected by td recovers clean);
+per-file work lost summed over infected machines (hours, file level); residual damaged files
+summed. Secondary: per-machine clean recovery share, whole-system work lost, slots used by
+infected machines at td, and, if every machine in the fleet were restored with the same method,
+the work lost on uninfected machines (false restores).
+
+**Grid.** N {20, 100} x K_avg {4, 6, 8} x f {0.05, 0.2, 0.5} x m {0, 2, 7} x 4 worlds x
+d {7, 14, 30, 45, 60} x 2 arms. Delays and K_avg share a fleet (one simulation, every K and d
+read from it). 8 fleets (reps) per (N, world, arm); within a rep every (f, m) cell uses the same machines
+(the same benign traces, the same fleet start S0), so cells are paired. The N = 20 fleet is the
+first 20 machines of the N = 100 fleet; its infected set is drawn separately. Seed 202, DEV.
+Timing basis (2026-10-23, measured with D72 running): a byte-mode machine costs about 0.13 s per
+simulated day, dominated by content generation (not scoring); full DP re-selection 8 to 70 ms,
+single deletion 0.3 ms.
+Implementation (exactness, not method): the scenario and trace builder become a forkable
+stepper; a benign trace is forked at day S0 + L_i to produce the infected trace, which is exact
+because benign and attack draws share one stream that is identical before the start. A test
+asserts the stepper reproduces simulate() exactly (every day's files, flags and daily
+statistic) on abstract, synthetic-byte and NapierOne-byte machines, and that a fork equals a
+fresh simulation with that start. Retention state before S0 is shared across the (f, m) cells
+of a rep (identical evidence), then branched.
+
+Reps chosen for compute, not power; no rep is added or removed after results are seen.
+
+**Adoption criteria (fixed now), FLEET (c) vs (a) and vs (b), each arm separately:**
+1. Recovery: fleet clean recovery not lower by more than 0.01 in ANY (N, K_avg, f, m) cell
+   (point estimate; the CI is reported).
+2. Per-file work lost lower pooled (95% fleet-cluster bootstrap CI of the relative difference
+   below 0).
+3. Per-file work lost lower (point estimate) in at least 2/3 of the 9 (f, m) cells, pooled over
+   N, K_avg, worlds and delays.
+FLEET is adopted only if 1 to 3 pass vs both (a) and (b) on both synthetic and NapierOne bytes.
+Everything reported either way. No reselection of k_min, grids, priors or penalty.
