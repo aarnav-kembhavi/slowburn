@@ -245,8 +245,13 @@ Deviations:
 - The worlds grids are reported as subsets of the full grid's machines, not separate runs.
 - zip, png and zlib have only 5 DEV NapierOne files of at most 1 MiB each, so the content
   pool repeats files for those types.
-- The byte-budget paired comparison was computed ad hoc after d67_report.py; the numbers above
-  come from method_v2.policy_vs_policy on the byte rows.
+- ~~The byte-budget paired comparison was computed ad hoc after d67_report.py.~~ SUPERSEDED
+  (2026-10-23, D71 item 4): it is now part of paper/scripts/overnight/d67_report.py
+  (results/dev_d67_compare/bytes_c1_pooled.csv, bytes_slowburn_vs.csv, results/dev_d67_report.txt).
+  The regenerated numbers are identical to the ad hoc ones (NapierOne +0.0385, -4.68%;
+  synthetic +0.0857, -16.16%). The script also adds byte-budget SlowBurn vs GFS / Tower of
+  Hanoi: NapierOne +0.161 [+0.140, +0.180] / +0.164 [+0.145, +0.181] recovery, -12.7% / -12.8%
+  work lost.
 
 ## JOB 4: D66 product retention audit (read after D68, as required)
 
