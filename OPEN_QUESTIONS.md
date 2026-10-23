@@ -1125,3 +1125,39 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
      start, j >= 14) holding >= 1 flagged version, which is what verify_snap rejects. This tests
      the JOB 3 explanation (more false flags on real bytes); it is not tuned on.
   Outputs: results/dev_d71_*; tables in results/D71_REPORT.md.
+
+### D71b: zip ground truth check and validator fix (rule fixed by the team 2026-10-23, before code)
+
+Team rule (verbatim intent): test every benign NapierOne zip version the detector flags with
+external standard tools (python zipfile.testzip, 7z t). If the tool says valid and our validator
+says invalid, it is a validator bug: fix the validator to agree with the tool, add a test, log in
+results/CHANGELOG.md, rerun the D67 NapierOne arm and D71 item 3, report old vs new. If the tool
+also says invalid, or the flag comes from the learned model, it is a detector property: report,
+change nothing. Thresholds are not touched either way.
+
+Check done before this entry (read only, no code in the repo changed):
+- Benign zip versions in the D67 NapierOne arm are whole-file rewrites drawn from the DEV pool
+  files <= 1 MiB: 5 files (deflate, high compression, bzip2, and 2 PPMd). Both PPMd files
+  (0001-zip-ppmd, 0039-zip-ppmd) are the flagged ones; 2 of 5 matches the 0.397 flag rate.
+- python zipfile.testzip: NotImplementedError ("compression method is not supported") on both
+  PPMd files, which `file_validity` maps to INVALID. 7z t: "Everything is Ok" on all 5.
+  Decoding the PPMd members (method 98) with pyppmd 1.3.1 (Ppmd8, variant I, parameters from
+  the 2-byte header): all 6 members' CRC-32 match.
+- Flag source: the validity bit. Detector file p = 0.006 with validity 0, 0.244 with validity
+  forced to 1 (deflate / bzip2 files: 0.23 to 0.32). The learned model alone does not flag them.
+- Verdict under the rule: validator bug.
+
+Fix (spec):
+- `_zip_ok` / `_docx_ok`: members with compression method 98 (PPMd) are decoded with pyppmd
+  (new dependency) and their CRC-32 checked; a decode error or CRC mismatch is INVALID, as for
+  other methods. Every other method is unchanged. A test builds a PPMd zip in memory (valid ->
+  1.0; one flipped byte in the member data -> 0.0) and, when data/napierone is present, checks
+  that both DEV PPMd files are valid.
+- The validator is a detector input, so the NapierOne detector is rebuilt with the fixed
+  validator from the unchanged config (configs/detector_napierone.yaml, seed 11, same splits,
+  same calibration procedure); flag alpha stays 0.01 (frozen). The old detector and outputs are
+  kept as results/*_v1. Reported old vs new: detector AUROC (per type and overall), D67
+  NapierOne arm (C1, C2, C3' rows of the D67 comparison, count and byte budgets), D71 item 3
+  (NapierOne flag rates). The synthetic arm is unaffected (synthetic zips are deflate) and is
+  not rerun.
+- One job at a time; disk floor rules as before. D72 is not run until this is reported.
