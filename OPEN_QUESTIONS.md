@@ -1412,3 +1412,53 @@ Reps chosen for compute, not power; no rep is added or removed after results are
    N, K_avg, worlds and delays.
 FLEET is adopted only if 1 to 3 pass vs both (a) and (b) on both synthetic and NapierOne bytes.
 Everything reported either way. No reselection of k_min, grids, priors or penalty.
+
+### D74: adaptive attacker, best response per defence (registered 2026-10-23, before any D74 code)
+
+Security evaluation only: no defence parameter, threshold, prior or grid changes in response to
+anything D74 finds. The attacker exists only as simulation parameters (rate, damage fraction,
+target types, delay) applied to public dataset bytes and synthetic bytes in the simulator.
+
+**Attacker strategy** = (daily damage rate, damage fraction, target types, discovery delay d).
+Discovery = ransom note, so the attacker chooses d. Grid (fixed now):
+- rate (files damaged per day, Poisson mean): {0.25, 0.5, 1, 2, 4}
+- damage fraction (striped damage, the D67 model): {0.01, 0.05, 0.1, 0.5, 1.0}
+- targets: all types; weak4 = {csv, bin, txt, jpg} (the four lowest NapierOne post-D71b damage
+  detection rates, D71 item 3: 0.83, 0.88, 0.94, 0.94); csv only (the lowest). Same sets on
+  both arms (the synthetic detector detects every type at 1.000, so targeting is a NapierOne
+  question; reported for both).
+- d (days from start to discovery): {7, 14, 30, 45, 60, 90, 120}; 90 and 120 lie beyond the
+  retention's assumed bound M = 60, on purpose.
+75 damage strategies x 7 delays = 525 strategies. One simulation per (machine, damage
+strategy) covers every d (forked at the start, run to start + 120; D73 stepper).
+
+**Stealth constraint.** The existing daily evidence alarm is the threshold vault's line: the
+95% quantile of the largest daily flagged-file fraction after warm-up on attack-free DEV
+calibration machines (per-machine false alarm rate 5% over a run; D31 calibration, unchanged).
+Primary analysis: a strategy is feasible at delay d if the alarm fires on some day in
+[start, start + d - 1] on at most 5% of the selection machines (below); infeasible strategies
+are excluded. Secondary: every strategy, with discovery at min(start + d, first alarm day + 1)
+(the alarm caught it), reported.
+
+**Defences** (each with the frozen operating point; count budgets K in {4, 8}): Bar-On
+recursive, GFS, Tower of Hanoi, prior-only, SlowBurn; each restored with verify_snap (A) and with
+the per-file restore (D72 method C if D72 adopts it, else method B). FLEET (D73): fleet of
+N = 20, K_avg = 6, f = 0.2, m = 2, the strategy applied to every infected machine, on a reduced
+grid (rate {0.5, 2} x fraction {0.01, 0.1, 1.0} x targets {all, weak4} x the 7 delays = 84
+strategies) because a fleet costs ~20 machines per strategy; stated as a limitation.
+
+**Machines.** Both byte arms (synthetic bytes + synthetic detector; NapierOne bytes + post-D71b
+NapierOne detector), benign_invalid_rate 0.01, the D72 scenario otherwise; 4 worlds x 10 reps
+per arm; seed 202, family "d74_attack" (disjoint from eval, calibration and fleet machines).
+Reps 0-4 are the selection half, reps 5-9 the evaluation half.
+
+**Best response.** For each defence, restore and arm, two attacker objectives: (i) minimise
+clean recovery, (ii) maximise per-file work lost (ties: lower clean recovery). The best
+strategy is chosen on the selection half and its value reported on the evaluation half (no
+winner's curse); the selection-half value is reported alongside. Also reported: the full
+strategy surface, the worst case per d, and results under the realistic delay distribution
+(uniform over the D72 delays {7, 14, 30, 45, 60}, rate 0.5, fraction 0.1, all types: the D72
+attacker). Brackets: machine-cluster bootstrap CIs on the evaluation half.
+
+**No adoption criteria** (evaluation only). Every defence's worst case is reported, including
+SlowBurn's and FLEET's, whichever way it goes.
