@@ -26,9 +26,11 @@ from slowburn.utils.seed import child_rng
 
 
 class MachineSim:
-    def __init__(self, cfg: dict, params: dict, key: tuple, days: int):
+    def __init__(self, cfg: dict, params: dict, key: tuple, days: int,
+                 keep_snapshots: bool = False):  # fmt: skip
         """``params``: scenario fields plus the evidence keys of a retention task (as in
-        ``simulate``); ``key``: the machine's seed key; ``days``: days to simulate at most."""
+        ``simulate``); ``key``: the machine's seed key; ``days``: days to simulate at most;
+        ``keep_snapshots``: also record each day's chunk set (needed by ``evaluate_trace``)."""
         from slowburn.bench.retention_experiment import SCENARIO_FIELDS, _load_detector, _napierone
 
         p = params
@@ -72,17 +74,23 @@ class MachineSim:
         self.versions: dict[str, tuple] = {}
         self.change_days: dict[str, list[int]] = {}
         self.flagged_days: dict[str, set[int]] = {}
+        self.snapshots: list[frozenset] | None = [] if keep_snapshots else None
 
     @property
     def start(self) -> int | None:
         return self.scen.cfg.attack_start
 
-    def fork(self, start: int | None) -> MachineSim:
-        """The same machine with the attack starting on ``start`` (>= the next day)."""
+    def fork(self, start: int | None, **attack) -> MachineSim:
+        """The same machine with the attack starting on ``start`` (>= the next day); ``attack``
+        may override attack fields of the scenario (D74: rate, damage fraction, target types)."""
         if start is not None and start < self.day:
             raise ValueError("cannot fork into the past")
+        bad = set(attack) - {"attack_files_per_day", "damage_fraction", "attack_target_types",
+                             "damage_model"}  # fmt: skip
+        if bad:
+            raise ValueError(f"not an attack field: {sorted(bad)}")
         new = copy.copy(self)
-        new.scen = replace(self.scen, cfg=replace(self.scen.cfg, attack_start=start),
+        new.scen = replace(self.scen, cfg=replace(self.scen.cfg, attack_start=start, **attack),
                            file_types=dict(self.scen.file_types),
                            damaged_on=dict(self.scen.damaged_on))  # fmt: skip
         new.rng, new.aux_rng = copy.deepcopy(self.rng), copy.deepcopy(self.aux_rng)
@@ -97,6 +105,7 @@ class MachineSim:
         new.versions = dict(self.versions)
         new.change_days = {f: list(d) for f, d in self.change_days.items()}
         new.flagged_days = {f: set(d) for f, d in self.flagged_days.items()}
+        new.snapshots = None if self.snapshots is None else list(self.snapshots)
         return new
 
     def step(self) -> None:
@@ -121,6 +130,8 @@ class MachineSim:
             draws = self.aux_rng.random(len(clean)) < cfg.benign_invalid_rate
             invalid = frozenset(f for f, d in zip(clean, draws, strict=True) if d)
         d = Day(day, {k: list(v) for k, v in files.items()}, changed, invalid)
+        if self.snapshots is not None:
+            self.snapshots.append(frozenset(c for chunks in d.files.values() for c in chunks))
         scores = score_day(self.det, d) if self.evidence == "detector" else self.det.score_day(d)
         self.obs.append(self.agg(scores))
         for f, pv in (scores.file_pvals or {}).items():
@@ -138,6 +149,16 @@ class MachineSim:
         while self.day < day:
             self.step()
         return self
+
+    def trace(self):
+        """A ``MachineTrace`` of the days simulated so far (needs ``keep_snapshots``)."""
+        from slowburn.bench.retention_experiment import MachineTrace
+
+        if self.snapshots is None:
+            raise ValueError("trace() needs keep_snapshots=True")
+        return MachineTrace(self.start, self.day, list(self.snapshots), list(self.obs),
+                            self.histories(), [[] for _ in range(self.day)],
+                            self.scen.cfg.chunk_size, dict(self.scen.file_types))  # fmt: skip
 
     def histories(self) -> dict[str, FileHistory]:
         return {f: FileHistory(tuple(d), self.scen.damaged_on.get(f),

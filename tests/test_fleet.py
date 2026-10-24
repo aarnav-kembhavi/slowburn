@@ -165,3 +165,26 @@ def test_greedy_equals_brute_force_when_concave():
             checked += 1
             assert abs(total_loss(ms, g) - best) <= 1e-9 * (1 + best)
     assert checked >= 10
+
+
+@pytest.mark.parametrize("arm", ["abstract", "synthetic_bytes"])
+def test_trace_matches_simulate_snapshots(arm):
+    cfg, sc = _setup(arm, 9)
+    task = RetentionTask("dev", "eval", sc, 3)
+    tr = simulate(cfg, task)
+    n = trace_days(cfg, 9)
+    sim = MachineSim(cfg, sc, task_seed_key(int(cfg["seed"]), task), n, keep_snapshots=True)
+    mt = sim.run_to(n).trace()
+    assert mt.snapshots == tr.snapshots and mt.obs == tr.obs and mt.histories == tr.histories
+    assert mt.n_days == tr.n_days and mt.start == tr.start
+
+
+def test_fork_with_attack_overrides_equals_fresh():
+    cfg, sc = _setup("synthetic_bytes", None)
+    key, n = (202, "fleet-test", 4), 16
+    ov = {"attack_files_per_day": 3.0, "damage_fraction": 0.5, "attack_target_types": ("csv",)}
+    forked = MachineSim(cfg, sc, key, n).run_to(6).fork(6, **ov).run_to(n)
+    fresh = MachineSim(cfg, {**sc, "attack_start": 6, **ov}, key, n).run_to(n)
+    _same(forked, fresh)
+    hit = [f for f, h in forked.histories().items() if h.damaged_day is not None]
+    assert hit and all(forked.scen.file_types[f] == "csv" for f in hit)
