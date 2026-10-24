@@ -46,6 +46,27 @@ the paragraph above describes the state before D67.
 | attack start, speed, files hit, discovery delay | simulator parameters | simulated |
 | detector evidence | abstract detection probability and benign flag rate (v2); LightGBM chunk detector trained on separate NapierOne files (later) | simulated / model output |
 
+**D75 enlarged NapierOne simulation pools (2026-10-24, OPEN_QUESTIONS D75 rule).** Pool
+version v2 = v1 plus the DEV half of a seeded sample of up to 200 files per type (<= 1 MiB, no
+content hash in the tiny set, no duplicates), the other half reserved for the fresh TEST pool.
+Detector training and calibration are unchanged. Archives (per-subset "small", 1,000 files per
+subset, s3://napierone.com NapierOne/Data/<T>/<T>-small.zip) were downloaded one at a time,
+matched the published SHA-256, and were deleted after sampling; record in
+data/napierone/benign_v2/manifest.json. zip and png have fewer unused files than 200, so their
+v2 DEV pools stay below 100 (69, 59).
+
+| type | source | candidates | v1 DEV | v2 DEV | v2 TEST additions | archive SHA-256 matches published |
+|---|---|---|---|---|---|---|
+| txt | TXT-small.zip | 846 | 15 | 115 | 100 | yes |
+| csv | CSV-small.zip | 821 | 15 | 115 | 100 | yes |
+| bin | BIN-small.zip | 836 | 15 | 115 | 100 | yes |
+| docx | DOCX-small.zip | 784 | 13 | 113 | 100 | yes |
+| zip | NapierOne-tiny unused files | 127 | 5 | 69 | 63 | n/a (no download) |
+| png | NapierOne-tiny unused files | 108 | 5 | 59 | 54 | n/a (no download) |
+| jpg | NapierOne-tiny unused files | 474 | 14 | 114 | 100 | n/a (no download) |
+| mp3 | MP3-small.zip | 651 | 15 | 115 | 100 | yes |
+| zlib | ZLIB-small.zip | 269 | 5 | 105 | 100 | yes |
+
 ## Sources and licences
 
 - **NapierOne** (Edinburgh Napier University): https://github.com/simonrdavies/NapierOne,

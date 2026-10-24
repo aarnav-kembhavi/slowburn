@@ -1383,3 +1383,10 @@ containers (zip) and binaries, where real benign files are already high entropy.
   Per-file work lost -9% to -18% pooled on both arms. FLEET hardly reallocates slots; its effect
   is the pooled start posterior. Greedy optimal in 99.0% of 500 small cases (max excess 24%).
   results/D73_REPORT.md.
+
+## 2026-10-24: D75 pools enlarged (v2)
+
+- NapierOne simulation pools v2 built under the D75 rule (11:29-11:38): six per-subset small
+  archives verified against the published SHA-256 and deleted after sampling; zip / png / jpg
+  from unused tiny files. v2 DEV pool sizes 59 to 115 per type (v1: 5 to 15). docs/data_card.md.
+- Reruns of the D67 and D72 NapierOne arms on v2 started 11:39 (v1 runs kept).
