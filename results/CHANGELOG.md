@@ -1375,3 +1375,11 @@ containers (zip) and binaries, where real benign files are already high entropy.
   the early world, vs Bar-On recursive / round robin; fails vs the equal-horizon GFS / ToH
   configurations. docs/claims.md C2 restated. results/D72_REPORT.md section 2.
 - D73 started 2026-10-24 (results/overnight_queue.log).
+
+## 2026-10-24: D73 fleet-aware retention (DEV)
+
+- FLEET not adopted: passes all criteria on synthetic bytes; fails criterion 1 (recovery) on
+  NapierOne bytes vs both splits (worst cell -0.025; 52 of 54 losing rows from one N = 20 fleet).
+  Per-file work lost -9% to -18% pooled on both arms. FLEET hardly reallocates slots; its effect
+  is the pooled start posterior. Greedy optimal in 99.0% of 500 small cases (max excess 24%).
+  results/D73_REPORT.md.
