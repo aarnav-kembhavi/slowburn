@@ -106,16 +106,41 @@ def encrypted_samples(root: str | Path, families: list[str]) -> list[Path]:
                   if p.is_file() and SAMPLE.match(p.name))  # fmt: skip
 
 
+@dataclass(frozen=True)
+class PoolFile:
+    """A D75 pool file (enlarged pools, ``benign_v2``), stored extracted on disk."""
+
+    file_type: str
+    path: str
+    size: int
+
+    @property
+    def key(self) -> str:
+        return self.path
+
+
 class ContentPool:
     """Benign content for byte-mode simulated machines (D67): files of each type from one pool
-    (``sim_dev``), at most ``SIM_MAX_BYTES``; ``draw`` returns the bytes of a random pool file."""
+    (``sim_dev``), at most ``SIM_MAX_BYTES``; ``draw`` returns the bytes of a random pool file.
+    ``version`` "v1" = the D67 pools; "v2" = v1 plus the D75 additions (DEV half) of
+    ``<root>/benign_v2/<type>/dev``."""
 
-    def __init__(self, root: str | Path, pool: str = "sim_dev"):
+    def __init__(self, root: str | Path, pool: str = "sim_dev", version: str = "v1"):
         if pool == "sim_test":
             raise ValueError("the TEST content pool is not read before the fresh test set")
+        if version not in ("v1", "v2"):
+            raise ValueError(f"unknown pool version {version!r}")
         self.root = str(resolve_path(root))
         sp = benign_splits(self.root)
         self.files = {t: [f for f in s[pool] if f.size <= SIM_MAX_BYTES] for t, s in sp.items()}
+        if version == "v2":
+            extra = Path(self.root) / "benign_v2"
+            if not (extra / "manifest.json").exists():
+                raise ValueError(f"no D75 pools under {extra}")
+            for t in self.files:
+                d = extra / t / "dev"
+                self.files[t] += [PoolFile(t, str(p), p.stat().st_size)
+                                  for p in sorted(d.iterdir())] if d.exists() else []  # fmt: skip
         empty = [t for t, fs in self.files.items() if not fs]
         if empty:
             raise ValueError(f"no {pool} file <= {SIM_MAX_BYTES} bytes for types {empty}")
@@ -125,5 +150,6 @@ class ContentPool:
         fs = self.files[ftype]
         f = fs[int(rng.integers(len(fs)))]
         if f.key not in self._cache:
-            self._cache[f.key] = read_benign(self.root, f)
+            self._cache[f.key] = (Path(f.path).read_bytes() if isinstance(f, PoolFile)
+                                  else read_benign(self.root, f))  # fmt: skip
         return self._cache[f.key]

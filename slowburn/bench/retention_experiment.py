@@ -157,7 +157,8 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
     if p.get("data_source", "synthetic") == "napierone":  # D67: real benign and encrypted bytes
         if evidence != "detector":
             raise ValueError("data_source napierone needs evidence: detector (byte mode)")
-        scen.content_pool, damage_source = _napierone(p["napierone_dir"])
+        scen.content_pool, damage_source = _napierone(p["napierone_dir"],
+                                                      p.get("napierone_pool", "v1"))  # fmt: skip
     elif p.get("data_source", "synthetic") != "synthetic":
         raise ValueError(f"unknown data_source {p['data_source']!r}")
     if p.get("benign_churn") == "fsl":  # D66: real per-file rewrite days from FSL Homes
@@ -222,14 +223,15 @@ def _load_detector(path: str):
 
 
 @lru_cache(maxsize=2)
-def _napierone(root: str):
+def _napierone(root: str, version: str = "v1"):
     """DEV content pool and DEV-family damage source (D67); TEST pools are never read here."""
     from slowburn.detector.datasets import NapierOneDamageSource
     from slowburn.detector.napierone import ContentPool, encrypted_samples, family_splits
 
     r = resolve_path(root)
     fams = family_splits(r)["sim_dev"]
-    return ContentPool(r, "sim_dev"), NapierOneDamageSource(r, samples=encrypted_samples(r, fams))
+    pool = ContentPool(r, "sim_dev", version)  # D75: "v2" = enlarged pools
+    return pool, NapierOneDamageSource(r, samples=encrypted_samples(r, fams))
 
 
 def _data_labels(p: dict) -> dict:
@@ -238,7 +240,8 @@ def _data_labels(p: dict) -> dict:
         return {"benign_source": "synthetic", "damage_source": "abstract_token",
                 "evidence": f"abstract_q{p.get('detect_prob')}"}  # fmt: skip
     src = p.get("data_source", "synthetic")
-    return {"benign_source": src,
+    pool = p.get("napierone_pool", "v1")  # D75: label the enlarged pools, v1 rows unchanged
+    return {"benign_source": src if src != "napierone" or pool == "v1" else f"{src}_{pool}",
             "damage_source": "napierone" if src == "napierone" else "synthetic_random",
             "evidence": f"detector:{p['detector_path']}@{p['flag_alpha']}"}  # fmt: skip
 

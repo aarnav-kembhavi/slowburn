@@ -39,7 +39,9 @@ class MachineSim:
                                                        "content": content}))  # fmt: skip
         self.damage_source = RandomDamageSource(child_rng(*key, "damage"))
         if p.get("data_source", "synthetic") == "napierone":
-            self.scen.content_pool, self.damage_source = _napierone(p["napierone_dir"])
+            self.scen.content_pool, self.damage_source = _napierone(
+                p["napierone_dir"], p.get("napierone_pool", "v1")
+            )
         if p.get("benign_churn", "poisson") != "poisson":
             raise ValueError("D73 machines use Poisson churn")
         self.evidence = evidence
