@@ -18,7 +18,8 @@ from slowburn.bench.runner import expand_sweep
 from slowburn.utils.config import load_config
 
 ARMS = {"synthetic": "configs/dev_d67_full_synthetic.yaml",
-        "napierone": "configs/dev_d67_full_napierone.yaml"}  # fmt: skip
+        "napierone": "configs/dev_d67_full_napierone.yaml",
+        "napierone_v2pool": "configs/dev_d67_full_napierone_v2pool.yaml"}  # D75  # fmt: skip
 OUT = Path("results/dev_d71_false_flags")
 WARMUP = 14
 _W: dict = {}
