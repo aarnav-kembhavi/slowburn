@@ -1390,3 +1390,8 @@ containers (zip) and binaries, where real benign files are already high entropy.
   archives verified against the published SHA-256 and deleted after sampling; zip / png / jpg
   from unused tiny files. v2 DEV pool sizes 59 to 115 per type (v1: 5 to 15). docs/data_card.md.
 - Reruns of the D67 and D72 NapierOne arms on v2 started 11:39 (v1 runs kept).
+- D75 results (14:07): on the v2 pools C2 (vs default GFS / ToH) and C3' still hold on NapierOne
+  but shrink (C2 -14.0% / -19.6%, C3' -3.8%; v1 -34.4% / -35.7% / -11.9%); cause: the small v1
+  pools were easy (benign false flags 0.000 -> 0.017 at rate 0, png invalid files; damage
+  detection 0.947 -> 0.875, txt and bin). Detector AUROC on new files 0.991 vs 0.997 (png 0.93).
+  claims.md NapierOne numbers replaced by v2. results/D75_REPORT.md.
