@@ -1616,3 +1616,6 @@ which the threshold-aware attacker (c - 1 = 2 files on every day) already does. 
 variant is therefore reported as identical to the threshold-aware rows; no new simulation. A
 sub-day (rolling 24 h) counter would need an hourly model, which the simulator does not have;
 stated as a limitation.
+Correction (2026-10-25): the synthetic p_day upper bound above (2.5e-4) was a rule-of-three
+approximation; the exact Clopper-Pearson 95% bound for 0 of 12,000 is 3.1e-4 (fleet false
+alarms per week upper bounds 0.043 / 0.22 for N = 20 / 100). The D74 report uses exact bounds.

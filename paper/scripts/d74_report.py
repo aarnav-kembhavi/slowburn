@@ -10,6 +10,7 @@ discovery at min(d, alarm). Bound: the threshold-aware attacker (c - 1 files per
 realistic D72 attacker under the D72 delays.
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -27,7 +28,64 @@ MACH = ["world", "rep"]
 REALISTIC = {"strategy_kind": "grid", "strategy_rate": 0.5, "strategy_fraction": 0.1,
              "strategy_targets": "all"}  # fmt: skip
 REALISTIC_DELAYS = (7, 14, 30, 45, 60)
+ARM_ORDER = ["napierone_bytes", "synthetic_bytes"]  # NapierOne first; synthetic = sanity arm
+ARM_LABEL = {"napierone_bytes": "napierone_bytes", "synthetic_bytes": "synthetic_bytes (sanity)"}
+CALIB = Path("results/dev_d74_alarm_calib")
 pd.set_option("display.width", 250, "display.max_columns", 40, "display.max_rows", 400)
+
+
+def ordered(t: pd.DataFrame) -> pd.DataFrame:
+    """NapierOne first in every table; the synthetic arm labelled as the sanity arm."""
+    if "arm" not in t:
+        return t
+    t = t.assign(arm=pd.Categorical(t.arm, ARM_ORDER, ordered=True))
+    t = t.sort_values("arm", kind="stable")
+    return t.assign(arm=t.arm.astype(str).map(ARM_LABEL))
+
+
+def exact_upper(x: int, n: int) -> float:
+    from scipy.stats import beta
+
+    return 1.0 if x == n else float(beta.ppf(0.975, x + 1, n - x))
+
+
+def false_alarms(c_of: dict) -> pd.DataFrame:
+    """Per arm, from the calibration runs (IN SAMPLE: the same runs chose c; the held-out check
+    is separate): per-run rate at c and c - 1, and fleet false alarms per week, point and exact
+    95% upper bound, for N = 20 and 100, in one format for both arms."""
+    rows = []
+    for arm in ARM_ORDER:
+        f = CALIB / f"daily_counts_{arm}.csv.gz"
+        if not f.exists():
+            continue
+        k = pd.read_csv(f).to_numpy()
+        c = int(c_of[arm])
+        days, runs = k >= c, k.max(axis=1) >= c
+        x, n = int(days.sum()), days.size
+        up = exact_upper(x, n)
+        rows.append({"arm": arm, "c": c, "sample": "in-sample (calibration runs)",
+                     "per_run_far": runs.mean(), "per_run_far_upper95": exact_upper(
+                         int(runs.sum()), runs.size),
+                     "per_run_far_at_c_minus_1": (k.max(axis=1) >= c - 1).mean(),
+                     "p_day": x / n, "p_day_upper95": up,
+                     **{f"fleet_fa_per_week_N{N}": 7 * N * x / n for N in (20, 100)},
+                     **{f"fleet_fa_per_week_N{N}_upper95": 7 * N * up
+                        for N in (20, 100)}})  # fmt: skip
+    return pd.DataFrame(rows)
+
+
+def threshold_aware_detection(under: pd.DataFrame) -> pd.DataFrame:
+    """The c - 1 files/day attacker shares the daily counter with benign flags (one k_t per day,
+    file_exceed): detection probability per run within d, and time to detection."""
+    u = under.drop_duplicates(["arm", *STRAT, *MACH, "discovery_delay"])
+    u = u.assign(detected=u.alarm_delay.notna() & (u.alarm_delay <= u.discovery_delay))
+    g = u.groupby(["arm", "strategy_fraction", "strategy_targets", "discovery_delay"])
+    out = g.agg(runs=("detected", "size"), p_detect=("detected", "mean")).reset_index()
+    ttd = (u[u.alarm_delay.notna()].drop_duplicates(["arm", *STRAT, *MACH])
+           .groupby(["arm", "strategy_fraction", "strategy_targets"]).alarm_delay
+           .agg(ttd_median="median", ttd_mean="mean", detected_runs="size")
+           .reset_index())  # fmt: skip
+    return out.merge(ttd, on=["arm", "strategy_fraction", "strategy_targets"], how="left")
 
 
 def load(arms=ARMS) -> pd.DataFrame:
@@ -125,10 +183,13 @@ def main(arms=ARMS, out=OUT):
             best_response(under, "rec", "bound_threshold_aware"),
             best_response(under, "wl", "bound_threshold_aware"),
         ]
-        ua = under.drop_duplicates(["arm", *STRAT, *MACH, "discovery_delay"])
-        fired = ua.alarm_delay.notna() & (ua.alarm_delay <= ua.discovery_delay)
-        ua.assign(fired=fired).groupby(["arm", "discovery_delay"]).fired.mean().reset_index(
-        ).to_csv(out / "threshold_aware_alarm_rate.csv", index=False)  # fmt: skip
+        det = threshold_aware_detection(under)
+        ordered(det).to_csv(out / "threshold_aware_detection.csv", index=False)
+        print("== threshold-aware attacker (c - 1 files/day; benign and attacker flags share one")
+        print("   daily counter): detection probability per run within d, time to detection (days)")
+        print(ordered(det).round(3).to_string(index=False))
+        print("   boundary-straddling attacker: identical to these rows in the daily model "
+              "(OPEN_QUESTIONS 2026-10-25)")  # fmt: skip
     br = pd.concat(res, ignore_index=True)
     br.to_csv(out / "best_response.csv", index=False)
     worst = (
@@ -143,6 +204,20 @@ def main(arms=ARMS, out=OUT):
     rs.to_csv(out / "realistic.csv", index=False)
     surf = d[d.grid_delay].groupby([*DEF, *STRAT, "discovery_delay"])[["rec", "wl"]].mean()
     surf.reset_index().to_csv(out / "surface.csv.gz", index=False)
+    thr = json.loads((CALIB / "threshold.json").read_text())
+    fa = false_alarms({a: v["c"] for a, v in thr.items()})
+    ordered(fa).to_csv(out / "false_alarms.csv", index=False)
+    print("== count alarm false alarms (in sample; held-out check registered separately)")
+    print(ordered(fa).round(5).to_string(index=False))
+    if len(fa) == 2:
+        g = fa.set_index("arm").per_run_far_at_c_minus_1
+        print(f"   finding: at c - 1 = 2 the benign per-run false-alarm rate is "
+              f"{g['synthetic_bytes']:.0%} on synthetic bytes vs {g['napierone_bytes']:.0%} on "
+              "NapierOne: synthetic data underestimates benign noise")  # fmt: skip
+    for name in ("feasibility", "best_response", "worst_case_over_delays", "realistic"):
+        f = out / f"{name}.csv"
+        ordered(pd.read_csv(f)).to_csv(f, index=False)
+    feas, worst, rs = ordered(feas), ordered(worst), ordered(rs)
     print("== feasible share of grid strategies by arm and delay")
     print(feas.groupby(["arm", "discovery_delay"]).feasible.mean().unstack().round(3).to_string())
     print("== worst case over delays (evaluation half), per defence")
