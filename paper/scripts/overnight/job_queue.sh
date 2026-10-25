@@ -15,3 +15,21 @@ for job in "$@"; do
     [ $attempt -eq 2 ] && echo "$(date -Iseconds) FAILED TWICE $name, moving on" >> $LOG
   done
 done
+# One-off follow-up (team decision 2026-10-26), runs only while results/.followup_after_d73 exists:
+# after D73 NapierOne v2 exits 0, held-out alarm check then png sensitivity row, each only if free
+# RAM >= FOLLOWUP_MIN_GB (proxy: D73 peak private memory 9 GB + 4 GB headroom).
+if [ -f results/.followup_after_d73 ]; then
+  rm -f results/.followup_after_d73; MIN=13
+  ram() { powershell -NoProfile -c "[int]((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB)" | tr -d '\r'; }
+  if ! tail -3 $LOG | grep -qE "END d73_fleet_napierone_v2pool attempt [12] exit 0"; then
+    echo "$(date -Iseconds) SKIP follow-up: D73 NapierOne v2 did not exit 0" >> $LOG
+  else
+    for job in "d74_alarm_holdout|uv run python -u paper/scripts/d74_alarm_holdout.py configs/dev_d74_attack_napierone.yaml configs/dev_d74_attack_synthetic.yaml" \
+               "dev_d67_full_napierone_v2notrunc|uv run python -u -m slowburn.cli dev-sweep configs/dev_d67_full_napierone_v2notrunc.yaml"; do
+      r=$(ram)
+      if [ "$r" -lt $MIN ]; then echo "$(date -Iseconds) SKIP ${job%%|*}: free RAM $r GB < $MIN GB" >> $LOG; break; fi
+      echo "$(date -Iseconds) RAM ok for ${job%%|*}: $r GB free" >> $LOG
+      bash "$0" "$job"
+    done
+  fi
+fi
