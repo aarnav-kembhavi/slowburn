@@ -1593,3 +1593,26 @@ results/dev_d74_alarm_calib/threshold.json, 100 disjoint benign runs of 120 days
 
 The count is discrete: c = 2 would exceed 5% per run, so c = 3 and the achieved rate is below
 the 5% target. The threshold-aware attacker therefore damages exactly 2 files per day.
+
+### D74 held-out alarm check (team decision 2026-10-25; registered before it runs)
+
+The false-alarm rates reported with c = 3 (synthetic 0 / 100 runs, NapierOne 1 / 100) are IN
+SAMPLE: they come from the same 100 runs per arm that chose c (family "d74_alarm_calib", seed
+202, reps 0-99, setting {data_source}). A held-out set scores c = 3 once:
+- 100 new attack-free runs per arm, family "d74_alarm_holdout" (seed key disjoint from
+  "d74_alarm_calib", "d74_attack", "vault_calib", "eval", "fleet"), reps 0-99, the same D74
+  scenario (benign_invalid_rate 0.01; NapierOne on the v2 DEV pools), same 120-day window.
+- Reported per arm: per-run false-alarm rate at c = 3 with an exact (Clopper-Pearson) 95% CI,
+  p_day with its exact 95% upper bound, fleet false alarms per week for N = 20 / 100 (point and
+  upper bound). c stays 3 whatever the result.
+- Runs after D73 NapierOne v2 (queue), not before.
+
+### D74 boundary-straddling attacker (registered 2026-10-25, before the D74 report)
+
+The alarm counter is per calendar day (one simulated day = one daily snapshot; k_t counts the
+files flagged among that day's changes). A boundary-straddling attacker (c - 1 files just before
+midnight, c - 1 just after) is, in this daily model, c - 1 files on day t and c - 1 on day t + 1,
+which the threshold-aware attacker (c - 1 = 2 files on every day) already does. The straddling
+variant is therefore reported as identical to the threshold-aware rows; no new simulation. A
+sub-day (rolling 24 h) counter would need an hourly model, which the simulator does not have;
+stated as a limitation.
