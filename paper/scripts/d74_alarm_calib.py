@@ -21,15 +21,15 @@ OUT = Path("results/dev_d74_alarm_calib")
 _W: dict = {}
 
 
-def _init(cfg):
-    _W["cfg"] = cfg
+def _init(cfg, family="d74_alarm_calib"):
+    _W["cfg"], _W["family"] = cfg, family
 
 
 def counts(i: int) -> list[int]:
     cfg = _W["cfg"]
     p = {**cfg["scenario"], "attack_start": None,
          "benign_invalid_rate": float(cfg["attack"]["benign_invalid_rate"])}  # fmt: skip
-    key = machine_key(int(cfg["seed"]), "dev", "d74_alarm_calib",
+    key = machine_key(int(cfg["seed"]), "dev", _W.get("family", "d74_alarm_calib"),
                       {"data_source": p.get("data_source", "synthetic")}, i)  # fmt: skip
     sim = MachineSim(cfg, p, key, WARMUP + WINDOW).run_to(WARMUP + WINDOW)
     return [o.k for o in sim.obs[WARMUP:]]
