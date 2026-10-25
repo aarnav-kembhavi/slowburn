@@ -1395,3 +1395,13 @@ containers (zip) and binaries, where real benign files are already high entropy.
   pools were easy (benign false flags 0.000 -> 0.017 at rate 0, png invalid files; damage
   detection 0.947 -> 0.875, txt and bin). Detector AUROC on new files 0.991 vs 0.997 (png 0.93).
   claims.md NapierOne numbers replaced by v2. results/D75_REPORT.md.
+
+## 2026-10-25: process incident (no effect on results)
+
+- Stopping the first D74 queue (variable-shadowing fix, 16:36) did not kill its bash loop: it
+  started its own "attempt 2" of d74_attack_synthetic at 16:36:00, which ran in parallel with the
+  restarted queue's run (16:37:30) for 4.5 h (two heavy jobs at once, against the rule), and at
+  21:12 it began d74_attack_napierone twice. Found at 21:11, killed by PID tree 21:12-21:14; the
+  NapierOne attempts wrote nothing. Both synthetic runs are deterministic and share one task
+  cache, so no result changes. Logged in results/overnight_queue.log. Lesson: stop a queue by
+  its process tree, not by the tool's task handle.
