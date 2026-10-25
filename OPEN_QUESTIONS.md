@@ -1626,3 +1626,37 @@ The 9 truncated NapierOne pngs (exactly 1 MiB, fail PNG check and PIL) stay in e
 One unscored sensitivity row: the D67 NapierOne arm on pool v2_notrunc (v2 minus those 9),
 same seeds, run after the primary arms (queue: after D73 NapierOne v2 and the held-out alarm
 check), reported next to v2 and labelled unscored. It changes no claim by itself.
+
+### D78 amendment 1 (power check, 2026-10-26, before any D78 fix code; team approves or rejects)
+
+**Scope.** D78 targets benign false flags (png validity failures, txt). It is not expected to
+raise txt (0.59) or bin (0.66) damage detection; if those stay unchanged they stay as
+limitations.
+
+**Power check** (paper/scripts/d78_power.py, results/dev_d78_power/). Source: the D71 v2-pool
+recount at injected rate 0, the same D67 NapierOne grid and seeds as the D78 recount, so the
+CHECK version counts are these (the pool changes content, not the number of versions). No
+detector was changed and nothing was simulated.
+- Sizes per type, benign rewrite versions / damaged versions: bin 13,316 / 626, csv 13,418 /
+  603, docx 13,456 / 610, jpg 10,941 / 501, mp3 11,010 / 471, png 10,808 / 501, txt 13,681 /
+  599, zip 10,686 / 485, zlib 10,614 / 503; overall 107,930 benign rewrite versions on 160
+  machines.
+- Criterion 1 is passable: exact 95% upper bounds for 0 / 1 / 2 flags out of 107,930 are
+  2.8e-5 / 5.2e-5 / 6.7e-5 (per type, n ~ 10,600: 2.8e-4 / 5.3e-4 / 6.8e-4). The point limit
+  0.005 allows up to 539 flags. The unchanged detector has 1,804 (0.0167; png 1,625).
+  Criterion 1 is unchanged.
+- Criterion 2 as written (per type) is not reliably passable. The unchanged detector against
+  itself passes trivially (difference exactly 0). A candidate with the same true detection that
+  changes a fraction d of damaged-version decisions fails it by noise alone (200 simulations):
+  at d = 0.10 per-type fail rate txt 0.39, bin 0.34, csv 0.25, others 0; expected failing types
+  0.24 / 0.97 / 1.86 at d = 0.05 / 0.10 / 0.20. F2 changes decisions on exactly the weak types.
+
+**Amended criterion 2 (replaces criterion 2):**
+- (a) primary: the uniform type mean of the paired detection difference (candidate minus
+  unchanged, same damaged versions), with one machine-cluster bootstrap shared across types
+  (2000 resamples), has a lower 95% CI >= -0.02;
+- (b) guard: no type's point difference is below -0.05;
+- (c) per-type paired CIs are reported as secondary and are not scored.
+Null false-fail rate of (a) and of (b) at d up to 0.20: 0 of 200 simulations each
+(results/dev_d78_power/criterion2_pooled_null.csv). Criteria 1 and 3, the split, the candidates
+and the selection rule are unchanged. D78 still does not run until the team approves.
