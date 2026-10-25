@@ -48,6 +48,7 @@ scenario:
   detector_path: results/detector_napierone/detector.pkl
   flag_alpha: 0.01               # the frozen daily-statistic alpha (configs/frozen.yaml)
   napierone_dir: data/napierone
+  napierone_pool: v2             # D74 amendment: D75 enlarged pools
 
 variants:
   - {name: method_v2_w075_vsnap, hp: {blind_weight: 0.75, old_flags: verify_snap, oracle_restore_cols: true, per_file_cols: {alpha: 0.05}}}
