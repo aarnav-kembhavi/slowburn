@@ -176,6 +176,14 @@ bound: q = 1: 1.0 at M = 14 and 30; q <= 0.5: <= 0.006 (q = 0.5: 0.0042 / 0.0062
 d60_scoreboard_vsnap.csv`). Claim "(3) evidence rescues mis-specified delays" was tested
 three times and dropped (D55b, D56, D60).
 
+## Limitations
+
+- Alarm window (D74): the count alarm counts flagged files per calendar day, because the
+  simulator has daily granularity (one simulated day = one daily snapshot). A deployed counter
+  should use a rolling window. Burst behaviour inside a day (for example c - 1 files just before
+  and after midnight) is not modelled; in the daily model it reduces to the threshold-aware
+  attacker (c - 1 files on consecutive days).
+
 ## Pending for the paper
 
 - D65 (v2.1, significance-based snapshot accept rule): REJECTED; step 1 numbers stand, no
