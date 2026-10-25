@@ -58,17 +58,31 @@ SlowBurn 0.9793, GFS 0.6025, Tower of Hanoi 0.5926; at q = 0 prior-only 0.9456, 
 0.9450. Not circular: the policy's timing prior is near flat and differs from every simulator
 world.
 
-**C2. ... with less work lost than the default GFS / Tower of Hanoi configurations.** Scope
-(team decision 2026-10-23): C2 is stated against the default GFS / Tower of Hanoi configurations.
-**Restated against stronger baselines (D72-C2R, synthetic bytes / NapierOne bytes on the v2
-pools, count budgets; results/D72_REPORT.md section 2):** against Bar-On recursive -4.4% [-7.5,
--1.1] / -5.3% [-8.6, -2.0] and Bar-On round robin -6.8% / -6.7% (recovery equal): holds pooled
-but small and not uniform (early world +9% to +11%, SlowBurn worse, CI above 0). Against the
-equal-horizon configurations (horizon >= M; GFS-eqh exists only at K = 12, ToH-eqh at K 8 and
-12) **C2 fails**: SlowBurn loses more work, vs GFS-eqh +16.1% [+12.1, +20.1] / +24.9% [+19.8,
-+30.3] at equal recovery, vs ToH-eqh +10.1% [+6.3, +13.9] / +14.9% [+10.5, +19.8] with recovery
-+0.06. (NapierOne v1-pool sensitivity: Bar-On -3.4% / -5.1%, eqh +6.9% / +3.0%.) The +0.43 recovery advantage over default GFS / ToH does not survive any stronger
-baseline. NapierOne numbers carry the caveats in the header.
+**C2. Retention horizon dominates slot placement: GFS and Tower of Hanoi with a matched
+horizon lose less work than SlowBurn; SlowBurn loses less work only than the default
+configurations and, by a small margin, Bar-On.** NapierOne bytes on the v2 pools, count budgets,
+w 0.75, verify_snap; paired machine-cluster bootstrap 95% CIs (2000 resamples, seed 0); Holm
+across the six baselines per arm (`results/dev_d72_c2r/c2_holm.csv`; Holm p < 0.001 means no
+bootstrap resample crossed 0).
+- Equal horizon (horizon >= M; GFS-eqh exists only at K = 12, ToH-eqh at K 8 and 12): SlowBurn
+  loses +24.9% [+19.8, +30.3] more work than GFS-eqh (recovery +0.001 [0.000, +0.003]) and
+  +14.9% [+10.5, +19.8] more than ToH-eqh (recovery +0.061 [+0.039, +0.085] for SlowBurn);
+  Holm p < 0.001 both.
+- Default configurations: SlowBurn loses -14.0% [-18.3, -9.4] work vs GFS and -19.6% [-23.0,
+  -16.0] vs Tower of Hanoi, recovery +0.425 [+0.407, +0.444] / +0.428 [+0.416, +0.440]; Holm
+  p < 0.001 both. Early world vs GFS +4.2% [-2.9, +11.7], not significant.
+- Bar-On: -5.3% [-8.6, -2.0] vs recursive and -6.7% [-10.5, -2.9] vs round robin, recovery
+  equal (+0.002 [0.000, +0.006] / +0.001 [-0.000, +0.002]); Holm p < 0.001 both; not uniform
+  (early world SlowBurn worse, CI above 0).
+- Synthetic bytes (sanity arm): equal horizon +16.1% [+12.1, +20.1] / +10.1% [+6.3, +13.9];
+  default -27.6% [-31.0, -24.0] / -30.2% [-32.8, -27.5]; Bar-On -4.4% [-7.5, -1.1] (Holm p
+  0.007) / -6.8% [-10.0, -3.6]; all Holm significant.
+- Sensitivity (pool size): the equal-horizon gap grew from +6.9% [+3.6, +10.5] / +3.0% [-0.5,
+  +6.4] on the v1 pools (ToH-eqh Holm p 0.093, not significant) to +24.9% / +14.9% on v2.
+"Horizon dominates" is an interpretation of these rows (matched horizon closes and reverses the
+gap that slot placement opens against the default schedules), not a separately tested claim.
+NapierOne numbers carry the caveats in the header.
+Supporting detail, default configurations:
 Lower work lost than default GFS / Tower of Hanoi pooled (-23.4% vs GFS,
 -26.7% vs Tower of Hanoi) and in 3 of 4 attack worlds; in the early world SlowBurn vs GFS is
 -3.0% [-9.5, +3.9], not significant. Whole-system work lost (h) bursty / early / late /
