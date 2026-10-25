@@ -33,3 +33,18 @@ if [ -f results/.followup_after_d73 ]; then
     done
   fi
 fi
+# One-off follow-up 2 (team decision 2026-10-26): D79 NapierOne v2 then D79 synthetic, after the
+# png row has ended (or a follow-up was skipped), while results/.followup_d79 exists (created
+# only after the D79 smoke test passed); each only if free RAM >= 13 GB. D78 is added here only
+# once its fix code exists.
+if [ -f results/.followup_d79 ] && grep -qE "END dev_d67_full_napierone_v2notrunc attempt|FAILED TWICE dev_d67_full_napierone_v2notrunc|SKIP (follow-up|d74_alarm_holdout|dev_d67_full_napierone_v2notrunc)" $LOG; then
+  rm -f results/.followup_d79; MIN=13
+  ram() { powershell -NoProfile -c "[int]((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB)" | tr -d '\r'; }
+  for job in "dev_d79_eqh_napierone|uv run python -u -m slowburn.cli dev-sweep configs/dev_d79_eqh_napierone.yaml" \
+             "dev_d79_eqh_synthetic|uv run python -u -m slowburn.cli dev-sweep configs/dev_d79_eqh_synthetic.yaml"; do
+    r=$(ram)
+    if [ "$r" -lt $MIN ]; then echo "$(date -Iseconds) SKIP ${job%%|*}: free RAM $r GB < $MIN GB" >> $LOG; break; fi
+    echo "$(date -Iseconds) RAM ok for ${job%%|*}: $r GB free" >> $LOG
+    bash "$0" "$job"
+  done
+fi

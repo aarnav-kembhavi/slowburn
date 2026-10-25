@@ -48,7 +48,7 @@ from slowburn.retention.dp import (
     discovery_survival,
     retention_posterior,
 )
-from slowburn.retention.horizon import EqualHorizon
+from slowburn.retention.horizon import AgeCapped, EqualHorizon
 from slowburn.sim.damage import RandomDamageSource
 from slowburn.sim.scenario import Scenario, ScenarioConfig
 from slowburn.sim.worlds import world_start
@@ -264,6 +264,11 @@ def make_policies(hp: dict, vault_threshold: float) -> dict:
         # D68 equal-horizon fixed schedules, configured for the assumed bound M at each K
         "toh_eqh": EqualHorizon("toh", int(hp["assumed_discovery"]["max_days"])),
         "gfs_eqh": EqualHorizon("gfs", int(hp["assumed_discovery"]["max_days"])),
+        # D79: SlowBurn with its maximum retention age capped at the eqh baseline's held age
+        "slowburn_age_gfs": AgeCapped(PosteriorDP(P, gate=gate, backbone=bb), "gfs",
+                                      int(hp["assumed_discovery"]["max_days"]), "slowburn_age_gfs"),
+        "slowburn_age_toh": AgeCapped(PosteriorDP(P, gate=gate, backbone=bb), "toh",
+                                      int(hp["assumed_discovery"]["max_days"]), "slowburn_age_toh"),
         # D69 worst-case-optimal online checkpointing (Bar-On et al.), k = K - 1
         "shamir_exact": OnlineCheckpointing("exact"),
         "shamir_rr": OnlineCheckpointing("rr"),

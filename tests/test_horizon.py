@@ -37,3 +37,31 @@ def test_oracle_restore_uses_newest_clean_kept_snapshot():
     assert r["restore_point"] == 10 and r["clean_recovery"] == 1
     r = oracle_restore([12, 14], 14, h, true_start=12)  # nothing clean kept
     assert r["restore_point"] == 12 and r["clean_recovery"] == 0
+
+
+def test_d79_held_age_and_age_capped_slowburn():
+    import numpy as np
+
+    from slowburn.retention.base import PosteriorDP
+    from slowburn.retention.dp import discovery_survival, retention_posterior
+
+    assert hz.held_age("gfs", 12, 60) == 104
+    assert (hz.held_age("toh", 8, 60), hz.held_age("toh", 12, 60)) == (127, 255)
+    assert hz.held_age("gfs", 8, 60) is None
+    S = discovery_survival("uniform", 400)
+
+    def extra(day):  # near-flat prior over a long window: the DP wants to reach far back
+        h = 0.001
+        post = np.r_[h * (1 - h) ** np.arange(day + 1), 0.0]
+        post[-1] = 1 - post[:-1].sum()
+        pi = retention_posterior(post, day, S)
+        return {"start_posterior": post, "retention_pi": pi, "prior_retention_pi": pi}
+
+    inner = PosteriorDP(90.0, gate=0.8, backbone=0.25)
+    capped = hz.AgeCapped(PosteriorDP(90.0, gate=0.8, backbone=0.25), "toh", 60, "x")
+    assert capped.supports(8) and not capped.supports(6)
+    free = replay(inner, 300, 8, extra)
+    hist = replay(capped, 300, 8, extra)
+    assert max(t - min(h) for t, h in enumerate(free)) > 127  # the cap binds here
+    assert all(t - min(h) <= 127 for t, h in enumerate(hist))
+    assert all(len(h) <= 8 and t in h for t, h in enumerate(hist))

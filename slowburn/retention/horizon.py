@@ -9,11 +9,18 @@ Theorem 2(a) check, maximised over D).
 from __future__ import annotations
 
 import itertools
+from dataclasses import replace
 from functools import cache
 
 import numpy as np
 
-from slowburn.retention.base import RetentionContext, _newest, replay
+from slowburn.retention.base import (
+    RetentionContext,
+    TowerOfHanoi,
+    _newest,
+    backbone_size,
+    replay,  # fmt: skip
+)
 
 N_DAYS, D_MAX = 800, 400
 GFS_BLOCKS = (7, 28, 91)
@@ -130,3 +137,33 @@ class EqualHorizon:
                 raise ValueError(f"{self.name}: no configuration with H >= {self.M} at K = {K}")
             self._pol[K] = TowerOfHanoiBase(*cfg) if self.kind == "toh" else GFSTiers(*cfg)
         return self._pol[K].decide(ctx)
+
+
+@cache
+def held_age(kind: str, K: int, M: int, n_days: int = 400, burn: int = 200) -> int | None:
+    """D79: the largest snapshot age the D68 ``kind`` eqh configuration holds at budget K in a
+    steady-state replay (days burn..n_days-1), or None if no configuration exists."""
+    cfg = choose(kind, K, M)
+    if cfg is None:
+        return None
+    pol = TowerOfHanoiBase(*cfg) if kind == "toh" else GFSTiers(*cfg)
+    return max(t - min(h) for t, h in enumerate(replay(pol, n_days, K)) if t >= burn)
+
+
+class AgeCapped:
+    """D79 ``slowburn_age_gfs`` / ``slowburn_age_toh``: the SlowBurn DP (``inner``) with held
+    snapshots older than the matching eqh baseline's held age deleted before each decision; the
+    inner policy's Tower of Hanoi backbone set is exempt. Nothing else changes."""
+
+    def __init__(self, inner, kind: str, M: int, name: str):
+        self.inner, self.kind, self.M, self.name = inner, kind, int(M), name
+
+    def supports(self, K: int) -> bool:
+        return held_age(self.kind, K, self.M) is not None
+
+    def decide(self, ctx: RetentionContext) -> set[int]:
+        A = held_age(self.kind, ctx.budget, self.M)
+        R = backbone_size(ctx.budget, self.inner.backbone)
+        bb = TowerOfHanoi().decide(replace(ctx, budget=R)) if R >= 1 else set()
+        days = {s: d for s, d in ctx.snapshot_days.items() if ctx.day - d <= A or s in bb}
+        return self.inner.decide(replace(ctx, snapshot_days=days))
