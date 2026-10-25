@@ -58,28 +58,35 @@ SlowBurn 0.9793, GFS 0.6025, Tower of Hanoi 0.5926; at q = 0 prior-only 0.9456, 
 0.9450. Not circular: the policy's timing prior is near flat and differs from every simulator
 world.
 
-**C2. Retention horizon dominates slot placement: GFS and Tower of Hanoi with a matched
-horizon lose less work than SlowBurn; SlowBurn loses less work only than the default
+**C2. On work lost, retention horizon dominates slot placement: GFS and Tower of Hanoi with an
+equal horizon lose less work than SlowBurn, although SlowBurn keeps higher recovery than
+equal-horizon Tower of Hanoi (+0.061); SlowBurn loses less work only than the default
 configurations and, by a small margin, Bar-On.** NapierOne bytes on the v2 pools, count budgets,
 w 0.75, verify_snap; paired machine-cluster bootstrap 95% CIs (2000 resamples, seed 0); Holm
 across the six baselines per arm (`results/dev_d72_c2r/c2_holm.csv`; Holm p < 0.001 means no
 bootstrap resample crossed 0).
+Sign convention: every work-lost delta is SlowBurn relative to the baseline (sum SlowBurn / sum
+baseline - 1; positive = SlowBurn loses more) and every recovery delta is SlowBurn minus
+baseline (positive = SlowBurn recovers more). The Holm family is the six pooled comparisons per
+arm; per-world comparisons (including the early world) are not in it and are secondary and
+unadjusted.
 - Equal horizon (horizon >= M; GFS-eqh exists only at K = 12, ToH-eqh at K 8 and 12): SlowBurn
   loses +24.9% [+19.8, +30.3] more work than GFS-eqh (recovery +0.001 [0.000, +0.003]) and
   +14.9% [+10.5, +19.8] more than ToH-eqh (recovery +0.061 [+0.039, +0.085] for SlowBurn);
   Holm p < 0.001 both.
 - Default configurations: SlowBurn loses -14.0% [-18.3, -9.4] work vs GFS and -19.6% [-23.0,
   -16.0] vs Tower of Hanoi, recovery +0.425 [+0.407, +0.444] / +0.428 [+0.416, +0.440]; Holm
-  p < 0.001 both. Early world vs GFS +4.2% [-2.9, +11.7], not significant.
+  p < 0.001 both. Early world vs GFS (secondary, unadjusted) +4.2% [-2.9, +11.7], CI includes 0.
 - Bar-On: -5.3% [-8.6, -2.0] vs recursive and -6.7% [-10.5, -2.9] vs round robin, recovery
   equal (+0.002 [0.000, +0.006] / +0.001 [-0.000, +0.002]); Holm p < 0.001 both; not uniform
-  (early world SlowBurn worse, CI above 0).
+  (early world, secondary and unadjusted: SlowBurn worse, +8.6% [+4.6, +12.6] / +10.7% [+5.2,
+  +16.2]).
 - Synthetic bytes (sanity arm): equal horizon +16.1% [+12.1, +20.1] / +10.1% [+6.3, +13.9];
   default -27.6% [-31.0, -24.0] / -30.2% [-32.8, -27.5]; Bar-On -4.4% [-7.5, -1.1] (Holm p
-  0.007) / -6.8% [-10.0, -3.6]; all Holm significant.
+  0.007) / -6.8% [-10.0, -3.6] (Holm p < 0.001); all Holm significant.
 - Sensitivity (pool size): the equal-horizon gap grew from +6.9% [+3.6, +10.5] / +3.0% [-0.5,
   +6.4] on the v1 pools (ToH-eqh Holm p 0.093, not significant) to +24.9% / +14.9% on v2.
-"Horizon dominates" is an interpretation of these rows (matched horizon closes and reverses the
+"Horizon dominates" is an interpretation of these rows (an equal horizon closes and reverses the
 gap that slot placement opens against the default schedules), not a separately tested claim.
 NapierOne numbers carry the caveats in the header.
 Supporting detail, default configurations:
