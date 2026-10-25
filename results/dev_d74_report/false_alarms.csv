@@ -1,0 +1,3 @@
+arm,c,sample,per_run_far,per_run_far_upper95,per_run_far_at_c_minus_1,p_day,p_day_upper95,fleet_fa_per_week_N20,fleet_fa_per_week_N100,fleet_fa_per_week_N20_upper95,fleet_fa_per_week_N100_upper95
+napierone_bytes,3,in sample (calibration runs d74_alarm_calib); held out check pending,0.01,0.054459385392080645,0.31,8.333333333333333e-05,0.00046421518262843746,0.011666666666666667,0.058333333333333334,0.06499012556798124,0.32495062783990625
+synthetic_bytes (sanity),3,in sample (calibration runs d74_alarm_calib); held out check pending,0.0,0.03621669264517641,0.08,0.0,0.0003073593766020121,0.0,0.0,0.04303031272428169,0.21515156362140847
