@@ -1681,3 +1681,50 @@ No rate exceeds 0.20, so neither threshold is tightened. **Final thresholds: 2(a
 >= -0.02; 2(b) every type's point difference >= -0.05.** The null false-fail check above stands
 at these values (0 of 200 for each). With this commit D78 is approved to run, after the held-out
 alarm check and the png row finish, one heavy job at a time. TEST stays closed.
+
+### D79: SlowBurn at equal horizon (team spec 2026-10-26; registered before any D79 code)
+
+Question: is SlowBurn's loss to the equal-horizon schedules (C2) a horizon effect or a placement
+effect? Give SlowBurn the same reach as the matching eqh baseline and compare again.
+
+**Variant (exactly one configuration per run, no tuning).** SlowBurn DP (the frozen operating
+point: penalty 90, gate 0.8, backbone 0.25, w 0.75, same DP objective, same posterior, same
+R-media Tower of Hanoi backbone rule, same budget K) with one added constraint: a maximum
+retention age A(K). Each day, before the DP chooses, held snapshots older than A(K) days are
+deleted (never the backbone's own set; with R = round(0.25 K) <= 3 media the backbone never
+holds a snapshot older than 8 days, so this exception never applies at these K). Nothing else
+changes.
+- Run 1 (`slowburn_age_gfs`): A(K) = the maximum age held by gfs_eqh at K in a steady-state
+  replay (days 200 to 399 of a 400-day replay, retention.horizon, D68 configuration). gfs_eqh
+  exists only at K = 12 (tiers 7 daily / 2 weekly / 3 monthly / 0 quarterly): A(12) = 104.
+- Run 2 (`slowburn_age_toh`): A(K) = the same quantity for toh_eqh, which exists at K = 8
+  (base 2) and K = 12 (base 2): A(8) = 127, A(12) = 255.
+- Why the held age, not the guaranteed horizon H: H(toh_eqh, 12) reaches the computation cap
+  (400 days), so a cap at H would not constrain anything; the held age is the reach the baseline
+  actually uses. H is reported next to A: H(gfs_eqh, 12) = 76, H(toh_eqh, 8) = 63,
+  H(toh_eqh, 12) >= 400. Computed before this entry with the existing D68 code; recomputed by
+  the D79 code and any mismatch reported.
+
+**Data.** NapierOne v2 DEV pools primary, synthetic bytes as the sanity arm. Same seed (202),
+worlds, reps (40), benign rates, discovery delays, detector, restore (verify_snap) and metrics
+as dev_d72_bytes_*; count budgets K = 8 and 12 only (where an eqh baseline exists). Each run
+config also re-runs slowburn, gfs_eqh and toh_eqh on the same machines; the slowburn / eqh rows
+must reproduce the D72 rows exactly (sanity check, reported). TEST stays closed.
+
+**Statistics.** Paired on the same machine rows, machine-cluster bootstrap 95% CIs (2000
+resamples, seed 0), as in the C2 restatement (method_v2.policy_vs_policy, d72_c2r_holm). Holm
+across the two primary comparisons (run 1 vs gfs_eqh at K 12, run 2 vs toh_eqh at K 8 and 12
+pooled), per arm.
+
+**Success (per comparison, NapierOne arm decides; synthetic reported):** work lost (variant
+relative to baseline, sum variant / sum baseline - 1) has an upper 95% CI < 0, the comparison
+is Holm significant at 0.05, and recovery (variant minus baseline) has a lower 95% CI >= -0.02.
+Recovery and work lost are reported both ways (variant vs baseline and baseline vs variant)
+and for the unconstrained SlowBurn, whatever happens. Per-world and per-K rows are secondary and
+unadjusted.
+
+**Failure is a finding:** "placement does not help at equal horizon", reported in claims.md and
+the paper. A success replaces the equal-horizon caveat sentence in the abstract.
+
+**Order.** Implement, smoke test on 2 machines, then run after the held-out alarm check and the
+png row, before D78; one heavy job at a time; memory gate: measured peak + 4 GB (13 GB default).
