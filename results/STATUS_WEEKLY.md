@@ -58,3 +58,10 @@ frozen_v2.yaml (to the team before any test run).
 - data/: 77 GB of the 100 GB cap.
 - FSL Homes download: complete, 767 of 767 files verified against the published SHA-256
   (2011-09-16 to 2011-12-03, 60 days, 13 users, 56 GB, kept compressed).
+
+## Paper draft (added 2026-10-26)
+
+- IEEE Access draft, compiled: `paper/ieee_access/main.pdf` (build: `bash paper/ieee_access/build.sh`;
+  template 20260513 from ieeeaccess.ieee.org, `paper/ieee_access/TEMPLATE_SOURCE.md`). Abstract,
+  introduction, background, threat model, benchmark, methodology and related work drafted; results
+  and discussion are outlines; every number is DEV and from docs/claims.md.
