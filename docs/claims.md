@@ -22,6 +22,14 @@ false flag stress axis is weaker there). (3) zip and png v2 DEV pools stay below
 33% of the new txt files; this does not raise benign csv flags (0.000) but txt benign flags are
 0.010 (known limitation, validator unchanged).
 
+**Evaluation finding (D75, stays in): content pool size changed the NapierOne effect sizes by
+about 2.5x.** Same machines, seeds, detector and grid; only the benign pool grew from 5 to 15
+(v1) to 59 to 115 files per type (v2). C2 vs default GFS -34.4% -> -14.0% (2.5x), vs default
+Tower of Hanoi -35.7% -> -19.6% (1.8x); C3' -11.9% -> -3.8% (3.1x). Cause: the small pools had
+no benign files failing validity and easier-to-detect damage (benign false flags at injected
+rate 0: 0.000 -> 0.017; damage detection 0.947 -> 0.875). Real-data evaluations with a few
+files per type can overstate evidence-based gains; results/D75_REPORT.md.
+
 All numbers are DEV (seed 202), count budgets K in {4, 6, 8, 12}, method v2 = blind weight 0.75
 with the fixed 0.8 gate, restored with the ADOPTED restore (D64a verify_snap: every version in a
 candidate snapshot is checked against its shared write-time flag, D29 any-flag rule, select),

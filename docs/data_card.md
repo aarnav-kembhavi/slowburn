@@ -67,6 +67,14 @@ v2 DEV pools stay below 100 (69, 59).
 | mp3 | MP3-small.zip | 651 | 15 | 115 | 100 | yes |
 | zlib | ZLIB-small.zip | 269 | 5 | 105 | 100 | yes |
 
+**Evaluation finding (D75, stays in): content pool size changed the NapierOne effect sizes by
+about 2.5x.** Same machines, seeds, detector and grid; only the benign pool grew from 5 to 15
+(v1) to 59 to 115 files per type (v2). C2 vs default GFS -34.4% -> -14.0% (2.5x), vs default
+Tower of Hanoi -35.7% -> -19.6% (1.8x); C3' -11.9% -> -3.8% (3.1x). Cause: the small pools had
+no benign files failing validity and easier-to-detect damage (benign false flags at injected
+rate 0: 0.000 -> 0.017; damage detection 0.947 -> 0.875). Real-data evaluations with a few
+files per type can overstate evidence-based gains; results/D75_REPORT.md.
+
 ## Sources and licences
 
 - **NapierOne** (Edinburgh Napier University): https://github.com/simonrdavies/NapierOne,
