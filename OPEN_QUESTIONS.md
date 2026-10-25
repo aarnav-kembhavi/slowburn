@@ -1509,3 +1509,26 @@ fresh test set. The detector stays exactly as it is.
 - Order: after the D72 report, D72-C2R and D73; the download may overlap D73 only if disk and the
   one-heavy-job rule allow (a download is not a heavy compute job; the extraction and hashing are
   short).
+
+### D74 amendment (team decision 2026-10-25, before any D74 run)
+
+1. Pools: the NapierOne arm uses the D75 v2 pools (napierone_pool: v2).
+2. Alarm, replacing the degenerate threshold-vault line (it is 1.0 at benign rate 0.01): a
+   daily flagged-file COUNT alarm. On day t the alarm fires iff k_t >= c, where k_t is the
+   number of changed files flagged that day (file p <= 0.01, the D72 evidence). c is the
+   smallest integer such that at most 5% of calibration runs have max k_t >= c, a run being the
+   120 days after warm-up (days 14 to 133; 120 = the largest attacker delay).
+   Calibration set (never used in the attack evaluation): 100 attack-free machines per arm,
+   family "d74_alarm_calib" (seed key disjoint from "d74_attack", "vault_calib", "eval" and
+   "fleet"), the D74 scenario (benign_invalid_rate 0.01; v2 pools on NapierOne), seed 202.
+   Per arm: c, the achieved per-run false-alarm rate, the per-machine-day rate p_day, and the
+   expected fleet false alarms per week 7 * N * p_day for N in {20, 100} are reported. The
+   value of c is written here and committed before D74 runs.
+3. Threshold-aware attacker (worst-case bound): in addition to the grid, strategies that damage
+   exactly c - 1 files on every day from the start (deterministic, not Poisson), the most the
+   attacker can do while staying under the alarm if every damaged file were flagged, crossed
+   with the 5 damage fractions, 3 target sets and 7 delays (105 strategies). Benign flags can
+   still push a day over c; the achieved alarm rate is reported. These are reported as the
+   worst-case bound per defence, separately from the stealth-filtered grid best response. If
+   c = 1 the bound is "no damage possible without risking an alarm" and is reported as such.
+4. Everything else in D74 unchanged (grid, split halves, defences, no defence tuning).
