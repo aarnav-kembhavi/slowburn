@@ -1532,3 +1532,52 @@ fresh test set. The detector stays exactly as it is.
    worst-case bound per defence, separately from the stealth-filtered grid best response. If
    c = 1 the bound is "no damage possible without risking an alarm" and is reported as such.
 4. Everything else in D74 unchanged (grid, split halves, defences, no defence tuning).
+
+### D78 (DRAFT, sent to the team 2026-10-25; nothing runs until approved): one fix attempt for the NapierOne detector weaknesses
+
+**Step a, done before any criterion (2026-10-25), bug or real data:**
+- csv, 55 of 100 new DEV files fail strict UTF-8: all 55 decode as Windows-1252 (en dash 0x96,
+  pound 0xA3): real non-UTF-8 text, not a validator bug. Benign csv is never flagged anyway
+  (0.000), so csv needs no fix.
+- txt, 33 of 100: 27 are Windows-1252 text; 6 are gzip streams (magic 1F 8B) named .txt inside
+  NapierOne: real data (mislabelled in the dataset), not a validator bug.
+- png, 9 of 54: all are PNG-FROM-WEB files of exactly 1,048,576 bytes; PIL also fails them
+  ("Truncated File Read"). 13 of the 100 PNG-FROM-WEB tiny files are exactly 1 MiB and none is
+  larger: NapierOne truncated web downloads at 1 MiB. Real (defective) data, not a validator bug.
+- bin has no format check; its damage detection drop (0.88 -> 0.66) and txt's (0.94 -> 0.59)
+  come from the content features on more varied files.
+
+**Split (seeded, before any tuning):** the v2 DEV additions per type (benign_v2/<type>/dev) are
+permuted with child_rng(202, "d78_split", type) over sorted names; the first half is the FIX
+half, the second the CHECK half. Pool versions "v2fix" / "v2check" = the v1 DEV pool plus that
+half. The TEST pool (v1 sim_test and benign_v2/<type>/test) is never opened.
+
+**Allowed changes (calibration or feature only; the validator is not loosened; detector
+training data, model hyperparameters and the file p <= 0.01 flag rule unchanged):**
+- F1 calibration: refit the type-conditional conformal calibration on the detector calib split
+  plus the FIX-half benign files (benign rows only).
+- F2 feature: replace the absolute validity bit by a validity-transition bit (previous version
+  valid and this version invalid); a file already invalid before (Windows-1252 text, truncated
+  png, gzip-as-txt) no longer looks damaged by validity alone. Model retrained on the same train
+  split with the same hyperparameters.
+- F3: F1 and F2 together.
+No other candidate. Accepting Windows-1252 as valid text is excluded: striped random damage
+decodes as Windows-1252 almost everywhere, so it would stop catching real damage (rule f).
+
+**Selection on the FIX half only:** each of F1 to F3 and the unchanged detector are scored by a
+D71-style recount on the D67 NapierOne grid with pool "v2fix" (same seeds); the candidate that
+meets the criteria with the lowest benign flag rate is selected (none meeting them: the closest
+is still scored once on CHECK and reported, but cannot be adopted).
+
+**Acceptance criteria, scored once on the CHECK half (pool "v2check"), paired with the unchanged
+detector on the same machines:**
+1. benign false-flag rate of rewrite versions at injected rate 0: <= 0.005 overall (point), with
+   the upper 95% machine-cluster CI <= 0.008;
+2. damage detection on every type not lower than the unchanged detector by more than 0.02
+   (lower 95% CI of the paired difference >= -0.02); ~500 damaged versions per type give a
+   standard error near 0.015, so "no worse at all" would fail on noise;
+3. detector file-level AUROC (striped 10%, uniform type mean) on the CHECK files not lower than
+   the unchanged detector's by more than 0.01.
+Pass: lock as detector v2 (results/detector_napierone_v2/) for the frozen run, and rerun the
+NapierOne arms that use it. Fail: the unchanged detector ships and png / txt / bin are listed as
+limitations. Either way the unchanged and the candidate detectors are reported side by side.
