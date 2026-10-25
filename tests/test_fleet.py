@@ -188,3 +188,25 @@ def test_fork_with_attack_overrides_equals_fresh():
     _same(forked, fresh)
     hit = [f for f, h in forked.histories().items() if h.damaged_day is not None]
     assert hit and all(forked.scen.file_types[f] == "csv" for f in hit)
+
+
+def test_fixed_per_day_attack_damages_exactly_that_many():
+    cfg, sc = _setup("abstract", None)
+    sim = MachineSim(cfg, sc, (202, "fleet-test", 5), 14).run_to(5).fork(5, attack_fixed_per_day=2)
+    sim.run_to(9)
+    days = sorted(h.damaged_day for h in sim.histories().values() if h.damaged_day is not None)
+    assert days == [5, 5, 6, 6, 7, 7, 8, 8]
+
+
+def test_count_alarm_and_threshold_aware_strategies():
+    from slowburn.bench.attacker_experiment import first_alarm_delay, strategies
+    from slowburn.inference.daily import DailyObs
+
+    obs = [DailyObs(t, 0.0, k, 10) for t, k in enumerate([0, 3, 1, 2, 4, 0])]
+    assert first_alarm_delay(obs, 2, 3, 10) == 3  # day 4 has k = 4 >= 3: discovery day 5
+    assert first_alarm_delay(obs, 2, 5, 10) is None
+    cfg = load_config("configs/dev_d74_attack_synthetic.yaml")
+    st = strategies(cfg, 4)
+    under = [s for s in st if s["kind"] == "under_threshold"]
+    assert len(st) == 75 + 15 and all(s["fixed"] == 3 for s in under)
+    assert len(strategies(cfg, 1)) == 75

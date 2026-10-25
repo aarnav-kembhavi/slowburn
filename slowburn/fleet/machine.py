@@ -86,7 +86,7 @@ class MachineSim:
         if start is not None and start < self.day:
             raise ValueError("cannot fork into the past")
         bad = set(attack) - {"attack_files_per_day", "damage_fraction", "attack_target_types",
-                             "damage_model"}  # fmt: skip
+                             "damage_model", "attack_fixed_per_day"}  # fmt: skip
         if bad:
             raise ValueError(f"not an attack field: {sorted(bad)}")
         new = copy.copy(self)

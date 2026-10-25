@@ -30,6 +30,8 @@ class ScenarioConfig:
     # attack: None = clean run
     attack_start: int | None = 40
     attack_files_per_day: float = 1.0
+    # D74 threshold-aware attacker: damage exactly this many files per day (None = Poisson)
+    attack_fixed_per_day: int | None = None
     damage_model: str = "striped"
     damage_fraction: float = 0.1
     stripe_bytes: int = 16
@@ -177,7 +179,10 @@ class Scenario:
             for f in files
             if f not in self.damaged_on and (allowed is None or self.file_types[f] in allowed)
         ]
-        n = min(len(targets), int(rng.poisson(cfg.attack_files_per_day)))
+        if cfg.attack_fixed_per_day is None:
+            n = min(len(targets), int(rng.poisson(cfg.attack_files_per_day)))
+        else:
+            n = min(len(targets), int(cfg.attack_fixed_per_day))
         if day == cfg.attack_start:
             n = min(len(targets), max(n, 1))  # start day := first day with damage
         for fid in rng.choice(targets, size=n, replace=False) if n else []:

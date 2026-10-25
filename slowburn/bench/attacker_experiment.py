@@ -12,6 +12,7 @@ the same rows. The attacker exists only as these simulation parameters.
 from __future__ import annotations
 
 import itertools
+import json
 import pickle
 from pathlib import Path
 
@@ -31,17 +32,25 @@ from slowburn.utils.seed import child_rng
 _W: dict = {}
 
 
-def strategies(cfg: dict) -> list[dict]:
+def strategies(cfg: dict, c: int) -> list[dict]:
+    """The pre-registered grid, plus (D74 amendment) the threshold-aware attacker that damages
+    exactly c - 1 files every day, crossed with the fractions and target sets."""
     a = cfg["attack"]
-    return [{"rate": float(r), "fraction": float(f), "targets": t}
+    grid = [{"kind": "grid", "rate": float(r), "fixed": None, "fraction": float(f), "targets": t}
             for r, f, t in itertools.product(a["rates"], a["fractions"], a["targets"])]  # fmt: skip
+    if c - 1 < 1:
+        return grid  # c = 1: no damage possible without risking an alarm (reported)
+    under = [{"kind": "under_threshold", "rate": float(c - 1), "fixed": c - 1,
+              "fraction": float(f), "targets": t}
+             for f, t in itertools.product(a["fractions"], a["targets"])]  # fmt: skip
+    return grid + under
 
 
-def first_alarm_delay(obs, start: int, thr: float, horizon: int) -> int | None:
-    """Days from the start to discovery by the alarm: first day t >= start with the daily
-    statistic above the vault line, discovery the next day (t + 1 - start); None if none."""
+def first_alarm_delay(obs, start: int, c: int, horizon: int) -> int | None:
+    """Days from the start to discovery by the count alarm: first day t >= start with at least
+    c flagged files, discovery the next day (t + 1 - start); None if none within horizon."""
     for t in range(start, min(start + horizon, len(obs))):
-        if obs[t].value > thr:
+        if obs[t].k >= c:
             return t + 1 - start
     return None
 
@@ -64,12 +73,14 @@ def attack_task(task: tuple) -> list[dict]:
               "null_prior": cal["null_prior"],
               "type_null_priors": cal["type_null_priors"]}  # fmt: skip
     rows = []
-    for st in strategies(cfg):
+    c = int(cal["alarm_c"])
+    for st in strategies(cfg, c):
         tgt = a["targets"][st["targets"]]
         sim = benign.fork(s, attack_files_per_day=st["rate"], damage_fraction=st["fraction"],
-                          attack_target_types=None if tgt is None else tuple(tgt))  # fmt: skip
+                          attack_target_types=None if tgt is None else tuple(tgt),
+                          attack_fixed_per_day=st["fixed"])  # fmt: skip
         tr = sim.run_to(n_days).trace()
-        ad = first_alarm_delay(tr.obs, s, cal["thr"], D)
+        ad = first_alarm_delay(tr.obs, s, c, D)
         delays = sorted({int(d) for d in a["delays"]} | ({ad} if ad is not None else set()))
         c = {**cfg, "discovery_delay": delays, "budgets": a["budgets"]}
         t = RetentionTask(
@@ -80,7 +91,8 @@ def attack_task(task: tuple) -> list[dict]:
         )
         for hp in _W["combos"]:
             for r in evaluate_trace(c, t, tr, hp, cfg["policies"]):
-                r.update(strategy_rate=st["rate"], strategy_fraction=st["fraction"],
+                r.update(strategy_kind=st["kind"], alarm_c=c,
+                         strategy_rate=st["rate"], strategy_fraction=st["fraction"],
                          strategy_targets=st["targets"], alarm_delay=ad,
                          grid_delay=int(r["discovery_delay"]) in {int(d) for d in a["delays"]},
                          is_alarm_delay=ad is not None and int(r["discovery_delay"]) == ad,
@@ -102,12 +114,14 @@ def calibration(cfg: dict, log=print) -> dict:
     setting = {**cfg["scenario"], "benign_invalid_rate": rate}
     thr, prior, _m, tprior = attack_free_calibration(cfg, setting, "dev",
                                                      int(cfg["vault_calib_machines"]))  # fmt: skip
-    cal = {"thr": float(thr), "null_prior": tuple(map(float, prior)),
+    # D74 amendment: the count alarm threshold from the disjoint calibration set
+    alarm = json.loads(Path(cfg["attack"]["alarm_path"]).read_text())[cfg["attack"]["arm"]]
+    cal = {"thr": float(thr), "alarm_c": int(alarm["c"]), "null_prior": tuple(map(float, prior)),
            "type_null_priors": {k: tuple(map(float, v)) for k, v in tprior.items()}}  # fmt: skip
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("wb") as fh:
         pickle.dump(cal, fh)
-    log(f"calibration: vault line {cal['thr']:.4f}, null prior {cal['null_prior']}")
+    log(f"calibration: count alarm c = {cal['alarm_c']}, null prior {cal['null_prior']}")
     return cal
 
 
@@ -121,7 +135,7 @@ def run_attacker_experiment(cfg: dict, log=print) -> pd.DataFrame:
     combos = [{**base, **v["hp"], "_variant": v["name"]} for v in cfg["variants"]]
     cal = calibration(cfg, log)
     tasks = [(w["name"], r) for w in cfg["worlds"] for r in range(int(cfg["attack"]["reps"]))]
-    log(f"D74: {len(tasks)} machines x {len(strategies(cfg))} damage strategies")
+    log(f"D74: {len(tasks)} machines x {len(strategies(cfg, cal['alarm_c']))} damage strategies")
     res = run_tasks(attack_task, tasks, workers=int(cfg.get("workers", 5)), init=_init,
                     init_args=(cfg, cal, combos), cache_dir=out / "machines", log=log)  # fmt: skip
     df = pd.DataFrame([r for rows in res for r in rows])

@@ -62,3 +62,4 @@ attack:
   benign_invalid_rate: 0.01
   reps: 10
   selection_reps: [0, 1, 2, 3, 4]      # selection half; reps 5-9 evaluate
+  alarm_path: results/dev_d74_alarm_calib/threshold.json   # D74 amendment count alarm
