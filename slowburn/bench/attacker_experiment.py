@@ -82,7 +82,7 @@ def attack_task(task: tuple) -> list[dict]:
         tr = sim.run_to(n_days).trace()
         ad = first_alarm_delay(tr.obs, s, c, D)
         delays = sorted({int(d) for d in a["delays"]} | ({ad} if ad is not None else set()))
-        c = {**cfg, "discovery_delay": delays, "budgets": a["budgets"]}
+        ecfg = {**cfg, "discovery_delay": delays, "budgets": a["budgets"]}
         t = RetentionTask(
             "dev",
             "d74_attack",
@@ -90,7 +90,7 @@ def attack_task(task: tuple) -> list[dict]:
             rep,
         )
         for hp in _W["combos"]:
-            for r in evaluate_trace(c, t, tr, hp, cfg["policies"]):
+            for r in evaluate_trace(ecfg, t, tr, hp, cfg["policies"]):
                 r.update(strategy_kind=st["kind"], alarm_c=c,
                          strategy_rate=st["rate"], strategy_fraction=st["fraction"],
                          strategy_targets=st["targets"], alarm_delay=ad,
