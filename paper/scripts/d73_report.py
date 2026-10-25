@@ -23,7 +23,8 @@ from slowburn.fleet.allocate import (
 
 OUT = Path("results/dev_d73_report")
 ARMS = {"synthetic_bytes": "results/dev_d73_fleet_synthetic",
-        "napierone_bytes": "results/dev_d73_fleet_napierone"}  # fmt: skip
+        "napierone_bytes": "results/dev_d73_fleet_napierone_v2pool",  # D75: v2 is the source
+        "napierone_bytes_v1pool": "results/dev_d73_fleet_napierone"}  # sensitivity  # fmt: skip
 PAIR = ["arm", "rep", "world", "N", "f", "m", "K_avg", "discovery_delay"]
 RESTORES = "ABCDE"
 pd.set_option("display.width", 250, "display.max_columns", 40, "display.max_rows", 500)
@@ -58,8 +59,9 @@ def greedy_check(n_cases: int = 500, seed: int = 0) -> pd.DataFrame:
 
 
 def load() -> pd.DataFrame:
-    parts = [pd.read_csv(Path(r) / "fleet_rows.csv.gz") for r in ARMS.values()
-             if (Path(r) / "fleet_rows.csv.gz").exists()]  # fmt: skip
+    # the arm label comes from ARMS, so the v1 and v2 NapierOne runs stay apart
+    parts = [pd.read_csv(Path(r) / "fleet_rows.csv.gz").assign(arm=arm)
+             for arm, r in ARMS.items() if (Path(r) / "fleet_rows.csv.gz").exists()]  # fmt: skip
     return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
 
 
@@ -130,6 +132,7 @@ def main(primary: str = "A"):
     c.to_csv(OUT / "criteria.csv", index=False)
     print(c.round(4).to_string(index=False))
     p = c[c.primary]
+    p = p[p.arm != "napierone_bytes_v1pool"]  # the v1 arm is a sensitivity row, not scored
     adopt = bool(len(p) == 4 and p["all"].all())
     print(f"== FLEET adopted (primary restore {primary}, vs a and b, both arms): {adopt}")
 
