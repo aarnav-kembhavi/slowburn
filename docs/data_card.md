@@ -75,6 +75,13 @@ no benign files failing validity and easier-to-detect damage (benign false flags
 rate 0: 0.000 -> 0.017; damage detection 0.947 -> 0.875). Real-data evaluations with a few
 files per type can overstate evidence-based gains; results/D75_REPORT.md.
 
+**Truncated png files (counted 2026-10-25; kept in the pools, team decision).** 13 of the 100
+NapierOne-tiny PNG-FROM-WEB files are exactly 1,048,576 bytes (none larger) and fail both our PNG
+check and PIL ("Truncated File Read"): NapierOne cut these web downloads at 1 MiB. The v1 DEV
+png pool holds 0 of them (of 5); the v2 DEV png pool holds 9 (of 59). The TEST pool was not
+inspected. They stay in every scored pool; a labelled, unscored sensitivity row excludes them
+(pool v2_notrunc, 50 png files; configs/dev_d67_full_napierone_v2notrunc.yaml).
+
 ## Sources and licences
 
 - **NapierOne** (Edinburgh Napier University): https://github.com/simonrdavies/NapierOne,

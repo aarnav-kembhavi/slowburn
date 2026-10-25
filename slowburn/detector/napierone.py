@@ -119,6 +119,17 @@ class PoolFile:
         return self.path
 
 
+def truncated_png(pool, f) -> bool:
+    """A NapierOne PNG-FROM-WEB file truncated at exactly 1 MiB (D75 check: 13 of 100 in the
+    subset are exactly 1,048,576 bytes and fail both our PNG check and PIL)."""
+    from slowburn.detector.validity import file_validity
+
+    if f.size != SIM_MAX_BYTES:
+        return False
+    data = Path(f.path).read_bytes() if isinstance(f, PoolFile) else read_benign(pool.root, f)
+    return file_validity(data, "png") < 1
+
+
 class ContentPool:
     """Benign content for byte-mode simulated machines (D67): files of each type from one pool
     (``sim_dev``), at most ``SIM_MAX_BYTES``; ``draw`` returns the bytes of a random pool file.
@@ -128,12 +139,12 @@ class ContentPool:
     def __init__(self, root: str | Path, pool: str = "sim_dev", version: str = "v1"):
         if pool == "sim_test":
             raise ValueError("the TEST content pool is not read before the fresh test set")
-        if version not in ("v1", "v2"):
+        if version not in ("v1", "v2", "v2_notrunc"):
             raise ValueError(f"unknown pool version {version!r}")
         self.root = str(resolve_path(root))
         sp = benign_splits(self.root)
         self.files = {t: [f for f in s[pool] if f.size <= SIM_MAX_BYTES] for t, s in sp.items()}
-        if version == "v2":
+        if version in ("v2", "v2_notrunc"):
             extra = Path(self.root) / "benign_v2"
             if not (extra / "manifest.json").exists():
                 raise ValueError(f"no D75 pools under {extra}")
@@ -141,6 +152,8 @@ class ContentPool:
                 d = extra / t / "dev"
                 self.files[t] += [PoolFile(t, str(p), p.stat().st_size)
                                   for p in sorted(d.iterdir())] if d.exists() else []  # fmt: skip
+        if version == "v2_notrunc":  # unscored sensitivity: drop NapierOne pngs cut at 1 MiB
+            self.files["png"] = [f for f in self.files["png"] if not truncated_png(self, f)]
         empty = [t for t, fs in self.files.items() if not fs]
         if empty:
             raise ValueError(f"no {pool} file <= {SIM_MAX_BYTES} bytes for types {empty}")

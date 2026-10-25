@@ -1619,3 +1619,10 @@ stated as a limitation.
 Correction (2026-10-25): the synthetic p_day upper bound above (2.5e-4) was a rule-of-three
 approximation; the exact Clopper-Pearson 95% bound for 0 of 12,000 is 3.1e-4 (fleet false
 alarms per week upper bounds 0.043 / 0.22 for N = 20 / 100). The D74 report uses exact bounds.
+
+### Truncated-png sensitivity row (team decision 2026-10-25)
+
+The 9 truncated NapierOne pngs (exactly 1 MiB, fail PNG check and PIL) stay in every scored pool.
+One unscored sensitivity row: the D67 NapierOne arm on pool v2_notrunc (v2 minus those 9),
+same seeds, run after the primary arms (queue: after D73 NapierOne v2 and the held-out alarm
+check), reported next to v2 and labelled unscored. It changes no claim by itself.
