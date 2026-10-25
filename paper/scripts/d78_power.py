@@ -98,6 +98,58 @@ def pooled_null(n_sim: int = N_SIM, n_boot: int = 2000):
     print(o.to_string(index=False))
 
 
+def candidate_rates(drop: dict, d: float, n_sim: int = N_SIM, n_boot: int = 2000,
+                    bound: float = MARGIN, guard: float = -0.05, seed: int = 80) -> dict:
+    """Pass rates of amended 2(a) (pooled lower CI >= bound) and 2(b) (every type's point
+    difference >= guard) for candidates with a true per-type detection drop (drop[type]) on top
+    of discordance d, same shared machine-cluster bootstrap as pooled_null."""
+    v = pd.read_csv("results/dev_d71_false_flags/versions.csv.gz")
+    v = v[(v.arm == "napierone_v2pool") & (v.benign_invalid_rate == 0) & (v.version == "damaged")]
+    cl = (v.world + "|" + v.rep.astype(str) + "|" + v.true_start.astype(str)).to_numpy()
+    codes = np.unique(cl, return_inverse=True)[1].ravel()
+    n_cl, types = int(codes.max()) + 1, sorted(v.file_type.unique())
+    rng = np.random.default_rng(seed)
+    pass_a = pass_b = 0
+    for s in range(n_sim):
+        w = np.random.default_rng(s).multinomial(n_cl, np.full(n_cl, 1 / n_cl), size=n_boot)
+        means, points = [], []
+        for t in types:
+            m = (v.file_type == t).to_numpy()
+            f, c = v.flagged.to_numpy(float)[m], codes[m]
+            p = f.mean()
+            g = np.where(rng.random(len(f)) < d, rng.random(len(f)) < p, f).astype(float)
+            g[(g == 1) & (rng.random(len(f)) < drop.get(t, 0.0) / p)] = 0.0
+            sn, sc = np.bincount(c, g - f, n_cl), np.bincount(c, None, n_cl)
+            means.append((w @ sn) / (w @ sc))
+            points.append((g - f).mean())
+        pass_a += np.quantile(np.mean(means, axis=0), 0.025) >= bound
+        pass_b += min(points) >= guard
+    return {"pass_a": pass_a / n_sim, "pass_b": pass_b / n_sim}
+
+
+def false_pass():
+    """Team rule 2026-10-26: tighten 2(a) to -0.01 if a uniform true drop of 0.03 passes it
+    > 20% of the time; tighten 2(b) to -0.03 if a one-type true drop of 0.08 (txt, bin, csv)
+    passes it > 20% of the time. d = 0 and d = 0.10; the larger rate decides."""
+    types = ("bin", "csv", "docx", "jpg", "mp3", "png", "txt", "zip", "zlib")
+    out = []
+    for d in (0.0, 0.10):
+        r = candidate_rates({t: 0.03 for t in types}, d)
+        out.append({"case": "uniform_drop_0.03", "discordance": d, "criterion": "2a",
+                    "pass_rate": r["pass_a"]})  # fmt: skip
+        for t in ("txt", "bin", "csv"):
+            r = candidate_rates({t: 0.08}, d)
+            out.append({"case": f"drop_0.08_{t}", "discordance": d, "criterion": "2b",
+                        "pass_rate": r["pass_b"]})  # fmt: skip
+    o = pd.DataFrame(out)
+    o.to_csv(OUT / "criterion2_false_pass.csv", index=False)
+    print(o.to_string(index=False))
+    a = o[o.criterion == "2a"].pass_rate.max() > 0.20
+    b = o[o.criterion == "2b"].pass_rate.max() > 0.20
+    print("tighten 2(a) to -0.01:", a, "| tighten 2(b) to -0.03:", b)
+
+
 if __name__ == "__main__":
     main()
     pooled_null()
+    false_pass()

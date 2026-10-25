@@ -1,0 +1,9 @@
+case,discordance,criterion,pass_rate
+uniform_drop_0.03,0.0,2a,0.0
+drop_0.08_txt,0.0,2b,0.0
+drop_0.08_bin,0.0,2b,0.005
+drop_0.08_csv,0.0,2b,0.0
+uniform_drop_0.03,0.1,2a,0.0
+drop_0.08_txt,0.1,2b,0.005
+drop_0.08_bin,0.1,2b,0.01
+drop_0.08_csv,0.1,2b,0.015

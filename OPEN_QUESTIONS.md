@@ -1660,3 +1660,24 @@ detector was changed and nothing was simulated.
 Null false-fail rate of (a) and of (b) at d up to 0.20: 0 of 200 simulations each
 (results/dev_d78_power/criterion2_pooled_null.csv). Criteria 1 and 3, the split, the candidates
 and the selection rule are unchanged. D78 still does not run until the team approves.
+
+**False-pass check (team rule 2026-10-26, conditional approval; run before any fix code).**
+Rule fixed by the team before the run: tighten 2(a) from -0.02 to -0.01 if candidates with a
+true uniform detection drop of 0.03 on every type pass 2(a) more than 20% of the time; tighten
+2(b) from -0.05 to -0.03 if candidates with a true drop of 0.08 on one type only (txt, bin, csv
+separately) pass 2(b) more than 20% of the time for any of them. 200 simulations each, same
+shared machine-cluster bootstrap; drops applied on top of discordance d = 0 and d = 0.10 (the
+larger rate decides). paper/scripts/d78_power.py false_pass(),
+results/dev_d78_power/criterion2_false_pass.csv.
+
+| case | d = 0 | d = 0.10 |
+|---|---|---|
+| uniform drop 0.03, pass rate of 2(a) | 0.000 | 0.000 |
+| drop 0.08 on txt only, pass rate of 2(b) | 0.000 | 0.005 |
+| drop 0.08 on bin only, pass rate of 2(b) | 0.005 | 0.010 |
+| drop 0.08 on csv only, pass rate of 2(b) | 0.000 | 0.015 |
+
+No rate exceeds 0.20, so neither threshold is tightened. **Final thresholds: 2(a) lower 95% CI
+>= -0.02; 2(b) every type's point difference >= -0.05.** The null false-fail check above stands
+at these values (0 of 200 for each). With this commit D78 is approved to run, after the held-out
+alarm check and the png row finish, one heavy job at a time. TEST stays closed.
