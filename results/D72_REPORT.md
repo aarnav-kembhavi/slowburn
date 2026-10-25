@@ -82,6 +82,22 @@ the default GFS / Tower of Hanoi rows reproduce D67 post-fix exactly (d67_reprod
   baseline: the default configurations are weak on recovery because their horizon is shorter
   than the assumed discovery bound.
 
+**Update 2026-10-25 (D75): NapierOne is restated on the v2 pools; the v1 column above is a
+sensitivity row only.** NapierOne bytes, v2 pools (results/dev_d72_bytes_napierone_v2pool):
+
+| baseline | v2 recovery diff / work lost | holds |
+|---|---|---|
+| GFS (default) | +0.425 / -14.0% [-18.3, -9.4] | yes |
+| Tower of Hanoi (default) | +0.428 / -19.6% [-23.0, -16.0] | yes |
+| Bar-On recursive | +0.002 [0.000, +0.006] / -5.3% [-8.6, -2.0] | yes |
+| Bar-On round robin | +0.001 / -6.7% [-10.5, -2.9] | yes |
+| GFS equal horizon (K = 12) | +0.001 / **+24.9% [+19.8, +30.3]** | no |
+| ToH equal horizon (K = 8, 12) | +0.061 / **+14.9% [+10.5, +19.8]** | no |
+
+By world on v2: SlowBurn loses more work than both Bar-On variants in the early world (+8.6%,
++10.7%, CIs above 0); vs default GFS the early world is +4.2% [-2.9, +11.7]. The D67 v1
+reproduction check still matches exactly (napierone_bytes_v1pool rows).
+
 Status for claims.md: C2 is restated as holding against the default GFS / Tower of Hanoi
 configurations and (small, not uniform across worlds) against Bar-On, and failing against the
 equal-horizon configurations. All provisional NapierOne caveats still apply.

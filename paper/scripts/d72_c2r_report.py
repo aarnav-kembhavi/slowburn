@@ -13,7 +13,8 @@ from slowburn.bench import method_v2 as mv
 
 OUT = Path("results/dev_d72_c2r")
 ARMS = {"synthetic_bytes": "results/dev_d72_bytes_synthetic",
-        "napierone_bytes": "results/dev_d72_bytes_napierone"}  # fmt: skip
+        "napierone_bytes": "results/dev_d72_bytes_napierone_v2pool",  # D75: v2 is the source
+        "napierone_bytes_v1pool": "results/dev_d72_bytes_napierone"}  # sensitivity row  # fmt: skip
 D67 = Path("results/dev_d67_compare/c2_slowburn_vs_fixed.csv")
 BASES = ("gfs", "tower_of_hanoi", "shamir_recursive", "shamir_rr", "gfs_eqh", "toh_eqh")
 COLS = ["arm", "vs", "world", "budget", "pairs", "recovery_diff", "recovery_diff_lo",
@@ -44,6 +45,7 @@ def main():
     print(c[(c.budget != "all")][COLS].round(4).to_string(index=False))
     if D67.exists():  # sanity: same seed and machines as D67, so GFS / ToH must reproduce
         old = pd.read_csv(D67)
+        old["arm"] = old.arm.replace({"napierone_bytes": "napierone_bytes_v1pool"})  # D67 = v1
         old = old[old.arm.isin(ARMS) & old.world.isna()][["arm", "vs", "work_lost_rel"]]
         m = old.merge(c[pooled][["arm", "vs", "work_lost_rel"]], on=["arm", "vs"],
                       suffixes=("_d67", "_d72"))  # fmt: skip
