@@ -1581,3 +1581,15 @@ detector on the same machines:**
 Pass: lock as detector v2 (results/detector_napierone_v2/) for the frozen run, and rerun the
 NapierOne arms that use it. Fail: the unchanged detector ships and png / txt / bin are listed as
 limitations. Either way the unchanged and the candidate detectors are reported side by side.
+
+### D74 alarm threshold (calibrated 2026-10-25 16:19-16:32, before any D74 run)
+
+results/dev_d74_alarm_calib/threshold.json, 100 disjoint benign runs of 120 days per arm:
+
+| arm | c | per-run false alarm at c | at c - 1 | p_day at c | fleet false alarms / week, N = 20 / 100 |
+|---|---|---|---|---|---|
+| synthetic bytes | 3 | 0.00 (0 of 100) | 0.08 | 0 of 12,000 machine-days (95% upper bound 2.5e-4) | 0 / 0 (upper bounds 0.035 / 0.17) |
+| NapierOne bytes, v2 pools | 3 | 0.01 | 0.31 | 8.3e-5 | 0.012 / 0.058 |
+
+The count is discrete: c = 2 would exceed 5% per run, so c = 3 and the achieved rate is below
+the 5% target. The threshold-aware attacker therefore damages exactly 2 files per day.

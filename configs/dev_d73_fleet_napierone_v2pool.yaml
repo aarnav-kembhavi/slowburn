@@ -1,0 +1,63 @@
+# D75 rerun of the D73 NapierOne arm on the enlarged pools (napierone_pool: v2), team decision
+# 2026-10-25; otherwise identical to configs/dev_d73_fleet_napierone.yaml.
+# D73 fleet-aware retention (OPEN_QUESTIONS D73), arm 'napierone' bytes. Scenario, detector, hp and
+# calibration copied from configs/dev_d72_bytes_napierone.yaml (post-D71b detector); the fleet
+# section is the pre-registered grid. Run: uv run python paper/scripts/d73_run.py <this config>
+seed: 202
+experiment: dev_d73_fleet_napierone_v2pool
+output_dir: results/dev_d73_fleet_napierone_v2pool
+split: dev
+workers: 5
+
+warmup_days: 14
+discovery_delay: [7, 14, 30, 45, 60]
+vault_calib_machines: 40        # attack-free DEV machines: fleet null prior, byte multipliers
+
+# start window: day 28 (two weeks after warm-up) to day 280 (40 weeks)
+worlds:
+  - {name: uniform, kind: uniform, window: [28, 280]}
+  - {name: early, kind: beta, a: 1, b: 3, window: [28, 280]}     # mean day 91
+  - {name: late, kind: beta, a: 3, b: 1, window: [28, 280]}      # mean day 217
+  # bursty campaigns: centres drawn once from child_rng(202, "bursty_centres") on [40, 268]
+  - {name: bursty, kind: clusters, centres: [99, 139, 267], sd: 3, window: [28, 280]}
+
+hp:                              # v1 frozen operating point, unchanged (configs/frozen.yaml)
+  p_attack_within_window: 0.05
+  prior_window_days: 60
+  penalty: 90.0
+  restore_quantile: 0.1
+  assumed_discovery: {kind: uniform, max_days: 60}
+  gate: 0.8
+  backbone: 0.25
+  null_pool: pooled
+  restore_rule: verified
+  restore_posterior: discovery
+  scan_eps: 0.001
+  blind_weight: 0.75             # method v2 (D72 variant)
+
+scenario:
+  n_files: 40
+  file_types: [txt, csv, bin, docx, zip, png, jpg, mp3, zlib]   # D67: no lzma in either arm
+  file_kib: [16, 96]
+  edits_per_day: 4.0
+  attack_start: 112              # used only by calibration machines (attack-free anyway)
+  attack_files_per_day: 0.5
+  damage_model: striped
+  damage_fraction: 0.1
+  evidence: detector             # D67: trained detector on bytes; flags = file p <= flag_alpha
+  data_source: napierone
+  detector_path: results/detector_napierone/detector.pkl
+  flag_alpha: 0.01               # the frozen daily-statistic alpha (configs/frozen.yaml)
+  napierone_dir: data/napierone
+  napierone_pool: v2             # D75 enlarged pools
+
+fleet:
+  arm: napierone_bytes
+  sizes: [20, 100]
+  k_avg: [4, 6, 8]
+  infected_fraction: [0.05, 0.2, 0.5]
+  lateral_mean: [0, 2, 7]
+  churn_sigma: 0.75              # edits_per_day = 4.0 * exp(0.75 z) per machine
+  benign_invalid_rate: 0.01
+  per_file_alpha: 0.05           # D72 method C
+  reps: 8
