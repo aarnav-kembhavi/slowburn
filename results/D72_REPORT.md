@@ -32,7 +32,8 @@ SlowBurn retention, means (recovery / residual damaged files / per-file work los
 | full, q 0.5 | 0.995 / 0.01 / 6222 | 0.015 / 8.4 / 401 | 0.876 / 0.23 / 3879 | 1.000 / 0 / 736 | 1.000 / 0 / 3712 |
 | full, q 1 | 1.000 / 0 / 5944 | 1.000 / 0 / 793 | 0.999 / 0.001 / 3701 | 1.000 / 0 / 741 | 1.000 / 0 / 3712 |
 | synthetic bytes | 1.000 / 0 / 5952 | 1.000 / 0 / 766 | 1.000 / 0 / 3711 | 1.000 / 0 / 710 | 1.000 / 0 / 3704 |
-| NapierOne bytes | 1.000 / 0 / 4801 | 0.504 / 0.85 / 670 | 0.994 / 0.006 / 3212 | 1.000 / 0 / 679 | 1.000 / 0 / 3316 |
+| NapierOne bytes, v2 pools (D75; the source) | 0.999 / 0.001 / 7130 | 0.230 / 2.02 / 715 | 0.969 / 0.033 / 3848 | 1.000 / 0 / 712 | 1.000 / 0 / 3640 |
+| NapierOne bytes, v1 pools (sensitivity only) | 1.000 / 0 / 4801 | 0.504 / 0.85 / 670 | 0.994 / 0.006 / 3212 | 1.000 / 0 / 679 | 1.000 / 0 / 3316 |
 
 C vs A, per-file work lost: -33% to -40% in every unit (pooled CIs all below 0), but recovery
 -0.12 to -0.19 at q 0.2 / 0.5 and -0.005 [-0.011, -0.001] on NapierOne bytes. q = 0 (reported,
@@ -42,7 +43,7 @@ Findings the criteria do not capture (descriptive, no adoption implied):
 - B is near the per-file oracle when detection is perfect: q 1 and synthetic bytes, recovery
   1.000 and per-file work lost 793 / 766 h vs oracle 741 / 710 h (A: 5944 / 5952 h). It closes
   99% of the A-to-oracle work-lost gap there. With any missed damage it collapses: recovery
-  0.001 / 0.015 at q 0.2 / 0.5 and 0.504 on NapierOne bytes (detection 0.947), because an
+  0.001 / 0.015 at q 0.2 / 0.5 and 0.230 on NapierOne bytes v2 (detection 0.875; v1 0.504), because an
   unflagged damaged version is taken as clean.
 - C closes 36% to 47% of the A-to-oracle per-file work-lost gap (zip and non-zip alike) at a
   recovery cost that grows as detection weakens.
@@ -61,7 +62,7 @@ SlowBurn (w 0.75, verify_snap) vs each baseline, paired on the same machines, co
 pooled over worlds, budgets and benign rates; 95% machine-cluster bootstrap CIs. Sanity check:
 the default GFS / Tower of Hanoi rows reproduce D67 post-fix exactly (d67_reproduction.csv).
 
-| baseline | synthetic bytes: recovery diff / work lost | NapierOne bytes: recovery diff / work lost | holds |
+| baseline | synthetic bytes: recovery diff / work lost | NapierOne bytes, v1 pools (sensitivity only; v2 below): recovery diff / work lost | holds |
 |---|---|---|---|
 | GFS (default) | +0.426 / -27.6% [-31.0, -24.0] | +0.426 / -34.4% [-37.7, -30.8] | yes / yes |
 | Tower of Hanoi (default) | +0.427 / -30.2% [-32.8, -27.5] | +0.427 / -35.7% [-38.3, -32.9] | yes / yes |

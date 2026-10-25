@@ -221,6 +221,9 @@ smallest root of x^(k/2) - x - 1. The paper defines G* as the minimiser of r(G, 
 
 ## 6. D71b: zip ground truth, validator fix, old vs new
 
+**All NapierOne numbers in sections 6 and 6a are on the v1 pools (5 to 15 files per type) and are
+superseded by results/D75_REPORT.md (v2 pools); kept as a sensitivity record.**
+
 Rule, check and fix: OPEN_QUESTIONS D71b (5cc9e04, amendment 133868f); fix e44df6e. The flagged
 benign zip versions were the 2 PPMd zips of the 5-file DEV zip pool; Python zipfile raises
 NotImplementedError on PPMd, 7z t reads all 5, the flag came from the validity bit (file p 0.006,

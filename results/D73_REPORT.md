@@ -1,5 +1,8 @@
 # D73 report: fleet-aware retention (DEV, 2026-10-24)
 
+**Pools: the NapierOne arm below ran on the v1 pools (before D75). Its numbers are a
+sensitivity row only; the v2 rerun (team decision 2026-10-25) replaces them when it reports.**
+
 Pre-registration: OPEN_QUESTIONS D73 (0bae5bb) and amendment (0ac3331: K_avg = 4 is "no
 reallocation room (floor 3 of 4)", criteria on K_avg 6 and 8; primary restore A since D72 did not
 adopt C). Code 91314a6. Runs: d73_fleet_synthetic 01:03-06:53, d73_fleet_napierone 06:53-11:26
