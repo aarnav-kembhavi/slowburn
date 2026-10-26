@@ -250,6 +250,12 @@ Hanoi 0.0 / 0.99.
 
 ## Limitations
 
+- Detector on NapierOne (D78, 2026-10-26): the one registered fix attempt (F1 recalibration, F2
+  validity transition, F3 both) was rejected on CHECK; the unchanged detector ships. Benign
+  flags come from 9 truncated pngs that score like damaged files; the png effect on C2 / C3'
+  stays a limitation (results/D78_REPORT.md, results/dev_png_mechanism.md). Damage detection
+  txt 0.59 / bin 0.66 unchanged.
+
 - Alarm window (D74): the count alarm counts flagged files per calendar day, because the
   simulator has daily granularity (one simulated day = one daily snapshot). A deployed counter
   should use a rolling window. Burst behaviour inside a day (for example c - 1 files just before

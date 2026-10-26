@@ -1,0 +1,96 @@
+[
+ {
+  "candidate": "F1",
+  "pool": "v2check",
+  "benign_rewrite_versions": 107085,
+  "benign_flags": 1874,
+  "benign_flag_rate": 0.017500116729700706,
+  "benign_flag_rate_hi": 0.01842221884705187,
+  "benign_flag_rate_unchanged": 0.017518793481813514,
+  "c1": false,
+  "detection_diff_pooled": -0.03193728581451384,
+  "detection_diff_lo": -0.03707198284109643,
+  "detection_diff_hi": -0.027145801405263445,
+  "min_type_diff": -0.1501597444089457,
+  "per_type": {
+   "bin": {
+    "n": 626,
+    "detection": 0.5702875399361023,
+    "detection_unchanged": 0.7204472843450479,
+    "diff": -0.1501597444089457,
+    "diff_lo": -0.17981627574385478,
+    "diff_hi": -0.1213580296036925
+   },
+   "csv": {
+    "n": 603,
+    "detection": 0.8109452736318408,
+    "detection_unchanged": 0.857379767827529,
+    "diff": -0.04643449419568822,
+    "diff_lo": -0.06711656947959072,
+    "diff_hi": -0.028380634390651086
+   },
+   "docx": {
+    "n": 628,
+    "detection": 1.0,
+    "detection_unchanged": 1.0,
+    "diff": 0.0,
+    "diff_lo": 0.0,
+    "diff_hi": 0.0
+   },
+   "jpg": {
+    "n": 488,
+    "detection": 0.9508196721311475,
+    "detection_unchanged": 0.9877049180327869,
+    "diff": -0.036885245901639344,
+    "diff_lo": -0.054993024039001234,
+    "diff_hi": -0.020961084905660395
+   },
+   "mp3": {
+    "n": 490,
+    "detection": 0.9959183673469387,
+    "detection_unchanged": 0.9959183673469387,
+    "diff": 0.0,
+    "diff_lo": 0.0,
+    "diff_hi": 0.0
+   },
+   "png": {
+    "n": 501,
+    "detection": 0.9241516966067864,
+    "detection_unchanged": 0.9461077844311377,
+    "diff": -0.021956087824351298,
+    "diff_lo": -0.03710947567654639,
+    "diff_hi": -0.009803441924715094
+   },
+   "txt": {
+    "n": 625,
+    "detection": 0.6064,
+    "detection_unchanged": 0.6384,
+    "diff": -0.032,
+    "diff_lo": -0.04632692791996484,
+    "diff_hi": -0.018986591877137207
+   },
+   "zip": {
+    "n": 509,
+    "detection": 1.0,
+    "detection_unchanged": 1.0,
+    "diff": 0.0,
+    "diff_lo": 0.0,
+    "diff_hi": 0.0
+   },
+   "zlib": {
+    "n": 488,
+    "detection": 1.0,
+    "detection_unchanged": 1.0,
+    "diff": 0.0,
+    "diff_lo": 0.0,
+    "diff_hi": 0.0
+   }
+  },
+  "c2a": false,
+  "c2b": false,
+  "auroc": 0.9933675213675213,
+  "auroc_unchanged": 0.9933675213675213,
+  "c3": true,
+  "all": false
+ }
+]

@@ -1,0 +1,2 @@
+candidate,pool,benign_rewrite_versions,benign_flags,benign_flag_rate,benign_flag_rate_hi,benign_flag_rate_unchanged,c1,detection_diff_pooled,detection_diff_lo,detection_diff_hi,min_type_diff,c2a,c2b,auroc,auroc_unchanged,c3,all
+F1,v2check,107085,1874,0.017500116729700706,0.01842221884705187,0.017518793481813514,False,-0.03193728581451384,-0.03707198284109643,-0.027145801405263445,-0.1501597444089457,False,False,0.9933675213675213,0.9933675213675213,True,False

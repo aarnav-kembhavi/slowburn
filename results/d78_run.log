@@ -1,0 +1,108 @@
+v2fix unchanged: 160 machines
+  tasks 20/160 done
+  tasks 40/160 done
+  tasks 60/160 done
+  tasks 80/160 done
+  tasks 100/160 done
+  tasks 120/160 done
+  tasks 140/160 done
+  tasks 160/160 done
+unchanged 118253 versions
+v2fix F1: 160 machines
+  tasks 20/160 done
+  tasks 40/160 done
+  tasks 60/160 done
+  tasks 80/160 done
+  tasks 100/160 done
+  tasks 120/160 done
+  tasks 140/160 done
+  tasks 160/160 done
+F1 118253 versions
+v2fix F2: 160 machines
+  tasks 20/160 done
+  tasks 40/160 done
+  tasks 60/160 done
+  tasks 80/160 done
+  tasks 100/160 done
+  tasks 120/160 done
+  tasks 140/160 done
+  tasks 160/160 done
+F2 118253 versions
+v2fix F3: 160 machines
+  tasks 20/160 done
+  tasks 40/160 done
+  tasks 60/160 done
+  tasks 80/160 done
+  tasks 100/160 done
+  tasks 120/160 done
+  tasks 140/160 done
+  tasks 160/160 done
+F3 118253 versions
+candidate  pool  benign_rewrite_versions  benign_flags  benign_flag_rate  benign_flag_rate_hi  benign_flag_rate_unchanged    c1  detection_diff_pooled  detection_diff_lo  detection_diff_hi  min_type_diff   c2a   c2b  auroc  auroc_unchanged   c3   all
+       F1 v2fix                   106889          1344            0.0126               0.0132                      0.0126 False                -0.0344            -0.0393            -0.0297        -0.1801 False False  0.993            0.993 True False
+       F2 v2fix                   106889          1368            0.0128               0.0134                      0.0126 False                -0.1322            -0.1412            -0.1230        -0.4564 False False  0.990            0.993 True False
+       F3 v2fix                   106889          2357            0.0221               0.0228                      0.0126 False                 0.0477             0.0394             0.0563        -0.1184  True False  0.990            0.993 True False
+F1           n  detection  detection_unchanged   diff  diff_lo  diff_hi
+bin   622.0      0.487                0.667 -0.180   -0.210   -0.150
+csv   631.0      0.735                0.775 -0.040   -0.056   -0.025
+docx  633.0      1.000                1.000  0.000    0.000    0.000
+jpg   482.0      0.925                0.954 -0.029   -0.047   -0.015
+mp3   498.0      0.994                0.994  0.000    0.000    0.000
+png   490.0      0.971                0.984 -0.012   -0.022   -0.004
+txt   614.0      0.632                0.681 -0.049   -0.066   -0.033
+zip   510.0      1.000                1.000  0.000    0.000    0.000
+zlib  484.0      1.000                1.000  0.000    0.000    0.000
+F2           n  detection  detection_unchanged   diff  diff_lo  diff_hi
+bin   622.0      0.442                0.667 -0.225   -0.260   -0.191
+csv   631.0      0.319                0.775 -0.456   -0.501   -0.411
+docx  633.0      1.000                1.000  0.000    0.000    0.000
+jpg   482.0      0.859                0.954 -0.095   -0.120   -0.072
+mp3   498.0      0.994                0.994  0.000    0.000    0.000
+png   490.0      0.794                0.984 -0.190   -0.223   -0.155
+txt   614.0      0.458                0.681 -0.223   -0.266   -0.180
+zip   510.0      1.000                1.000  0.000    0.000    0.000
+zlib  484.0      1.000                1.000  0.000    0.000    0.000
+F3           n  detection  detection_unchanged   diff  diff_lo  diff_hi
+bin   622.0      1.000                0.667  0.333    0.293    0.372
+csv   631.0      0.889                0.775  0.114    0.088    0.142
+docx  633.0      1.000                1.000  0.000    0.000    0.000
+jpg   482.0      0.990                0.954  0.035    0.020    0.052
+mp3   498.0      0.994                0.994  0.000    0.000    0.000
+png   490.0      0.865                0.984 -0.118   -0.151   -0.084
+txt   614.0      0.746                0.681  0.065    0.026    0.107
+zip   510.0      1.000                1.000  0.000    0.000    0.000
+zlib  484.0      1.000                1.000  0.000    0.000    0.000
+== selection on FIX: {'selected': 'F1', 'adoptable': False}
+selected on FIX: F1
+v2check unchanged: 160 machines
+  tasks 20/160 done
+  tasks 40/160 done
+  tasks 60/160 done
+  tasks 80/160 done
+  tasks 100/160 done
+  tasks 120/160 done
+  tasks 140/160 done
+  tasks 160/160 done
+unchanged 118443 versions
+v2check F1: 160 machines
+  tasks 20/160 done
+  tasks 40/160 done
+  tasks 60/160 done
+  tasks 80/160 done
+  tasks 100/160 done
+  tasks 120/160 done
+  tasks 140/160 done
+  tasks 160/160 done
+F1 118443 versions
+candidate    pool  benign_rewrite_versions  benign_flags  benign_flag_rate  benign_flag_rate_hi  benign_flag_rate_unchanged    c1  detection_diff_pooled  detection_diff_lo  detection_diff_hi  min_type_diff   c2a   c2b  auroc  auroc_unchanged   c3   all
+       F1 v2check                   107085          1874            0.0175               0.0184                      0.0175 False                -0.0319            -0.0371            -0.0271        -0.1502 False False 0.9934           0.9934 True False
+F1           n  detection  detection_unchanged   diff  diff_lo  diff_hi
+bin   626.0      0.570                0.720 -0.150   -0.180   -0.121
+csv   603.0      0.811                0.857 -0.046   -0.067   -0.028
+docx  628.0      1.000                1.000  0.000    0.000    0.000
+jpg   488.0      0.951                0.988 -0.037   -0.055   -0.021
+mp3   490.0      0.996                0.996  0.000    0.000    0.000
+png   501.0      0.924                0.946 -0.022   -0.037   -0.010
+txt   625.0      0.606                0.638 -0.032   -0.046   -0.019
+zip   509.0      1.000                1.000  0.000    0.000    0.000
+zlib  488.0      1.000                1.000  0.000    0.000    0.000
