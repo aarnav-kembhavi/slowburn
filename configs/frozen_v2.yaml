@@ -7,6 +7,9 @@
 status: draft
 approved: false
 approvals_required: [team, aarnav]
+approval_rule: "approved stays false until Aarnav writes in the chat the exact line
+  'APPROVED frozen_v2.yaml at commit <hash>'; only then code_commit is re-pinned to <hash>,
+  approved: true is committed and the queue below starts"
 drafted: 2026-10-26
 target: week of 2026-10-29, after approval
 code_commit: 5265aab        # TEST content path and scripts; re-pinned to the approved commit before TEST
@@ -37,11 +40,12 @@ prerequisites:            # in this order, before any TEST experiment; no result
       only split (dev -> test), napierone_pool (v2 -> v2test), experiment and output_dir
       (dev_ -> test_) differ, checked by parsing both"
   - id: registry_gate
-    status: "OPEN, team decision needed"
-    what: "configs/frozen.yaml params re-checked against each test config by check_split_allowed.
-      Hyperparameters pass on all 9. The 5 retention-experiment configs (C2/D72 x2, D79 x2, D71)
-      fail only on scenario_grid: frozen.yaml holds the v1 headline grid, these configs use their
-      own DEV grids. They cannot run until the gate is resolved (no code change made)"
+    status: "done (gate not loosened); all 9 test configs pass paper/scripts/test_configs.py --check"
+    what: "check_split_allowed on test: hyperparameters exact match against configs/frozen.yaml;
+      a run with a scenario grid passes only if the SHA-256 of its canonical grid equals its
+      experiment's scenario_grids entry below (computed from the DEV config by
+      paper/scripts/grid_hashes.py; no entry = refused). Tests: tests/test_f0_infra.py
+      test_grid_gate_exact_hash, test_real_test_configs_match_frozen_grids (modified grids fail)"
   - id: inventory
     status: "script written (paper/scripts/test_inventory.py), NOT run"
     what: "count-only TEST pool inventory: files per type, validity failures per type, truncated
@@ -54,6 +58,44 @@ prerequisites:            # in this order, before any TEST experiment; no result
       scratch dir no analysis script reads; checked only: exit code, that content and damage files
       load from TEST paths, and the config diff script output. Scratch output deleted after the
       check; the deletion is logged (results/test_dry_run.log) as deleted unread"
+
+# --- scenario_grids (paper/scripts/grid_hashes.py) ---
+scenario_grids:   # SHA-256 of the canonical grid of the DEV config
+  test_d72_bytes_napierone_v2pool:
+    dev_config: configs/dev_d72_bytes_napierone_v2pool.yaml
+    sha256: 2ac84556d4d789692fb00af2881ccd1af717ed5756786c5d41b0c066285fe3ff
+    canonical: "{\"attack_start\":[112],\"benign_invalid_rate\":[0.0,0.01,0.05],\"budgets\":[4,6,8,12],\"detect_prob\":[],\"discovery_delay\":[7,14,30,45,60],\"report\":\"report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside\",\"scenario\":{\"attack_files_per_day\":0.5,\"damage_fraction\":0.1,\"damage_model\":\"striped\",\"data_source\":\"napierone\",\"detector_path\":\"results/detector_napierone/detector.pkl\",\"edits_per_day\":4.0,\"evidence\":\"detector\",\"file_kib\":[16,96],\"file_types\":[\"txt\",\"csv\",\"bin\",\"docx\",\"zip\",\"png\",\"jpg\",\"mp3\",\"zlib\"],\"flag_alpha\":0.01,\"n_files\":40,\"napierone_dir\":\"data/napierone\"},\"test_reps\":40,\"warmup_days\":14}"
+  test_d72_bytes_synthetic:
+    dev_config: configs/dev_d72_bytes_synthetic.yaml
+    sha256: e60f60d6d25c86ad6a86daeb17c00791e48c5c338ff6b003819765b8a131d29a
+    canonical: "{\"attack_start\":[112],\"benign_invalid_rate\":[0.0,0.01,0.05],\"budgets\":[4,6,8,12],\"detect_prob\":[],\"discovery_delay\":[7,14,30,45,60],\"report\":\"report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside\",\"scenario\":{\"attack_files_per_day\":0.5,\"damage_fraction\":0.1,\"damage_model\":\"striped\",\"data_source\":\"synthetic\",\"detector_path\":\"results/detector/detector.pkl\",\"edits_per_day\":4.0,\"evidence\":\"detector\",\"file_kib\":[16,96],\"file_types\":[\"txt\",\"csv\",\"bin\",\"docx\",\"zip\",\"png\",\"jpg\",\"mp3\",\"zlib\"],\"flag_alpha\":0.01,\"n_files\":40,\"napierone_dir\":\"data/napierone\"},\"test_reps\":40,\"warmup_days\":14}"
+  test_d79_eqh_napierone:
+    dev_config: configs/dev_d79_eqh_napierone.yaml
+    sha256: a25a643a06619266952d3fb38cb40b6c128da94b1206dcd2c4b4bbb522fec4e0
+    canonical: "{\"attack_start\":[112],\"benign_invalid_rate\":[0.0,0.01,0.05],\"budgets\":[8,12],\"detect_prob\":[],\"discovery_delay\":[7,14,30,45,60],\"report\":\"report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside\",\"scenario\":{\"attack_files_per_day\":0.5,\"damage_fraction\":0.1,\"damage_model\":\"striped\",\"data_source\":\"napierone\",\"detector_path\":\"results/detector_napierone/detector.pkl\",\"edits_per_day\":4.0,\"evidence\":\"detector\",\"file_kib\":[16,96],\"file_types\":[\"txt\",\"csv\",\"bin\",\"docx\",\"zip\",\"png\",\"jpg\",\"mp3\",\"zlib\"],\"flag_alpha\":0.01,\"n_files\":40,\"napierone_dir\":\"data/napierone\"},\"test_reps\":40,\"warmup_days\":14}"
+  test_d79_eqh_synthetic:
+    dev_config: configs/dev_d79_eqh_synthetic.yaml
+    sha256: 81d874ff57a2db1fa35ce57e425cdcb85aa3bff47bab81c7aa1df7b1add18578
+    canonical: "{\"attack_start\":[112],\"benign_invalid_rate\":[0.0,0.01,0.05],\"budgets\":[8,12],\"detect_prob\":[],\"discovery_delay\":[7,14,30,45,60],\"report\":\"report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside\",\"scenario\":{\"attack_files_per_day\":0.5,\"damage_fraction\":0.1,\"damage_model\":\"striped\",\"data_source\":\"synthetic\",\"detector_path\":\"results/detector/detector.pkl\",\"edits_per_day\":4.0,\"evidence\":\"detector\",\"file_kib\":[16,96],\"file_types\":[\"txt\",\"csv\",\"bin\",\"docx\",\"zip\",\"png\",\"jpg\",\"mp3\",\"zlib\"],\"flag_alpha\":0.01,\"n_files\":40,\"napierone_dir\":\"data/napierone\"},\"test_reps\":40,\"warmup_days\":14}"
+  test_d71_oracle_gap:
+    dev_config: configs/dev_d71_oracle_gap.yaml
+    sha256: 6bd637ddd4714b09f7c79149d3a3cac663a4ba86fcde6f0162815b80ac9f7fb6
+    canonical: "{\"attack_start\":[112],\"benign_invalid_rate\":[0.0,0.01,0.05],\"budgets\":[4,6,8,12],\"detect_prob\":[1.0,0.9,0.5,0.2,0.0],\"discovery_delay\":[7,14,30,45,60],\"report\":\"report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside\",\"scenario\":{\"attack_files_per_day\":0.5,\"damage_fraction\":0.1,\"damage_model\":\"striped\",\"edits_per_day\":4.0,\"file_kib\":[16,96],\"file_types\":[\"txt\",\"csv\",\"bin\",\"docx\",\"zip\",\"png\",\"jpg\",\"mp3\",\"zlib\",\"lzma\"],\"n_files\":40},\"test_reps\":40,\"warmup_days\":14}"
+# --- end scenario_grids ---
+
+failure_rule:
+  - "If a TEST job crashes, no partial output is read. Only the crash cause is fixed; the fix is
+    committed with the traceback in the commit message; the item is rerun from scratch with
+    identical seeds; both attempts are logged in results/test_queue.log"
+  - "A fix may not change any config, grid, hyperparameter, metric or analysis script. If it
+    would, stop and report"
+  - "No item is rerun for any reason other than a crash"
+
+queue:   # after approval only; one heavy job at a time, memory gate measured peak + 4 GB
+  order: [inventory, dry_run, ALARM, C2/D72 napierone, D79 napierone, D71, D74 napierone,
+    C2/D72 synthetic, D79 synthetic, D74 synthetic, D73 napierone, D73 synthetic]
+  analysis: "analysis scripts run only after every item has finished"
+  log: results/test_queue.log
 
 items:
   - id: C2
