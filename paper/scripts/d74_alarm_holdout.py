@@ -41,8 +41,12 @@ def score(k: np.ndarray, c: int) -> dict:
                                                     for N in (20, 100)}}  # fmt: skip
 
 
-def main(paths):
-    OUT.mkdir(parents=True, exist_ok=True)
+def main(paths, out=OUT):
+    """``--out=DIR`` as the first argument writes elsewhere (D80: held-out row with another
+    detector); the machines, c and family are unchanged."""
+    if paths and paths[0].startswith("--out="):
+        out, paths = Path(paths[0].split("=", 1)[1]), paths[1:]
+    out.mkdir(parents=True, exist_ok=True)
     thr = json.loads(Path("results/dev_d74_alarm_calib/threshold.json").read_text())
     res = {}
     for path in paths:
@@ -50,12 +54,12 @@ def main(paths):
         arm = cfg["attack"]["arm"]
         rows = run_tasks(counts, list(range(N_MACHINES)), workers=int(cfg.get("workers", 5)),
                          init=_init, init_args=(cfg, FAMILY),
-                         cache_dir=OUT / f"machines_{arm}")  # fmt: skip
+                         cache_dir=out / f"machines_{arm}")  # fmt: skip
         k = np.array(rows)
-        pd.DataFrame(k).to_csv(OUT / f"daily_counts_{arm}.csv.gz", index=False)
+        pd.DataFrame(k).to_csv(out / f"daily_counts_{arm}.csv.gz", index=False)
         res[arm] = score(k, int(thr[arm]["c"]))
         print(arm, json.dumps(res[arm]), flush=True)
-    (OUT / "holdout.json").write_text(json.dumps(res, indent=1))
+    (out / "holdout.json").write_text(json.dumps(res, indent=1))
 
 
 if __name__ == "__main__":

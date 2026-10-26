@@ -48,3 +48,11 @@ if [ -f results/.followup_d79 ] && grep -qE "END dev_d67_full_napierone_v2notrun
     bash "$0" "$job"
   done
 fi
+# One-off follow-up 3 (team decision 2026-10-26): D80 after D78 exits 0, while
+# results/.followup_d80 exists; d80_run.sh itself checks that D78 accepted a candidate.
+if [ -f results/.followup_d80 ] && grep -qE "END d78 attempt [12] exit 0" $LOG; then
+  rm -f results/.followup_d80
+  r=$(powershell -NoProfile -c "[int]((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB)" | tr -d '\r')
+  if [ "$r" -lt 13 ]; then echo "$(date -Iseconds) SKIP d80: free RAM $r GB < 13 GB" >> $LOG
+  else echo "$(date -Iseconds) RAM ok for d80: $r GB free" >> $LOG; bash "$0" "d80|bash paper/scripts/d80_run.sh"; fi
+fi
