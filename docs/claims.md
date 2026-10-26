@@ -86,8 +86,13 @@ unadjusted.
   0.007) / -6.8% [-10.0, -3.6] (Holm p < 0.001); all Holm significant.
 - Sensitivity (pool size): the equal-horizon gap grew from +6.9% [+3.6, +10.5] / +3.0% [-0.5,
   +6.4] on the v1 pools (ToH-eqh Holm p 0.093, not significant) to +24.9% / +14.9% on v2.
-"Horizon dominates" is an interpretation of these rows (an equal horizon closes and reverses the
-gap that slot placement opens against the default schedules), not a separately tested claim.
+**D79 (pre-registered test, 2026-10-26): placement does not help at equal horizon.** SlowBurn
+with its retention age capped at the eqh schedule's held age (NapierOne v2, Holm across two):
+vs GFS-eqh -0.9% [-3.2, +1.7] work lost, recovery -0.003 [-0.009, +0.002], Holm p 0.48 (no
+difference); vs ToH-eqh +6.3% [+2.3, +10.6] (SlowBurn loses more), recovery +0.061 [+0.039,
++0.085], Holm p 0.004. Synthetic (sanity): -4.1% [-5.8, -2.2] / +1.8% [-1.6, +5.1]. The cap
+alone moves SlowBurn's deficit vs GFS-eqh from +24.9% to -0.9% (descriptive, unadjusted), so the
+C2 gap is a horizon effect (`results/D79_REPORT.md`).
 NapierOne numbers carry the caveats in the header.
 Supporting detail, default configurations:
 Lower work lost than default GFS / Tower of Hanoi pooled (-23.4% vs GFS,
