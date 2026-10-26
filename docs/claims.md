@@ -207,16 +207,20 @@ threshold-aware attacker to c - 1 = 2 flagged files per day by construction; how
 that still allows is the D74 attack result (not yet in this file).
 
 **F5. Product retention defaults (D66 audit, FSL Homes churn, delays 1 to 400 days, 160
-machines; descriptive).** With a blind detector (q = 0) recovery falls below 0.5 at 30 days for
-the 30-day products (Dropbox 30 d, Google Drive 30 d / 100 versions, OneDrive personal 30 d)
-and at 60 days for every longer-retention product (Dropbox 180 / 365 d, OneDrive personal 25
-versions, OneDrive for Business 500 versions: 0.194 at 60 days, below 0.1 at 90), although
-those products still hold a clean version far longer: the restore, not retention, limits them.
-restic's documented presets fall below 0.5 at 90 days (0.750 at 60); keep-within-7d at 7 days;
-NetApp ARP/AI recovers 0 at q = 0. With a perfect detector (q = 1) recovery follows the
-retention window. Count limits fail once the damaged versions per file reach the limit: OneDrive
-personal 25 versions at r = 25 and 100, Google Drive 100 versions at r = 100
-(`results/dev_d66_retention_audit/audit_thresholds.csv`).
+machines; descriptive).** Rules checked against vendor pages on 2026-10-27 (Dropbox version
+history overview; Google Drive "Check activity & file versions"; Microsoft Learn "Set default
+organization version limits"; restic forget docs, stable). With a blind detector (q = 0)
+recovery falls below 0.5 at 30 days for the 30-day products (Dropbox 30 d, Google Drive 30 d /
+100 versions) and at 60 days for the longer-retention products (Dropbox 180 / 365 d, OneDrive
+for work or school 500 versions: 0.194 at 60 days, below 0.1 at 90), although those products
+still hold a clean version far longer: the restore, not retention, limits them. restic's two
+documented example forget policies fall below 0.5 at 90 days (0.750 at 60). With a perfect
+detector (q = 1) recovery follows the retention window. Count limits fail once the damaged
+versions per file reach the limit: Google Drive 100 versions at r = 100
+(`results/dev_d66_retention_audit/audit_thresholds.csv`). Dropped from the claims (rule not
+stated on the vendor page): OneDrive personal 25 versions and its 30-day variant, NetApp ARP/AI
+periodic retention; keep-within-7d and keep-last-1 are restic flags, not documented defaults,
+and stay as reference rows only.
 
 **F6. Per-file restore under imperfect detection (D72; method C not adopted).** SlowBurn
 retention, recovery / per-file work lost (h): full grid q 0.2: verify_snap 0.980 / 6,452,
