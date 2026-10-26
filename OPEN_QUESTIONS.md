@@ -1819,3 +1819,25 @@ Code only. No TEST file is opened, counted or simulated until configs/frozen_v2.
 - Dry run (after inventory): each test_*.yaml for 1 machine and 1 simulated day into a scratch
   dir that no analysis script reads; checked: exit code, files load from TEST paths, config
   diff output. Scratch output deleted unread and the deletion logged.
+
+### TEST gate by grid hash, failure rule, queue order (team decisions 2026-10-27; registered before code)
+
+- Registry gate (not loosened): configs/frozen_v2.yaml gets `scenario_grids`, one entry per test
+  experiment whose run has a scenario grid (C2/D72 x2, D79 x2, D71): the canonical serialization
+  of the grid computed from the DEV config (`scenario_grid_of`, JSON with sorted keys, no
+  whitespace, `scenario.napierone_pool` left out because it is the one registered DEV -> TEST
+  change, checked by test_configs.py) and its SHA-256. On test, check_split_allowed passes a run
+  with a scenario grid only if its hash equals the entry of its experiment exactly (missing
+  entry = refuse); frozen.yaml's v1 scenario_grid is no longer compared on test. Every other
+  hyperparameter stays an exact match against configs/frozen.yaml. Tests: a modified grid fails.
+- Calibration content stays DEV (a63fc54); stated in the paper's limitations.
+- Failure rule: a crashed TEST job's partial output is not read; only the crash cause is fixed,
+  committed with the traceback in the message, and the item rerun from scratch with identical
+  seeds; both attempts logged in results/test_queue.log. A fix may not change any config, grid,
+  hyperparameter, metric or analysis script; if it would, stop and report. No rerun for any
+  other reason.
+- Queue after approval: inventory, dry run, ALARM, C2/D72 NapierOne, D79 NapierOne, D71, D74
+  NapierOne, C2/D72 synthetic, D79 synthetic, D74 synthetic, D73 NapierOne, D73 synthetic; one
+  heavy job at a time, memory gate as before; analysis scripts only after all items finish.
+- Approval: approved stays false until Aarnav writes in the chat "APPROVED frozen_v2.yaml at
+  commit <hash>"; then code_commit is re-pinned, approved: true committed, and the queue starts.
