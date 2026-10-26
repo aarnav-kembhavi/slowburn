@@ -57,3 +57,39 @@ def test_content_pool_reads_dev_only(tmp_path):
     dev = {na.read_benign(root, f) for f in na.benign_splits(root)["txt"]["sim_dev"]}
     rng = np.random.default_rng(0)
     assert all(pool.draw("txt", rng) in dev for _ in range(20))
+
+
+def _flags(tmp_path, frozen, approved):
+    f, f2 = tmp_path / "frozen.yaml", tmp_path / "frozen_v2.yaml"
+    f.write_text(f"frozen: {str(frozen).lower()}\n")
+    f2.write_text(f"approved: {str(approved).lower()}\n")
+    return {"frozen_path": str(f), "frozen_v2_path": str(f2)}
+
+
+def test_test_pool_needs_frozen_and_approved(tmp_path):
+    root = _fake_root(tmp_path)
+    for frozen, approved in ((False, False), (True, False), (False, True)):
+        with pytest.raises(ValueError, match="TEST content refused"):
+            na.ContentPool(root, "sim_test", "v2test", **_flags(tmp_path, frozen, approved))
+    with pytest.raises(ValueError, match="v2test only"):
+        na.ContentPool(root, "sim_test", "v2", **_flags(tmp_path, True, True))
+    with pytest.raises(ValueError, match="unknown pool"):
+        na.ContentPool(root, "sim_dev", "v2test")
+
+
+def test_test_pool_reads_test_files_only(tmp_path):
+    root = _fake_root(tmp_path)
+    (tmp_path / "benign_v2").mkdir()
+    (tmp_path / "benign_v2" / "manifest.json").write_text("{}")
+    for t in na.TYPE_SUBSETS:
+        for half in ("dev", "test"):
+            d = tmp_path / "benign_v2" / t / half
+            d.mkdir(parents=True)
+            (d / f"{half}.x").write_bytes(f"{t} {half}".encode())
+    pool = na.ContentPool(root, "sim_test", "v2test", **_flags(tmp_path, True, True))
+    test = {na.read_benign(root, f) for f in na.benign_splits(root)["txt"]["sim_test"]}
+    rng = np.random.default_rng(0)
+    seen = {pool.draw("txt", rng) for _ in range(200)}
+    assert seen <= test | {b"txt test"} and b"txt test" in seen
+    dev = na.ContentPool(root, "sim_dev", "v2")
+    assert b"txt dev" in {dev.draw("txt", rng) for _ in range(200)}

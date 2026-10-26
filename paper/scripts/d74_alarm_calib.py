@@ -29,7 +29,8 @@ def counts(i: int) -> list[int]:
     cfg = _W["cfg"]
     p = {**cfg["scenario"], "attack_start": None,
          "benign_invalid_rate": float(cfg["attack"]["benign_invalid_rate"])}  # fmt: skip
-    key = machine_key(int(cfg["seed"]), "dev", _W.get("family", "d74_alarm_calib"),
+    family = _W.get("family", "d74_alarm_calib")
+    key = machine_key(int(cfg["seed"]), cfg.get("split", "dev"), family,
                       {"data_source": p.get("data_source", "synthetic")}, i)  # fmt: skip
     sim = MachineSim(cfg, p, key, WARMUP + WINDOW).run_to(WARMUP + WINDOW)
     return [o.k for o in sim.obs[WARMUP:]]
@@ -49,6 +50,8 @@ def calibrate(k: np.ndarray) -> dict:
 
 
 def main(paths):
+    if any(load_config(p).get("split", "dev") != "dev" for p in paths):
+        raise ValueError("c is calibrated on DEV only")
     OUT.mkdir(parents=True, exist_ok=True)
     res = {}
     for path in paths:

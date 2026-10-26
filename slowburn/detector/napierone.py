@@ -130,6 +130,27 @@ def truncated_png(pool, f) -> bool:
     return file_validity(data, "png") < 1
 
 
+FROZEN_PATH, FROZEN_V2_PATH = "configs/frozen.yaml", "configs/frozen_v2.yaml"
+
+
+def check_test_content(frozen_path: str | Path = FROZEN_PATH,
+                         frozen_v2_path: str | Path = FROZEN_V2_PATH) -> None:  # fmt: skip
+    """Raise unless TEST content may be read: ``frozen: true`` in configs/frozen.yaml and
+    ``approved: true`` in configs/frozen_v2.yaml (team and Aarnav, in writing)."""
+    import yaml
+
+    def flag(path, key):
+        p = resolve_path(path)
+        if not p.exists():
+            return False
+        with p.open(encoding="utf-8") as fh:
+            return (yaml.safe_load(fh) or {}).get(key) is True
+
+    if not (flag(frozen_path, "frozen") and flag(frozen_v2_path, "approved")):
+        raise ValueError(f"TEST content refused: needs frozen: true in {frozen_path} and "
+                         f"approved: true in {frozen_v2_path}")  # fmt: skip
+
+
 def d78_split(root: str | Path, ftype: str) -> tuple[list[Path], list[Path]]:
     """D78: the v2 DEV additions of ``ftype`` split into FIX and CHECK halves (sorted names
     permuted with child_rng(202, "d78_split", type); FIX = the first floor(n / 2))."""
@@ -146,22 +167,29 @@ class ContentPool:
     """Benign content for byte-mode simulated machines (D67): files of each type from one pool
     (``sim_dev``), at most ``SIM_MAX_BYTES``; ``draw`` returns the bytes of a random pool file.
     ``version`` "v1" = the D67 pools; "v2" = v1 plus the D75 additions (DEV half) of
-    ``<root>/benign_v2/<type>/dev``."""
+    ``<root>/benign_v2/<type>/dev``. The TEST pool (``sim_test``) has one version, "v2test" =
+    v1 ``sim_test`` plus ``<root>/benign_v2/<type>/test``, and loads only when
+    ``check_test_content`` (frozen.yaml frozen and frozen_v2.yaml approved)."""
 
-    def __init__(self, root: str | Path, pool: str = "sim_dev", version: str = "v1"):
+    def __init__(self, root: str | Path, pool: str = "sim_dev", version: str = "v1",
+                 frozen_path: str | Path = FROZEN_PATH,
+                 frozen_v2_path: str | Path = FROZEN_V2_PATH):  # fmt: skip
         if pool == "sim_test":
-            raise ValueError("the TEST content pool is not read before the fresh test set")
-        if version not in ("v1", "v2", "v2_notrunc", "v2fix", "v2check"):
-            raise ValueError(f"unknown pool version {version!r}")
+            if version != "v2test":
+                raise ValueError(f"the TEST content pool has version v2test only, not {version!r}")
+            check_test_content(frozen_path, frozen_v2_path)
+        elif pool != "sim_dev" or version not in ("v1", "v2", "v2_notrunc", "v2fix", "v2check"):
+            raise ValueError(f"unknown pool / version {pool!r} / {version!r}")
         self.root = str(resolve_path(root))
         sp = benign_splits(self.root)
         self.files = {t: [f for f in s[pool] if f.size <= SIM_MAX_BYTES] for t, s in sp.items()}
-        if version in ("v2", "v2_notrunc"):
+        if version in ("v2", "v2_notrunc", "v2test"):
             extra = Path(self.root) / "benign_v2"
             if not (extra / "manifest.json").exists():
                 raise ValueError(f"no D75 pools under {extra}")
+            half = "test" if version == "v2test" else "dev"
             for t in self.files:
-                d = extra / t / "dev"
+                d = extra / t / half
                 self.files[t] += [PoolFile(t, str(p), p.stat().st_size)
                                   for p in sorted(d.iterdir())] if d.exists() else []  # fmt: skip
         if version in ("v2fix", "v2check"):  # D78: v1 plus one half of the D75 additions

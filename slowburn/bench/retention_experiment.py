@@ -158,7 +158,8 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
         if evidence != "detector":
             raise ValueError("data_source napierone needs evidence: detector (byte mode)")
         scen.content_pool, damage_source = _napierone(p["napierone_dir"],
-                                                      p.get("napierone_pool", "v1"))  # fmt: skip
+                                                      p.get("napierone_pool", "v1"),
+                                                      task.split)  # fmt: skip
     elif p.get("data_source", "synthetic") != "synthetic":
         raise ValueError(f"unknown data_source {p['data_source']!r}")
     if p.get("benign_churn") == "fsl":  # D66: real per-file rewrite days from FSL Homes
@@ -224,14 +225,22 @@ def _load_detector(path: str):
 
 
 @lru_cache(maxsize=2)
-def _napierone(root: str, version: str = "v1"):
-    """DEV content pool and DEV-family damage source (D67); TEST pools are never read here."""
+def _napierone(root: str, version: str = "v1", split: str = "dev"):
+    """Content pool and damage source (D67) of a machine's split. Test-keyed machines read the
+    TEST pool ("v2test") and TEST families behind the TEST content gate; dev-keyed machines read
+    DEV ones, including the calibration machines of a TEST config ("v2test" -> "v2"), so no
+    defender quantity is fitted on TEST files."""
     from slowburn.detector.datasets import NapierOneDamageSource
     from slowburn.detector.napierone import ContentPool, encrypted_samples, family_splits
 
     r = resolve_path(root)
-    fams = family_splits(r)["sim_dev"]
-    pool = ContentPool(r, "sim_dev", version)  # D75: "v2" = enlarged pools
+    if split == "test":
+        if version != "v2test":
+            raise ValueError(f"test machines need napierone_pool v2test, not {version!r}")
+        pool = ContentPool(r, "sim_test", "v2test")  # gate: frozen + frozen_v2 approved
+    else:
+        pool = ContentPool(r, "sim_dev", "v2" if version == "v2test" else version)  # D75 pools
+    fams = family_splits(r)["sim_test" if split == "test" else "sim_dev"]
     return pool, NapierOneDamageSource(r, samples=encrypted_samples(r, fams))
 
 

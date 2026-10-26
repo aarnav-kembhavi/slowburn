@@ -1,6 +1,8 @@
 """D74 held-out alarm check (OPEN_QUESTIONS 2026-10-25): score the fixed c from
 results/dev_d74_alarm_calib/threshold.json once on 100 new benign runs per arm (family
-"d74_alarm_holdout"). c is never changed here. DEV only. Run from the repo root:
+"d74_alarm_holdout"; on test_*.yaml configs family "d74_alarm_test", TEST machines and content
+behind the registry and TEST content gates, output results/test_d74_alarm). c is never changed
+here; it is always read from the DEV calibration. Run from the repo root:
 
     uv run python paper/scripts/d74_alarm_holdout.py configs/dev_d74_attack_napierone.yaml ...
 """
@@ -15,10 +17,12 @@ from d74_alarm_calib import N_MACHINES, _init, counts  # same window and simulat
 from scipy.stats import beta
 
 from slowburn.bench.parallel import run_tasks
+from slowburn.bench.registry import check_split_allowed
 from slowburn.utils.config import load_config
 
 OUT = Path("results/dev_d74_alarm_holdout")
 FAMILY = "d74_alarm_holdout"
+TEST_OUT, TEST_FAMILY = Path("results/test_d74_alarm"), "d74_alarm_test"
 
 
 def exact_ci(x: int, n: int) -> tuple[float, float]:
@@ -46,6 +50,13 @@ def main(paths, out=OUT):
     detector); the machines, c and family are unchanged."""
     if paths and paths[0].startswith("--out="):
         out, paths = Path(paths[0].split("=", 1)[1]), paths[1:]
+    splits = {load_config(p).get("split", "dev") for p in paths}
+    if len(splits) != 1:
+        raise ValueError("mixed dev and test configs")
+    split = splits.pop()
+    if split == "test":
+        check_split_allowed("test", {})
+        out = TEST_OUT if out == OUT else out
     out.mkdir(parents=True, exist_ok=True)
     thr = json.loads(Path("results/dev_d74_alarm_calib/threshold.json").read_text())
     res = {}
@@ -53,7 +64,7 @@ def main(paths, out=OUT):
         cfg = load_config(path)
         arm = cfg["attack"]["arm"]
         rows = run_tasks(counts, list(range(N_MACHINES)), workers=int(cfg.get("workers", 5)),
-                         init=_init, init_args=(cfg, FAMILY),
+                         init=_init, init_args=(cfg, TEST_FAMILY if split == "test" else FAMILY),
                          cache_dir=out / f"machines_{arm}")  # fmt: skip
         k = np.array(rows)
         pd.DataFrame(k).to_csv(out / f"daily_counts_{arm}.csv.gz", index=False)

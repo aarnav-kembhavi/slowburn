@@ -19,7 +19,7 @@ from pathlib import Path
 import pandas as pd
 
 from slowburn.bench.parallel import run_tasks
-from slowburn.bench.registry import load_frozen, machine_key
+from slowburn.bench.registry import check_split_allowed, load_frozen, machine_key
 from slowburn.bench.retention_experiment import (
     RetentionTask,
     attack_free_calibration,
@@ -61,11 +61,13 @@ def attack_task(task: tuple) -> list[dict]:
     a, sc = cfg["attack"], cfg["scenario"]
     world = next(w for w in cfg["worlds"] if w["name"] == world_name)
     seed = int(cfg["seed"])
-    s = draw_start(world, child_rng(seed, "d74_start", world_name, rep))
+    split = cfg.get("split", "dev")
+    salt = () if split == "dev" else (split,)  # TEST starts differ; DEV streams unchanged
+    s = draw_start(world, child_rng(seed, "d74_start", *salt, world_name, rep))
     D = max(int(d) for d in a["delays"])
     n_days = s + D + 1
     p = {**sc, "attack_start": None, "benign_invalid_rate": float(a["benign_invalid_rate"])}
-    key = machine_key(seed, "dev", "d74_attack",
+    key = machine_key(seed, split, "d74_attack",
                       {"world": world_name, "data_source": p.get("data_source", "synthetic")},
                       rep)  # fmt: skip
     benign = MachineSim(cfg, p, key, n_days, keep_snapshots=True).run_to(s)
@@ -84,7 +86,7 @@ def attack_task(task: tuple) -> list[dict]:
         delays = sorted({int(d) for d in a["delays"]} | ({ad} if ad is not None else set()))
         ecfg = {**cfg, "discovery_delay": delays, "budgets": a["budgets"]}
         t = RetentionTask(
-            "dev",
+            split,
             "d74_attack",
             {**params, **{"attack_files_per_day": st["rate"], "damage_fraction": st["fraction"]}},
             rep,
@@ -126,8 +128,9 @@ def calibration(cfg: dict, log=print) -> dict:
 
 
 def run_attacker_experiment(cfg: dict, log=print) -> pd.DataFrame:
-    if cfg.get("split", "dev") != "dev":
-        raise ValueError("D74 runs on the dev split only")
+    # TEST: registry gate here, TEST content gate in the pool; calibration stays on DEV machines
+    check_split_allowed(cfg.get("split", "dev"), dict(cfg["hp"]),
+                        cfg.get("frozen_path", "configs/frozen.yaml"))  # fmt: skip
     out = Path(cfg["output_dir"])
     out.mkdir(parents=True, exist_ok=True)
     frozen = load_frozen(cfg.get("frozen_path", "configs/frozen.yaml")).get("params", {})

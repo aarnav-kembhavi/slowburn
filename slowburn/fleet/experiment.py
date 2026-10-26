@@ -24,7 +24,7 @@ import pandas as pd
 from scipy.special import logsumexp
 
 from slowburn.bench.parallel import run_tasks
-from slowburn.bench.registry import machine_key
+from slowburn.bench.registry import check_split_allowed, machine_key
 from slowburn.bench.retention_experiment import _per_file_cols, attack_free_calibration
 from slowburn.fleet.allocate import MachineLoss, greedy_allocate
 from slowburn.fleet.machine import MachineSim
@@ -45,16 +45,22 @@ _W: dict = {}
 # ---- design ------------------------------------------------------------------------------
 
 
+def _salt(cfg: dict) -> tuple:
+    """Split appended to the D73 streams on TEST only (DEV streams unchanged)."""
+    split = cfg.get("split", "dev")
+    return () if split == "dev" else (split,)
+
+
 def fleet_design(cfg: dict, rep: int) -> dict:
     """Fleet starts per world, and per (world, N, f, m) the infected machines' start days."""
-    seed, fl = int(cfg["seed"]), cfg["fleet"]
+    seed, fl, salt = int(cfg["seed"]), cfg["fleet"], _salt(cfg)
     out = {}
     for world in cfg["worlds"]:
-        s0 = draw_start(world, child_rng(seed, "d73_fleet_start", world["name"], rep))
+        s0 = draw_start(world, child_rng(seed, "d73_fleet_start", *salt, world["name"], rep))
         cells = {}
         for N in fl["sizes"]:
-            perm = child_rng(seed, "d73_infect", rep, world["name"], N).permutation(N)
-            u = child_rng(seed, "d73_lag", rep, world["name"], N).random(N)
+            perm = child_rng(seed, "d73_infect", *salt, rep, world["name"], N).permutation(N)
+            u = child_rng(seed, "d73_lag", *salt, rep, world["name"], N).random(N)
             for f in fl["infected_fraction"]:
                 inf = perm[: max(1, round(f * N))]
                 for m in fl["lateral_mean"]:
@@ -70,7 +76,7 @@ def fleet_design(cfg: dict, rep: int) -> dict:
 
 def machine_params(cfg: dict, rep: int, i: int) -> dict:
     fl, sc = cfg["fleet"], cfg["scenario"]
-    z = child_rng(int(cfg["seed"]), "d73_fleet_churn", rep, i).standard_normal()
+    z = child_rng(int(cfg["seed"]), "d73_fleet_churn", *_salt(cfg), rep, i).standard_normal()
     return {
         **sc,
         "attack_start": None,
@@ -105,7 +111,7 @@ def machine_task(task: tuple) -> str:
                 ends[starts[i]] = max(ends.get(starts[i], 0), end)
     n_days = max(w["s0"] for w in design.values()) + D + 1
     p = machine_params(cfg, rep, i)
-    key = machine_key(int(cfg["seed"]), "dev", "fleet",
+    key = machine_key(int(cfg["seed"]), cfg.get("split", "dev"), "fleet",
                       {"fleet_machine": i, "data_source": p.get("data_source", "synthetic")},
                       rep)  # fmt: skip
     sim = MachineSim(cfg, p, key, n_days)
@@ -323,6 +329,9 @@ def calibration(cfg: dict, log=print) -> dict:
 
 
 def run_fleet_experiment(cfg: dict, log=print, stages=("calib", "machines", "fleets")) -> None:
+    # TEST: registry gate here, TEST content gate in the pool; calibration stays on DEV machines
+    check_split_allowed(cfg.get("split", "dev"), dict(cfg.get("hp", {})),
+                        cfg.get("frozen_path", "configs/frozen.yaml"))  # fmt: skip
     out = Path(cfg["output_dir"])
     out.mkdir(parents=True, exist_ok=True)
     fl, reps = cfg["fleet"], int(cfg["fleet"]["reps"])
