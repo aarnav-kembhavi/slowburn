@@ -1,0 +1,98 @@
+--- configs\dev_d72_bytes_napierone_v2pool.yaml
++++ configs\test_d72_bytes_napierone_v2pool.yaml
+-experiment: dev_d72_bytes_napierone_v2pool
+-output_dir: results/dev_d72_bytes_napierone_v2pool
+-split: dev
++experiment: test_d72_bytes_napierone_v2pool
++output_dir: results/test_d72_bytes_napierone_v2pool
++split: test
+-  napierone_pool: v2             # D75 enlarged pools (DEV half)
++  napierone_pool: v2test         # TEST: v1 sim_test + benign_v2/<type>/test
+CHECK configs\test_d72_bytes_napierone_v2pool.yaml: FAIL registry gate: test run overrides frozen hyperparameters: {'scenario_grid': ({'budgets': [4, 6, 8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112], 'detect_prob': [], 'benign_invalid_rate': [0.0, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1, 'evidence': 'detector', 'data_source': 'napierone', 'detector_path': 'results/detector_napierone/detector.pkl', 'flag_alpha': 0.01, 'napierone_dir': 'data/napierone', 'napierone_pool': 'v2test'}, 'warmup_days': 14, 'test_reps': 40, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'}, {'budgets': [4, 6, 8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112, 115, 118, 139], 'detect_prob': [1.0, 0.9, 0.5, 0.2, 0.0], 'benign_invalid_rate': [0.0, 0.001, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib', 'lzma'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1}, 'warmup_days': 14, 'test_reps': 30, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'})}
+
+--- configs\dev_d72_bytes_synthetic.yaml
++++ configs\test_d72_bytes_synthetic.yaml
+-experiment: dev_d72_bytes_synthetic
+-output_dir: results/dev_d72_bytes_synthetic
+-split: dev
++experiment: test_d72_bytes_synthetic
++output_dir: results/test_d72_bytes_synthetic
++split: test
+CHECK configs\test_d72_bytes_synthetic.yaml: FAIL registry gate: test run overrides frozen hyperparameters: {'scenario_grid': ({'budgets': [4, 6, 8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112], 'detect_prob': [], 'benign_invalid_rate': [0.0, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1, 'evidence': 'detector', 'data_source': 'synthetic', 'detector_path': 'results/detector/detector.pkl', 'flag_alpha': 0.01, 'napierone_dir': 'data/napierone'}, 'warmup_days': 14, 'test_reps': 40, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'}, {'budgets': [4, 6, 8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112, 115, 118, 139], 'detect_prob': [1.0, 0.9, 0.5, 0.2, 0.0], 'benign_invalid_rate': [0.0, 0.001, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib', 'lzma'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1}, 'warmup_days': 14, 'test_reps': 30, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'})}
+
+--- configs\dev_d79_eqh_napierone.yaml
++++ configs\test_d79_eqh_napierone.yaml
+-experiment: dev_d79_eqh_napierone
+-output_dir: results/dev_d79_eqh_napierone
+-split: dev
++experiment: test_d79_eqh_napierone
++output_dir: results/test_d79_eqh_napierone
++split: test
+-  napierone_pool: v2             # D75 enlarged pools (DEV half)
++  napierone_pool: v2test         # TEST: v1 sim_test + benign_v2/<type>/test
+CHECK configs\test_d79_eqh_napierone.yaml: FAIL registry gate: test run overrides frozen hyperparameters: {'scenario_grid': ({'budgets': [8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112], 'detect_prob': [], 'benign_invalid_rate': [0.0, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1, 'evidence': 'detector', 'data_source': 'napierone', 'detector_path': 'results/detector_napierone/detector.pkl', 'flag_alpha': 0.01, 'napierone_dir': 'data/napierone', 'napierone_pool': 'v2test'}, 'warmup_days': 14, 'test_reps': 40, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'}, {'budgets': [4, 6, 8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112, 115, 118, 139], 'detect_prob': [1.0, 0.9, 0.5, 0.2, 0.0], 'benign_invalid_rate': [0.0, 0.001, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib', 'lzma'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1}, 'warmup_days': 14, 'test_reps': 30, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'})}
+
+--- configs\dev_d79_eqh_synthetic.yaml
++++ configs\test_d79_eqh_synthetic.yaml
+-experiment: dev_d79_eqh_synthetic
+-output_dir: results/dev_d79_eqh_synthetic
+-split: dev
++experiment: test_d79_eqh_synthetic
++output_dir: results/test_d79_eqh_synthetic
++split: test
+CHECK configs\test_d79_eqh_synthetic.yaml: FAIL registry gate: test run overrides frozen hyperparameters: {'scenario_grid': ({'budgets': [8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112], 'detect_prob': [], 'benign_invalid_rate': [0.0, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1, 'evidence': 'detector', 'data_source': 'synthetic', 'detector_path': 'results/detector/detector.pkl', 'flag_alpha': 0.01, 'napierone_dir': 'data/napierone'}, 'warmup_days': 14, 'test_reps': 40, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'}, {'budgets': [4, 6, 8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112, 115, 118, 139], 'detect_prob': [1.0, 0.9, 0.5, 0.2, 0.0], 'benign_invalid_rate': [0.0, 0.001, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib', 'lzma'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1}, 'warmup_days': 14, 'test_reps': 30, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'})}
+
+--- configs\dev_d74_attack_napierone.yaml
++++ configs\test_d74_attack_napierone.yaml
+-experiment: dev_d74_attack_napierone
+-output_dir: results/dev_d74_attack_napierone
+-split: dev
++experiment: test_d74_attack_napierone
++output_dir: results/test_d74_attack_napierone
++split: test
+-  napierone_pool: v2             # D74 amendment: D75 enlarged pools
++  napierone_pool: v2test         # TEST: v1 sim_test + benign_v2/<type>/test
+CHECK configs\test_d74_attack_napierone.yaml: OK
+
+--- configs\dev_d74_attack_synthetic.yaml
++++ configs\test_d74_attack_synthetic.yaml
+-experiment: dev_d74_attack_synthetic
+-output_dir: results/dev_d74_attack_synthetic
+-split: dev
++experiment: test_d74_attack_synthetic
++output_dir: results/test_d74_attack_synthetic
++split: test
+CHECK configs\test_d74_attack_synthetic.yaml: OK
+
+--- configs\dev_d73_fleet_napierone_v2pool.yaml
++++ configs\test_d73_fleet_napierone_v2pool.yaml
+-experiment: dev_d73_fleet_napierone_v2pool
+-output_dir: results/dev_d73_fleet_napierone_v2pool
+-split: dev
++experiment: test_d73_fleet_napierone_v2pool
++output_dir: results/test_d73_fleet_napierone_v2pool
++split: test
+-  napierone_pool: v2             # D75 enlarged pools
++  napierone_pool: v2test         # TEST: v1 sim_test + benign_v2/<type>/test
+CHECK configs\test_d73_fleet_napierone_v2pool.yaml: OK
+
+--- configs\dev_d73_fleet_synthetic.yaml
++++ configs\test_d73_fleet_synthetic.yaml
+-experiment: dev_d73_fleet_synthetic
+-output_dir: results/dev_d73_fleet_synthetic
+-split: dev
++experiment: test_d73_fleet_synthetic
++output_dir: results/test_d73_fleet_synthetic
++split: test
+CHECK configs\test_d73_fleet_synthetic.yaml: OK
+
+--- configs\dev_d71_oracle_gap.yaml
++++ configs\test_d71_oracle_gap.yaml
+-experiment: dev_d71_oracle_gap
+-output_dir: results/dev_d71_oracle_gap
+-split: dev
++experiment: test_d71_oracle_gap
++output_dir: results/test_d71_oracle_gap
++split: test
+CHECK configs\test_d71_oracle_gap.yaml: FAIL registry gate: test run overrides frozen hyperparameters: {'scenario_grid': ({'budgets': [4, 6, 8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112], 'detect_prob': [1.0, 0.9, 0.5, 0.2, 0.0], 'benign_invalid_rate': [0.0, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib', 'lzma'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1}, 'warmup_days': 14, 'test_reps': 40, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'}, {'budgets': [4, 6, 8, 12], 'discovery_delay': [7, 14, 30, 45, 60], 'attack_start': [112, 115, 118, 139], 'detect_prob': [1.0, 0.9, 0.5, 0.2, 0.0], 'benign_invalid_rate': [0.0, 0.001, 0.01, 0.05], 'scenario': {'n_files': 40, 'file_types': ['txt', 'csv', 'bin', 'docx', 'zip', 'png', 'jpg', 'mp3', 'zlib', 'lzma'], 'file_kib': [16, 96], 'edits_per_day': 4.0, 'attack_files_per_day': 0.5, 'damage_model': 'striped', 'damage_fraction': 0.1}, 'warmup_days': 14, 'test_reps': 30, 'report': 'report every cell; per policy the average over cells and the worst cell of mean clean recovery and mean whole-system work lost, oracle-ideal work lost alongside'})}
+

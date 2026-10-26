@@ -1,0 +1,70 @@
+# D79 (OPEN_QUESTIONS D79): SlowBurn at equal horizon, arm 'napierone'. Copied from configs/dev_d72_bytes_napierone_v2pool.yaml; only the experiment
+# name, output dir, budgets (K 8 / 12, where an eqh baseline exists) and policies differ. Same seed and machines.
+# D75 rerun on the enlarged NapierOne pools (napierone_pool: v2); otherwise identical to configs/dev_d72_bytes_napierone.yaml
+# (same seed, machines, grid, detector). Compared with the v1 run side by side (D75 rule).
+# D72 (OPEN_QUESTIONS D72 + amendment): per-file restore methods A-E on the same rows, count budgets,
+# policies SlowBurn, prior-only, Bar-On recursive / round robin, GFS, Tower of Hanoi. Copied from configs/dev_d67_full_napierone.yaml.
+# Count budgets only; post-D71b detector.
+# D67 arm 'napierone': NapierOne DEV-pool bytes, DEV-family encrypted bytes, the NapierOne detector. Same seed, worlds, reps, benign rates, policies, budgets and
+# variant as dev_d64a_full (no reselection); the abstract q axis is replaced by the trained
+# detector. Also covers the worlds grid (prior-only and SlowBurn at w 0.75, same machines).
+# D64a step 1 rerun (team decision 2026-10-22): every policy restores with the adopted
+# verify_snap (every version in the candidate scanned with the shared write-time flags,
+# D29 any-flag rule, select). Copied from configs/dev_v2_method_full_w075.yaml: same seed, grid and
+# machines; only the experiment name, output dir and variants differ.
+seed: 202
+experiment: test_d79_eqh_napierone
+output_dir: results/test_d79_eqh_napierone
+split: test
+workers: 5
+
+warmup_days: 14
+discovery_delay: [7, 14, 30, 45, 60]
+budgets: [8, 12]               # snapshot-count budgets with an eqh baseline
+reps: 40                        # distinct attack starts per world (and evidence cell)
+vault_calib_machines: 40        # attack-free DEV machines: fleet null prior, byte multipliers
+type_null_priors: true         # D72: per-type benign prior (restore method C)
+policies: [slowburn, gfs_eqh, toh_eqh, slowburn_age_gfs, slowburn_age_toh]  # D79
+
+# start window: day 28 (two weeks after warm-up) to day 280 (40 weeks)
+worlds:
+  - {name: uniform, kind: uniform, window: [28, 280]}
+  - {name: early, kind: beta, a: 1, b: 3, window: [28, 280]}     # mean day 91
+  - {name: late, kind: beta, a: 3, b: 1, window: [28, 280]}      # mean day 217
+  # bursty campaigns: centres drawn once from child_rng(202, "bursty_centres") on [40, 268]
+  - {name: bursty, kind: clusters, centres: [99, 139, 267], sd: 3, window: [28, 280]}
+
+hp:                              # v1 frozen operating point, unchanged (configs/frozen.yaml)
+  p_attack_within_window: 0.05
+  prior_window_days: 60
+  penalty: 90.0
+  restore_quantile: 0.1
+  assumed_discovery: {kind: uniform, max_days: 60}
+  gate: 0.8
+  backbone: 0.25
+  null_pool: pooled
+  restore_rule: verified
+  restore_posterior: discovery
+  scan_eps: 0.001
+
+scenario:
+  n_files: 40
+  file_types: [txt, csv, bin, docx, zip, png, jpg, mp3, zlib]   # D67: no lzma in either arm
+  file_kib: [16, 96]
+  edits_per_day: 4.0
+  attack_start: 112              # used only by calibration machines (attack-free anyway)
+  attack_files_per_day: 0.5
+  damage_model: striped
+  damage_fraction: 0.1
+  evidence: detector             # D67: trained detector on bytes; flags = file p <= flag_alpha
+  data_source: napierone
+  detector_path: results/detector_napierone/detector.pkl
+  flag_alpha: 0.01               # the frozen daily-statistic alpha (configs/frozen.yaml)
+  napierone_dir: data/napierone
+  napierone_pool: v2test         # TEST: v1 sim_test + benign_v2/<type>/test
+
+sweep:
+  benign_invalid_rate: [0.0, 0.01, 0.05]
+
+variants:
+  - {name: method_v2_w075_vsnap, hp: {blind_weight: 0.75, old_flags: verify_snap, oracle_restore_cols: true, per_file_cols: {alpha: 0.05}}}
