@@ -1728,3 +1728,43 @@ the paper. A success replaces the equal-horizon caveat sentence in the abstract.
 
 **Order.** Implement, smoke test on 2 machines, then run after the held-out alarm check and the
 png row, before D78; one heavy job at a time; memory gate: measured peak + 4 GB (13 GB default).
+
+### D78 implementation notes (2026-10-26, before any D78 code runs; no criterion changes)
+
+- Pools: "v2fix" / "v2check" = the v1 DEV pool plus the FIX / CHECK half of the v2 DEV additions
+  (benign_v2/<type>/dev, sorted names permuted with child_rng(202, "d78_split", type); FIX = the
+  first floor(n / 2), CHECK = the rest). The 9 truncated pngs stay wherever the split puts them.
+- Recount: the D71 recount on the D67 NapierOne grid (configs/dev_d67_full_napierone_v2pool.yaml
+  with the pool and detector swapped), injected benign rate 0 only (all three criteria are at
+  rate 0; amendment 1's power check used the same rows), 160 machines per pool and detector.
+  Each version row carries (world, rep, true start, file id, day) so candidate and unchanged
+  detector are paired on identical versions (detection does not change file histories).
+- Unchanged detector: results/detector_napierone/detector.pkl (post-D71b), not retrained.
+- F1: the unchanged classifier, calibration refit on the detector calib split plus every
+  FIX-half benign file (benign rows only; same chunking and file-level calibration as the
+  detector build). F2: the same LightGBM, hyperparameters, seed and train split, with the file
+  validity column replaced by a validity-transition column (0 = previous version valid and this
+  version invalid; -1 = no check for the type; 1 otherwise; training: benign rows compare a file
+  with itself, damaged rows with their original); calibrated on the calib split. At simulation
+  time the previous version's validity is kept per file and machine (first version: no
+  transition). Injected benign invalid versions count as invalid. F3: F2's classifier with F1's
+  calibration.
+- Criterion 3 on FIX uses the FIX files (selection), on CHECK the CHECK files (scoring): file
+  level, striped 10%, uniform type mean (WAVG_ALL), the D75 AUROC code.
+- Selection on FIX: candidates meeting criteria 1, 2 (amended) and 3 on FIX; among them the
+  lowest benign flag rate. If none meets them, the "closest" is the candidate with the lowest
+  benign flag rate among those meeting criteria 2 and 3, else the lowest benign flag rate
+  overall; it is scored once on CHECK and reported but cannot be adopted.
+
+### D80: C2 with the D78 detector (team decision 2026-10-26; registered before D78 runs)
+
+Runs only if D78 accepts a candidate on CHECK.
+- Rerun the C2 comparisons (SlowBurn vs all six baselines: GFS, Tower of Hanoi, Bar-On recursive
+  and round robin, GFS-eqh, ToH-eqh) on NapierOne v2 pools with the 9 truncated pngs kept,
+  the D72 byte-arm configuration with only the detector swapped; same seeds, machines, paired
+  machine-cluster bootstrap (2000 resamples, seed 0) and Holm across the six per arm
+  (d72_c2r_holm). Reported alongside the scored v2 rows; no change to pools.
+- Alarm: c stays 3; held-out false alarms at c = 3 with the new detector on the D74 held-out
+  machines (family d74_alarm_holdout, NapierOne arm) as a secondary row; no recalibration.
+- If D78 rejects every candidate, D80 does not run; the png effect is reported as a limitation
+  with the mechanism table (results/dev_png_mechanism.md).
