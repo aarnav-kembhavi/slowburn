@@ -63,12 +63,10 @@ items:
     metrics: [clean_recovery, pfA_work_lost_file_hours, alarm_delay]
     dev_runtime_h: {napierone: 3.7, synthetic: 4.0}   # synthetic DEV took 5.0 h with a duplicate job sharing the CPU
   - id: D74_eqh
-    claim: "ToH-eqh at K 8 added to the D74 recovery-vs-delay figure"
-    dev_config: configs/dev_d74_attack_napierone_eqh.yaml
-    config_commit: 8d7ca58
-    analysis: "paper/scripts/d74_report.py on the merged rows (eqh report script, to be committed with the DEV eqh result)"
-    include_if: "the DEV eqh arm (running 2026-10-26) finishes before approval"
-    dev_runtime_h: {napierone: 3.0}    # estimate from the one-machine smoke; DEV run in progress
+    claim: "ToH-eqh at K 8 in the D74 figure"
+    note: "DEV showed ToH-eqh at K 8 is the default Tower of Hanoi (base 2), rows identical; it is
+      already in the D74 run, so no separate TEST run (results/D74_EQH_REPORT.md)"
+    dev_runtime_h: 0
   - id: ALARM
     claim: "count alarm at c = 3: false alarms on 100 benign TEST runs per arm (exact CIs)"
     dev_config: [configs/dev_d74_attack_napierone.yaml, configs/dev_d74_attack_synthetic.yaml]
@@ -93,9 +91,9 @@ items:
 
 compute:
   basis: "DEV wall-clock of the same configs, one heavy job at a time, 5 workers; TEST pools are the same size"
-  per_item_h: {C2_and_D72: 3.0, D79: 2.9, D74: 7.7, D74_eqh: 3.0, ALARM: 0.25, D73: 10.8, D71: 0.5}
+  per_item_h: {C2_and_D72: 3.0, D79: 2.9, D74: 7.7, D74_eqh: 0, ALARM: 0.25, D73: 10.8, D71: 0.5}
   reports_h: 1.0
-  total_h: 29.2
-  with_30pct_margin_h: 38
+  total_h: 26.2
+  with_30pct_margin_h: 34
   fits_two_days: true
-  if_short_drop_in_order: [D73 synthetic arm (5.8 h), D74_eqh (3.0 h), D79 synthetic arm (1.6 h)]
+  if_short_drop_in_order: [D73 synthetic arm (5.8 h), D79 synthetic arm (1.6 h)]

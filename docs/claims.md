@@ -255,7 +255,11 @@ Bar-On recursive alike); GFS reaches 0 by 30 days (K 4) / 60 days (K 8); Tower o
 is 0 at every delay; every defence is <= 0.05 beyond the assumed bound
 (`results/dev_d74_report/best_response.csv`). Realistic D72 attacker (uniform delays 7 to 60 days, rate 0.5,
 fraction 0.1): SlowBurn recovery 1.0 (K 4 and 8, restore A) vs GFS 0.395 / 0.6 and Tower of
-Hanoi 0.0 / 0.99.
+Hanoi 0.0 / 0.99. D74 eqh arm (descriptive): at K = 8 the equal-horizon Tower of Hanoi is
+the default rotation (base 2, horizon 63; rows identical); against the best-response attacker
+it matches SlowBurn's recovery by delay (1.00 / 1.00 / 0.90 / 0.65 / 0.30 / 0.05 / 0.00 vs
+1.00 / 0.85 / 0.90 / 0.85 / 0.30 / 0.05 / 0.05 at 7-120 days) and loses less per-file work at
+every delay (`results/D74_EQH_REPORT.md`). No equal-horizon configuration exists at K = 4.
 
 ## Limitations
 
