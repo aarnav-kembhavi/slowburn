@@ -2,3 +2,4 @@
 2026-10-27T02:55:05+05:30 inventory exit 0
 2026-10-27T02:55:21+05:30 dry_run start
 2026-10-27T02:55:29+05:30 dry_run exit 0
+2026-10-27T02:56:16+05:30 QUEUE STOPPED before ALARM: run_dev_sweep (C2/D72, D79, D71) refuses split test at 77b3253; no TEST experiment started; awaiting team decision
