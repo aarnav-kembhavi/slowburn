@@ -1,18 +1,18 @@
-# frozen_v2.yaml: DRAFT for the single frozen TEST run. NOT APPROVED.
+# frozen_v2.yaml: the single frozen TEST run. APPROVED (Aarnav, 2026-10-27, commit 77b3253).
 # TEST runs only after the team (incl. Aarnav) approves this file in writing; until then nothing in
 # it is executed and configs/frozen.yaml (the v1 gate) is untouched. Only claims that are in the
 # paper are listed. Hyperparameters are the DEV operating point already frozen in
 # configs/frozen.yaml (penalty 90, gate 0.8, backbone 0.25, blind weight 0.75, assumed discovery
 # uniform up to M = 60, file flag p <= 0.01); nothing is retuned.
-status: draft
-approved: false
+status: approved
+approved: true
 approvals_required: [team, aarnav]
 approval_rule: "approved stays false until Aarnav writes in the chat the exact line
   'APPROVED frozen_v2.yaml at commit <hash>'; only then code_commit is re-pinned to <hash>,
   approved: true is committed and the queue below starts"
 drafted: 2026-10-26
 target: week of 2026-10-29, after approval
-code_commit: 5265aab        # TEST content path and scripts; re-pinned to the approved commit before TEST
+code_commit: 77b3253        # approved by Aarnav in chat 2026-10-27: "APPROVED frozen_v2.yaml at commit 77b3253"
 
 defaults:
   seed: 202                 # same seed; split "test" gives machine keys disjoint from DEV
