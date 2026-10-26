@@ -238,7 +238,16 @@ damaged files per day, NapierOne v2, 40 runs per strategy, exact 95% CIs): the a
 fires within 120 days in 26 / 40 runs (0.65 [0.48, 0.79]; median 5.5 days after the start) when
 all types are hit at damage fraction 0.1, because benign flags share the counter; 3 / 40 (0.075
 [0.016, 0.20]) at fraction 0.01 on the four weakest types; at most 4 / 40 (0.10 [0.03, 0.24])
-on csv only. Synthetic bytes: 18 / 40 (0.45 [0.29, 0.62]) all types, 2 / 40 csv only. Best
+on csv only. Synthetic bytes: 18 / 40 (0.45 [0.29, 0.62]) all types, 2 / 40 csv only.
+Median time to alarm is over caught runs only (runs whose alarm fires within 120 days).
+**Most catches come from benign flags sharing the counter.** By construction the attacker writes
+exactly 2 new damaging versions per day, below c = 3, so every alarm day (100% of alarms, every
+strategy) needed at least one further flagged version that day: a benign flag or a benign
+re-edit of an already damaged file; existing outputs cannot split those two. For scale,
+attack-free NapierOne runs have at least one benign flag on 7.0% of days (calibration 0.0703,
+held out 0.0696; synthetic 0.033 / 0.035) and two or more on 0.3%. The attacker also runs out
+of targets: it damages only undamaged files of its target types (about 4 csv files per 40-file
+machine), which bounds csv-only damage to the first few days. Best
 response under the stealth constraint (chosen on the selection half, scored on the evaluation
 half; NapierOne, restore A, K 4 / 8, recovery-minimising attacker): SlowBurn keeps evaluation
 recovery >= 0.65 up to a 45-day delay, 0.3 at 60 and <= 0.05 at 90 / 120 (prior-only and
@@ -249,6 +258,15 @@ fraction 0.1): SlowBurn recovery 1.0 (K 4 and 8, restore A) vs GFS 0.395 / 0.6 a
 Hanoi 0.0 / 0.99.
 
 ## Limitations
+
+- Restore A (verify_snap) rejects any snapshot that holds a flagged version. The 9 truncated
+  benign pngs therefore push SlowBurn's restore about 28 days deeper (restored point 73.8 vs
+  46.2 days before the start, bursty world; results/dev_png_mechanism.md).
+- The simulator draws each benign rewrite from a new pool file, so consecutive versions of a
+  file are unrelated real files; this creates benign validity transitions (a valid version
+  followed by an invalid one) that real edits of one file rarely produce.
+- D78: no recalibration separates truncated benign pngs from damaged files; both fail the same
+  validity check with the same score (results/D78_REPORT.md).
 
 - Detector on NapierOne (D78, 2026-10-26): the one registered fix attempt (F1 recalibration, F2
   validity transition, F3 both) was rejected on CHECK; the unchanged detector ships. Benign
