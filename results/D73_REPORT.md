@@ -1,7 +1,25 @@
 # D73 report: fleet-aware retention (DEV, 2026-10-24)
 
-**Pools: the NapierOne arm below ran on the v1 pools (before D75). Its numbers are a
-sensitivity row only; the v2 rerun (team decision 2026-10-25) replaces them when it reports.**
+**Update 2026-10-26: NapierOne v2 rerun (the primary NapierOne arm; the v1 numbers further down
+are now a sensitivity row).** Run d73_fleet_napierone_v2pool 01:32-06:31, exit 0, first attempt,
+5,760 pairs per comparison; report paper/scripts/d73_report.py (results/dev_d73_report/,
+log results/dev_d73_report.txt). **FLEET is still NOT adopted, and on v2 it fails more clearly:**
+
+| criterion (restore A, K_avg 6 / 8), NapierOne v2 | vs a (equal split) | vs b (churn split) |
+|---|---|---|
+| 1. recovery not lower by > 0.01 in any cell | **fail (worst cell -0.213)** | **fail (-0.206)** |
+| pooled recovery difference | **-0.029 [-0.049, -0.012]** | **-0.030 [-0.050, -0.012]** |
+| 2. per-file work lost pooled | -16.6% [-20.3, -12.6] | -7.3% [-10.8, -3.5] |
+| 3. lower in >= 6 of 9 (f, m) cells | 9 / 9 | 6 / 9 |
+
+On v1 pooled recovery was not lower (0.000 [-0.012, +0.011]); on v2 FLEET recovers
+significantly less than both splits, so the work-lost gain is bought with recovery. Synthetic
+unchanged (passes every criterion). K_avg = 4 (descriptive): fleet recovery 0.911 vs 0.944 equal
+split. With per-file restores B / D the recovery loss vanishes (0.000) and C gains recovery
+(+0.079 [+0.048, +0.110]); none of these is the pre-registered primary restore. Greedy check
+unchanged (optimal 0.990). Reported as a failure; no rescue, no rerun.
+
+**Original report (v1 pools; NapierOne numbers below are the sensitivity row):**
 
 Pre-registration: OPEN_QUESTIONS D73 (0bae5bb) and amendment (0ac3331: K_avg = 4 is "no
 reallocation room (floor 3 of 4)", criteria on K_avg 6 and 8; primary restore A since D72 did not
