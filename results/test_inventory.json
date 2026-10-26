@@ -1,0 +1,72 @@
+{
+ "rule": "inventory changes nothing; no file is removed or added; it is used only to interpret results",
+ "pool": "sim_test / v2test",
+ "types": {
+  "bin": {
+   "files": 115,
+   "from_v1_sim_test": 15,
+   "from_benign_v2_test": 100,
+   "validity_failures": 0,
+   "validity_not_applicable": 115
+  },
+  "csv": {
+   "files": 114,
+   "from_v1_sim_test": 14,
+   "from_benign_v2_test": 100,
+   "validity_failures": 56,
+   "validity_not_applicable": 0
+  },
+  "docx": {
+   "files": 113,
+   "from_v1_sim_test": 13,
+   "from_benign_v2_test": 100,
+   "validity_failures": 1,
+   "validity_not_applicable": 0
+  },
+  "jpg": {
+   "files": 115,
+   "from_v1_sim_test": 15,
+   "from_benign_v2_test": 100,
+   "validity_failures": 0,
+   "validity_not_applicable": 0
+  },
+  "mp3": {
+   "files": 115,
+   "from_v1_sim_test": 15,
+   "from_benign_v2_test": 100,
+   "validity_failures": 0,
+   "validity_not_applicable": 0
+  },
+  "png": {
+   "files": 57,
+   "from_v1_sim_test": 3,
+   "from_benign_v2_test": 54,
+   "validity_failures": 4,
+   "validity_not_applicable": 0,
+   "truncated_png": 4
+  },
+  "txt": {
+   "files": 115,
+   "from_v1_sim_test": 15,
+   "from_benign_v2_test": 100,
+   "validity_failures": 40,
+   "validity_not_applicable": 0
+  },
+  "zip": {
+   "files": 69,
+   "from_v1_sim_test": 6,
+   "from_benign_v2_test": 63,
+   "validity_failures": 0,
+   "validity_not_applicable": 0
+  },
+  "zlib": {
+   "files": 104,
+   "from_v1_sim_test": 4,
+   "from_benign_v2_test": 100,
+   "validity_failures": 0,
+   "validity_not_applicable": 0
+  }
+ },
+ "damage_families": 3,
+ "encrypted_samples": 300
+}
