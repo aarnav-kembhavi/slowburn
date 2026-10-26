@@ -183,6 +183,16 @@ bound: q = 1: 1.0 at M = 14 and 30; q <= 0.5: <= 0.006 (q = 0.5: 0.0042 / 0.0062
 d60_scoreboard_vsnap.csv`). Claim "(3) evidence rescues mis-specified delays" was tested
 three times and dropped (D55b, D56, D60).
 
+**F4. The daily flagged-file count alarm (D74) at c = 3 rarely fires on benign machines.**
+Threshold c = 3 chosen on 100 attack-free 120-day calibration runs per arm (smallest c with at
+most 5% of runs alarming). In sample (the same runs): per-run false alarm 0 / 100 synthetic
+bytes, 1 / 100 NapierOne v2 (at c = 2: 8% / 31%). Held out (100 new attack-free runs per arm,
+family d74_alarm_holdout, c fixed): 0 / 100 on both arms, exact 95% upper bound 0.036 per run;
+per machine-day 0 of 12,000, upper bound 3.1e-4; fleet false alarms per week upper bounds 0.043
+(N = 20) / 0.22 (N = 100) (`results/dev_d74_alarm_holdout/holdout.json`). The alarm limits a
+threshold-aware attacker to c - 1 = 2 flagged files per day by construction; how much damage
+that still allows is the D74 attack result (not yet in this file).
+
 ## Limitations
 
 - Alarm window (D74): the count alarm counts flagged files per calendar day, because the

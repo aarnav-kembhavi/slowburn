@@ -63,7 +63,7 @@ def false_alarms(c_of: dict) -> pd.DataFrame:
         days, runs = k >= c, k.max(axis=1) >= c
         x, n = int(days.sum()), days.size
         up = exact_upper(x, n)
-        rows.append({"arm": arm, "c": c, "sample": "in sample (calibration runs d74_alarm_calib); held out check pending",
+        rows.append({"arm": arm, "c": c, "sample": "in sample (calibration runs d74_alarm_calib)",
                      "per_run_far": runs.mean(), "per_run_far_upper95": exact_upper(
                          int(runs.sum()), runs.size),
                      "per_run_far_at_c_minus_1": (k.max(axis=1) >= c - 1).mean(),

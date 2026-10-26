@@ -10,8 +10,9 @@ TEST run planned for the week of 2026-12-15. No test data opened; no tuning on t
 - D75: NapierOne pools enlarged (v1 5-15 -> v2 59-115 DEV files per type), archives verified and
   deleted; D67 / D72 NapierOne arms, detector AUROC and false-flag recount rerun on v2; v2 is now
   the only source for NapierOne numbers (v1 = labelled sensitivity rows).
-- D74 count alarm calibrated (c = 3 both arms; per-run false alarm 0 / 100 synthetic, 1 / 100
-  NapierOne, in sample (calibration runs d74_alarm_calib); held out check pending); amendment, held-out check and
+- D74 count alarm calibrated (c = 3 both arms; per-run false alarm in sample (calibration runs
+  d74_alarm_calib) 0 / 100 synthetic, 1 / 100 NapierOne; held out (100 new runs per arm,
+  2026-10-26) 0 / 100 on both arms, exact 95% upper bound 0.036); amendment, held-out check and
   boundary-straddling note pre-registered; report script extended (exact bounds, detection
   probability of the threshold-aware attacker, NapierOne first).
 - Bug-vs-data check for benign validity failures: all real data (Windows-1252 csv / txt, gzip
