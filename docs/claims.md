@@ -239,10 +239,12 @@ fires within 120 days in 26 / 40 runs (0.65 [0.48, 0.79]; median 5.5 days after 
 all types are hit at damage fraction 0.1, because benign flags share the counter; 3 / 40 (0.075
 [0.016, 0.20]) at fraction 0.01 on the four weakest types; at most 4 / 40 (0.10 [0.03, 0.24])
 on csv only. Synthetic bytes: 18 / 40 (0.45 [0.29, 0.62]) all types, 2 / 40 csv only. Best
-response under the stealth constraint (selection / evaluation halves): every defence can be
-driven to evaluation recovery <= 0.05 at some delay with restore A (NapierOne, K 4 / 8),
-mostly at delays beyond M = 60 or with csv / weak-type targeting
-(`results/dev_d74_report/`). Realistic D72 attacker (uniform delays 7 to 60 days, rate 0.5,
+response under the stealth constraint (chosen on the selection half, scored on the evaluation
+half; NapierOne, restore A, K 4 / 8, recovery-minimising attacker): SlowBurn keeps evaluation
+recovery >= 0.65 up to a 45-day delay, 0.3 at 60 and <= 0.05 at 90 / 120 (prior-only and
+Bar-On recursive alike); GFS reaches 0 by 30 days (K 4) / 60 days (K 8); Tower of Hanoi at K 4
+is 0 at every delay; every defence is <= 0.05 beyond the assumed bound
+(`results/dev_d74_report/best_response.csv`). Realistic D72 attacker (uniform delays 7 to 60 days, rate 0.5,
 fraction 0.1): SlowBurn recovery 1.0 (K 4 and 8, restore A) vs GFS 0.395 / 0.6 and Tower of
 Hanoi 0.0 / 0.99.
 
