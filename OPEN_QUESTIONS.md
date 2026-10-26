@@ -1786,3 +1786,36 @@ Descriptive, no success criterion; goes in the paper either way.
   Report: recovery vs delay (best response, recovery-minimising and work-lost-maximising
   attacker, evaluation half) and the realistic attacker, all policies side by side.
 - Synthetic arm only if time remains, same rule. Memory gate 13 GB.
+
+### TEST content path (team request 2026-10-27; registered before any code; nothing on TEST runs)
+
+Code only. No TEST file is opened, counted or simulated until configs/frozen_v2.yaml has
+`approved: true` (team and Aarnav, in writing).
+- Gate: the TEST content pool (`ContentPool(pool="sim_test", version="v2test")`) and the TEST
+  damage families load only when configs/frozen.yaml has `frozen: true` AND
+  configs/frozen_v2.yaml has `approved: true`; otherwise a ValueError naming TEST. Pool
+  version `v2test` = the v1 `sim_test` files plus `benign_v2/<type>/test`; damage =
+  NapierOne `sim_test` families. `v2test` is refused on the DEV pool and the DEV versions are
+  refused on the TEST pool.
+- Split comes from the machine key: test-keyed machines read TEST content. Calibration
+  machines (dev keys: vault / null-prior calibration, amoeba, the D74 count alarm c = 3 from
+  results/dev_d74_alarm_calib/threshold.json) keep DEV content (`v2`) in a TEST config, so no
+  defender quantity is fitted on TEST files. Detector unchanged (results/detector_napierone).
+- Random streams that do not carry the split today (D74 starts "d74_start"; D73 "d73_fleet_start",
+  "d73_infect", "d73_lag", "d73_fleet_churn") get the split appended for test only, so TEST
+  starts and infections differ from DEV and every DEV stream is unchanged byte for byte.
+- D74 and D73 entrypoints accept split test through the existing registry gate
+  (check_split_allowed) and the TEST content gate; the alarm hold-out script uses family
+  "d74_alarm_test" on test configs. D74 best-response selection on reps 0 to 4 is the
+  attacker's selection step, identical to DEV, not tuning of any defender parameter.
+- test_*.yaml are generated mechanically from the DEV configs listed in frozen_v2.yaml; only
+  `split` (dev -> test), `napierone_pool` (v2 -> v2test), `experiment` and `output_dir`
+  (dev_ -> test_) may differ; a script checks this by parsing both and reruns the registry
+  gate on each (reads configs only).
+- Inventory (before any TEST experiment, after approval): counts only (files per type,
+  validity failures per type, truncated png count), committed before any experiment. Inventory
+  changes nothing; no file is removed or added; it is used only to interpret results. No
+  detector or experiment runs during inventory.
+- Dry run (after inventory): each test_*.yaml for 1 machine and 1 simulated day into a scratch
+  dir that no analysis script reads; checked: exit code, files load from TEST paths, config
+  diff output. Scratch output deleted unread and the deletion logged.
