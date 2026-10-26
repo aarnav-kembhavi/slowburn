@@ -101,6 +101,15 @@ def features_batch(
     return np.column_stack([base, flags])
 
 
+def validity_transition(prev: float | None, cur: float) -> float:
+    """D78 F2: the file-validity column as a transition. 0 = the previous version was valid and
+    this one is not; -1 = no check for the type; 1 otherwise (a file already invalid before, or
+    a first version, does not look damaged by validity alone)."""
+    if cur < 0:
+        return -1.0
+    return 0.0 if prev is not None and prev >= 1 and cur < 1 else 1.0
+
+
 def with_file_validity(X: np.ndarray, file_valid: Sequence[float]) -> np.ndarray:
     """Append the whole-file validity flag of each row's file as column ``FILE_VALID_INDEX``."""
     v = np.asarray(file_valid, dtype=np.float64).reshape(-1, 1)

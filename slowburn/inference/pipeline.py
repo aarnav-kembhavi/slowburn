@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from slowburn.detector.features import features_batch, with_file_validity
+from slowburn.detector.features import features_batch, validity_transition, with_file_validity
 from slowburn.detector.validity import file_validity
 from slowburn.inference.daily import DayScores
 from slowburn.sim.scenario import Day
 
 
-def score_day(detector, day: Day) -> DayScores:
+def score_day(detector, day: Day, prev_valid: dict | None = None) -> DayScores:
     """Score one day's changed chunks: calibrated probabilities plus conformal p-values.
 
     Detectors with ``pvalues`` get type-conditional (Mondrian) conformal p-values grouped by
@@ -18,6 +18,9 @@ def score_day(detector, day: Day) -> DayScores:
     The M0 placeholder has none; it falls back to 1 - score, which is NOT a valid p-value.
     Clean files the scenario marks as failing validation today (``day.benign_invalid``) get
     validity 0, as a mid-write or truncated file would.
+    D78 F2: a detector with ``validity_mode == "transition"`` sees the validity column as a
+    transition from the file's previous version; ``prev_valid`` (file id -> validity of its last
+    scored version, kept per machine by the caller) is read and updated in place.
     """
     chunks = day.changed
     types = [c.file_type for c in chunks]
@@ -27,7 +30,14 @@ def score_day(detector, day: Day) -> DayScores:
         fid: (0.0 if fid in day.benign_invalid else file_validity(b"".join(day.files[fid]), ftype))
         for fid, ftype in {(c.file_id, c.file_type) for c in chunks}
     }
-    X = with_file_validity(X, [validity[c.file_id] for c in chunks])
+    if getattr(detector, "validity_mode", "absolute") == "transition":
+        if prev_valid is None:
+            raise ValueError("a transition-validity detector needs the per-machine prev_valid")
+        col = {f: validity_transition(prev_valid.get(f), v) for f, v in validity.items()}
+        prev_valid.update(validity)
+    else:
+        col = validity
+    X = with_file_validity(X, [col[c.file_id] for c in chunks])
     probs = detector.score_features(X) if len(chunks) else np.zeros(0)
     if hasattr(detector, "pvalues") and len(chunks):
         pvals = detector.pvalues(X, groups=np.array(types))

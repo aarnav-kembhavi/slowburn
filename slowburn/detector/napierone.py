@@ -130,6 +130,18 @@ def truncated_png(pool, f) -> bool:
     return file_validity(data, "png") < 1
 
 
+def d78_split(root: str | Path, ftype: str) -> tuple[list[Path], list[Path]]:
+    """D78: the v2 DEV additions of ``ftype`` split into FIX and CHECK halves (sorted names
+    permuted with child_rng(202, "d78_split", type); FIX = the first floor(n / 2))."""
+    from slowburn.utils.seed import child_rng
+
+    d = Path(root) / "benign_v2" / ftype / "dev"
+    paths = sorted(d.iterdir()) if d.exists() else []
+    perm = child_rng(202, "d78_split", ftype).permutation(len(paths))
+    k = len(paths) // 2
+    return [paths[i] for i in perm[:k]], [paths[i] for i in perm[k:]]
+
+
 class ContentPool:
     """Benign content for byte-mode simulated machines (D67): files of each type from one pool
     (``sim_dev``), at most ``SIM_MAX_BYTES``; ``draw`` returns the bytes of a random pool file.
@@ -139,7 +151,7 @@ class ContentPool:
     def __init__(self, root: str | Path, pool: str = "sim_dev", version: str = "v1"):
         if pool == "sim_test":
             raise ValueError("the TEST content pool is not read before the fresh test set")
-        if version not in ("v1", "v2", "v2_notrunc"):
+        if version not in ("v1", "v2", "v2_notrunc", "v2fix", "v2check"):
             raise ValueError(f"unknown pool version {version!r}")
         self.root = str(resolve_path(root))
         sp = benign_splits(self.root)
@@ -152,6 +164,10 @@ class ContentPool:
                 d = extra / t / "dev"
                 self.files[t] += [PoolFile(t, str(p), p.stat().st_size)
                                   for p in sorted(d.iterdir())] if d.exists() else []  # fmt: skip
+        if version in ("v2fix", "v2check"):  # D78: v1 plus one half of the D75 additions
+            for t in self.files:
+                half = d78_split(self.root, t)[0 if version == "v2fix" else 1]
+                self.files[t] += [PoolFile(t, str(p), p.stat().st_size) for p in half]
         if version == "v2_notrunc":  # unscored sensitivity: drop NapierOne pngs cut at 1 MiB
             self.files["png"] = [f for f in self.files["png"] if not truncated_png(self, f)]
         empty = [t for t, fs in self.files.items() if not fs]

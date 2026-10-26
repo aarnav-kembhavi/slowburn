@@ -180,10 +180,11 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
     change_days: dict[str, list[int]] = {}
     flagged_days: dict[str, set[int]] = {}
     recent_changes: list[int] = []
+    prev_valid: dict[str, float] = {}  # D78 F2: per-file validity of the last scored version
     for day in scen.run(child_rng(*key), damage_source,
                         child_rng(*key, "benign_invalid")):  # fmt: skip
         snapshots.append(frozenset(c for chunks in day.files.values() for c in chunks))
-        scores = score_day(det, day) if evidence == "detector" else det.score_day(day)
+        scores = score_day(det, day, prev_valid) if evidence == "detector" else det.score_day(day)
         obs.append(agg(scores))
         flagged = {f for f, pv in (scores.file_pvals or {}).items() if pv <= flag_alpha}
         for f in flagged:

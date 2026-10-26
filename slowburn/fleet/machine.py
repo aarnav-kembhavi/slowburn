@@ -57,6 +57,7 @@ class MachineSim:
             self.agg = make_aggregator("file_exceed", alpha=0.5)
             self.flag_alpha = 0.0
         self.rng, self.aux_rng = child_rng(*key), child_rng(*key, "benign_invalid")
+        self.prev_valid: dict[str, float] = {}  # D78 F2: validity of each file's last version
         cfg_s = self.scen.cfg
         if cfg_s.benign_invalid_rate > 0 and self.aux_rng is None:
             raise ValueError("benign_invalid_rate > 0 needs aux_rng")
@@ -102,6 +103,7 @@ class MachineSim:
         new.damage = {f: d.copy() for f, d in self.damage.items()}
         new.prev_hashes = {f: set(h) for f, h in self.prev_hashes.items()}
         new.obs = list(self.obs)
+        new.prev_valid = dict(self.prev_valid)
         new.versions = dict(self.versions)
         new.change_days = {f: list(d) for f, d in self.change_days.items()}
         new.flagged_days = {f: set(d) for f, d in self.flagged_days.items()}
@@ -132,7 +134,8 @@ class MachineSim:
         d = Day(day, {k: list(v) for k, v in files.items()}, changed, invalid)
         if self.snapshots is not None:
             self.snapshots.append(frozenset(c for chunks in d.files.values() for c in chunks))
-        scores = score_day(self.det, d) if self.evidence == "detector" else self.det.score_day(d)
+        scores = (score_day(self.det, d, self.prev_valid) if self.evidence == "detector"
+                  else self.det.score_day(d))  # fmt: skip
         self.obs.append(self.agg(scores))
         for f, pv in (scores.file_pvals or {}).items():
             if pv <= self.flag_alpha:
