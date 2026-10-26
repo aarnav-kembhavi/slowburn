@@ -191,3 +191,60 @@ def test_statistic_rule_picks_best_eligible_and_breaks_ties_by_alpha():
     assert choice == "file_a0.01"  # within 0.01 of file_a0.05 -> smaller alpha
     with pytest.raises(ValueError, match="DEV"):
         statistic_rule(pd.DataFrame(rows).assign(split="test"))
+
+
+def _grid_gate_files(tmp_path, grid):
+    from slowburn.bench.registry import grid_sha256
+
+    f = tmp_path / "frozen.yaml"
+    update_frozen({"penalty": 90.0}, "freeze", freeze=True, path=f)
+    v2 = tmp_path / "frozen_v2.yaml"
+    v2.write_text(f"scenario_grids:\n  test_x:\n    sha256: {grid_sha256(grid)}\n")
+    return f, v2
+
+
+def test_grid_gate_exact_hash(tmp_path):
+    import copy
+
+    grid = {"budgets": [4, 8], "discovery_delay": [7, 60], "test_reps": 40,
+            "scenario": {"n_files": 40, "napierone_pool": "v2", "file_kib": [16, 96]}}
+    f, v2 = _grid_gate_files(tmp_path, grid)
+    ok = {"penalty": 90.0, "scenario_grid": grid}
+    assert check_split_allowed("test", ok, f, experiment="test_x", v2_path=v2)
+    pool = copy.deepcopy(grid)
+    pool["scenario"]["napierone_pool"] = "v2test"  # the registered DEV -> TEST change
+    check_split_allowed("test", {**ok, "scenario_grid": pool}, f, experiment="test_x", v2_path=v2)
+    for mutate in (lambda g: g["budgets"].append(12), lambda g: g.update(test_reps=39),
+                   lambda g: g["scenario"].update(n_files=41),
+                   lambda g: g["scenario"].update(extra=1),
+                   lambda g: g["discovery_delay"].reverse()):  # fmt: skip
+        bad = copy.deepcopy(grid)
+        mutate(bad)
+        with pytest.raises(FrozenGateError, match="sha256"):
+            check_split_allowed("test", {**ok, "scenario_grid": bad}, f,
+                                experiment="test_x", v2_path=v2)  # fmt: skip
+    with pytest.raises(FrozenGateError, match="no scenario_grids entry"):
+        check_split_allowed("test", ok, f, experiment="test_y", v2_path=v2)
+    with pytest.raises(FrozenGateError, match="overrides"):
+        check_split_allowed("test", {**ok, "penalty": 91.0}, f, experiment="test_x", v2_path=v2)
+
+
+def test_real_test_configs_match_frozen_grids():
+    import copy
+    from pathlib import Path
+
+    import yaml
+
+    from slowburn.bench.retention_experiment import scenario_grid_of
+
+    doc = yaml.safe_load(Path("configs/frozen_v2.yaml").read_text(encoding="utf-8"))
+    entries = doc["scenario_grids"]
+    assert len(entries) == 5
+    for name in entries:
+        cfg = yaml.safe_load(Path(f"configs/{name}.yaml").read_text(encoding="utf-8"))
+        params = {**cfg["hp"], "scenario_grid": scenario_grid_of(cfg)}
+        check_split_allowed("test", params, experiment=name)
+        bad = copy.deepcopy(params)
+        bad["scenario_grid"]["discovery_delay"] = [*bad["scenario_grid"]["discovery_delay"], 90]
+        with pytest.raises(FrozenGateError, match="sha256"):
+            check_split_allowed("test", bad, experiment=name)

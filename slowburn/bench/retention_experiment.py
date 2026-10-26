@@ -833,7 +833,8 @@ def run_retention_experiment(cfg: dict, log=print) -> pd.DataFrame:
     run_params = dict(cfg["hp"])
     if "budgets" in cfg:
         run_params["scenario_grid"] = scenario_grid_of(cfg)
-    frozen = check_split_allowed(split, run_params, cfg.get("frozen_path", "configs/frozen.yaml"))
+    frozen = check_split_allowed(split, run_params, cfg.get("frozen_path", "configs/frozen.yaml"),
+                                 experiment=cfg.get("experiment"))  # fmt: skip
     if split == "test":
         cfg = {**cfg, "hp": {**cfg["hp"], **{k: v for k, v in frozen.items() if k in cfg["hp"]}}}
     out = resolve_path(cfg["output_dir"])

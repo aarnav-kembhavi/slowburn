@@ -11,13 +11,17 @@ detector was trained or calibrated on. ``dev`` and ``test`` machines differ in t
 element of the key, so they never share randomness.
 
 The gate: any run on the ``test`` split requires ``configs/frozen.yaml`` with ``frozen: true``,
-and the run's config may not override a frozen hyperparameter. Hyperparameters are chosen on
-``dev`` only.
+and the run's config may not override a frozen hyperparameter. A run with a scenario grid passes
+on ``test`` only if the SHA-256 of its canonical grid equals its experiment's entry in
+``configs/frozen_v2.yaml`` ``scenario_grids`` (computed from the DEV config). Hyperparameters
+are chosen on ``dev`` only.
 """
 
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
+import json
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -28,6 +32,8 @@ from slowburn.utils.config import REPO_ROOT, resolve_path
 
 SPLITS = ("dev", "test")
 FROZEN_PATH = "configs/frozen.yaml"
+FROZEN_V2_PATH = "configs/frozen_v2.yaml"
+GRID_SPLIT_KEYS = ("napierone_pool",)  # the registered DEV -> TEST change (v2 -> v2test)
 
 
 class FrozenGateError(RuntimeError):
@@ -49,12 +55,26 @@ def load_frozen(path: str | Path = FROZEN_PATH) -> dict[str, Any]:
         return yaml.safe_load(fh) or {"frozen": False, "params": {}}
 
 
+def canonical_grid(grid: dict[str, Any]) -> str:
+    """The grid as sorted-key JSON without whitespace, split-specific pool keys left out."""
+    g = dict(grid)
+    g["scenario"] = {k: v for k, v in (g.get("scenario") or {}).items()
+                     if k not in GRID_SPLIT_KEYS}  # fmt: skip
+    return json.dumps(g, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def grid_sha256(grid: dict[str, Any]) -> str:
+    return hashlib.sha256(canonical_grid(grid).encode("ascii")).hexdigest()
+
+
 def check_split_allowed(split: str, run_params: dict[str, Any],
-                        path: str | Path = FROZEN_PATH) -> dict[str, Any]:  # fmt: skip
+                        path: str | Path = FROZEN_PATH, experiment: str | None = None,
+                        v2_path: str | Path = FROZEN_V2_PATH) -> dict[str, Any]:  # fmt: skip
     """Raise unless this run may use ``split``. Returns the frozen parameters (possibly empty).
 
     ``run_params`` are the hyperparameters the run would use; on ``test`` every key present in
-    the frozen file must match exactly.
+    the frozen file must match exactly, except ``scenario_grid``: that must hash to the
+    ``scenario_grids[experiment]`` entry of ``v2_path`` (no entry: refused).
     """
     if split not in SPLITS:
         raise ValueError(f"split must be one of {SPLITS}")
@@ -66,8 +86,21 @@ def check_split_allowed(split: str, run_params: dict[str, Any],
         raise FrozenGateError(
             f"test split refused: {path} is not frozen. Choose hyperparameters on dev, then freeze."
         )
+    if "scenario_grid" in run_params:
+        p2 = resolve_path(v2_path)
+        grids = {}
+        if p2.exists():
+            with p2.open(encoding="utf-8") as fh:
+                grids = (yaml.safe_load(fh) or {}).get("scenario_grids") or {}
+        entry = grids.get(experiment)
+        if entry is None:
+            raise FrozenGateError(f"test run {experiment!r}: no scenario_grids entry in {v2_path}")
+        got = grid_sha256(run_params["scenario_grid"])
+        if got != entry.get("sha256"):
+            raise FrozenGateError(f"test run {experiment!r} grid sha256 {got} != frozen "
+                                  f"{entry.get('sha256')}")  # fmt: skip
     mismatched = {k: (run_params[k], v) for k, v in params.items()
-                  if k in run_params and run_params[k] != v}  # fmt: skip
+                  if k in run_params and k != "scenario_grid" and run_params[k] != v}  # fmt: skip
     if mismatched:
         raise FrozenGateError(f"test run overrides frozen hyperparameters: {mismatched}")
     return params

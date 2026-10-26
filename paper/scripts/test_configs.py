@@ -76,7 +76,7 @@ def check(dev: Path, test: Path) -> list[str]:
         params = dict(cfg.get("hp", {}))
         if "budgets" in cfg:  # as run_retention_experiment does
             params["scenario_grid"] = scenario_grid_of(cfg)
-        check_split_allowed("test", params)
+        check_split_allowed("test", params, experiment=cfg.get("experiment"))
     except FrozenGateError as e:
         errors.append(f"registry gate: {e}")
     return errors
