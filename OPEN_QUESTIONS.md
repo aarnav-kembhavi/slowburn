@@ -1768,3 +1768,21 @@ Runs only if D78 accepts a candidate on CHECK.
   machines (family d74_alarm_holdout, NapierOne arm) as a secondary row; no recalibration.
 - If D78 rejects every candidate, D80 does not run; the png effect is reported as a limitation
   with the mechanism table (results/dev_png_mechanism.md).
+
+### D74 eqh arm (team decision 2026-10-26; registered before any code; last experiment before TEST)
+
+Descriptive, no success criterion; goes in the paper either way.
+- Rerun the D74 best-response and realistic-attacker evaluations on NapierOne v2 with the
+  equal-horizon schedules added (D68 rule, M = 60, `EqualHorizon`), restore A, K 4 and 8, same
+  seed (202), machines (family d74_attack, 4 worlds x 10 reps), attacker grid, alarm c = 3,
+  selection / evaluation halves and calibration (results/dev_d74_attack_napierone/calibration.pkl
+  is copied, not recomputed; it is deterministic).
+- Coverage, stated before the run: under the D68 rule GFS-eqh exists only at K = 12 and ToH-eqh
+  at K = 8 and 12, so at K 4 / 8 the arm adds ToH-eqh at K = 8 only; GFS-eqh and ToH-eqh at K = 4
+  are reported as "no configuration reaches M" (the policies are skipped by the existing
+  infeasible-K rule, not changed).
+- Only the eqh policies are simulated (config dev_d74_attack_napierone_eqh.yaml); the other
+  policies' rows come from the existing D74 NapierOne run on the same machines and seeds.
+  Report: recovery vs delay (best response, recovery-minimising and work-lost-maximising
+  attacker, evaluation half) and the realistic attacker, all policies side by side.
+- Synthetic arm only if time remains, same rule. Memory gate 13 GB.
