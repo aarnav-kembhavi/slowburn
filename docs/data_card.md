@@ -81,6 +81,9 @@ check and PIL ("Truncated File Read"): NapierOne cut these web downloads at 1 Mi
 png pool holds 0 of them (of 5); the v2 DEV png pool holds 9 (of 59). The TEST pool was not
 inspected. They stay in every scored pool; a labelled, unscored sensitivity row excludes them
 (pool v2_notrunc, 50 png files; configs/dev_d67_full_napierone_v2notrunc.yaml).
+Result (2026-10-26, unscored): without the 9 truncated pngs, SlowBurn vs default GFS work lost is
+-32.2% [-35.7, -28.2] (v2: -14.0%) and C3' -9.7% [-11.0, -8.5] (v2: -3.8%); recovery unchanged.
+Most of the v1 -> v2 effect shrinkage comes from these 9 files (results/PNG_SENSITIVITY.md).
 
 ## Sources and licences
 
