@@ -22,8 +22,16 @@ false flag stress axis is weaker there). (3) zip and png v2 DEV pools stay below
 33% of the new txt files; this does not raise benign csv flags (0.000) but txt benign flags are
 0.010 (known limitation, validator unchanged).
 
-**Evaluation finding (D75, stays in): content pool size changed the NapierOne effect sizes by
-about 2.5x.** Same machines, seeds, detector and grid; only the benign pool grew from 5 to 15
+**Evaluation finding (D75, reworded 2026-10-26 after the png mechanism check): a handful of
+invalid benign files can halve measured retention gains.** The 9 truncated NapierOne pngs (13%
+of the v2 DEV png pool) cause 87% to 88% of benign flags; without them (unscored sensitivity
+row) SlowBurn vs default GFS is -32.2% [-35.7, -28.2] instead of -14.0%, C3' -9.7% [-11.0,
+-8.5] instead of -3.8%, recovery unchanged. The channel is the restore, not the start
+estimate: with the pngs SlowBurn scans 2.44 vs 1.66 snapshots and restores 28 days deeper,
+while its start estimate error barely moves (-27.7 vs -26.0 days, bursty); GFS / ToH move by
+1% to 7% (`results/dev_png_mechanism.md`, `results/PNG_SENSITIVITY.md`). Benign flags on the
+no-png pool were not recounted. Original wording, kept for the record: content pool size changed
+the NapierOne effect sizes by about 2.5x. Same machines, seeds, detector and grid; only the benign pool grew from 5 to 15
 (v1) to 59 to 115 files per type (v2). C2 vs default GFS -34.4% -> -14.0% (2.5x), vs default
 Tower of Hanoi -35.7% -> -19.6% (1.8x); C3' -11.9% -> -3.8% (3.1x). Cause: the small pools had
 no benign files failing validity and easier-to-detect damage (benign false flags at injected
@@ -197,6 +205,46 @@ per machine-day 0 of 12,000, upper bound 3.1e-4; fleet false alarms per week upp
 (N = 20) / 0.22 (N = 100) (`results/dev_d74_alarm_holdout/holdout.json`). The alarm limits a
 threshold-aware attacker to c - 1 = 2 flagged files per day by construction; how much damage
 that still allows is the D74 attack result (not yet in this file).
+
+**F5. Product retention defaults (D66 audit, FSL Homes churn, delays 1 to 400 days, 160
+machines; descriptive).** With a blind detector (q = 0) recovery falls below 0.5 at 30 days for
+the 30-day products (Dropbox 30 d, Google Drive 30 d / 100 versions, OneDrive personal 30 d)
+and at 60 days for every longer-retention product (Dropbox 180 / 365 d, OneDrive personal 25
+versions, OneDrive for Business 500 versions: 0.194 at 60 days, below 0.1 at 90), although
+those products still hold a clean version far longer: the restore, not retention, limits them.
+restic's documented presets fall below 0.5 at 90 days (0.750 at 60); keep-within-7d at 7 days;
+NetApp ARP/AI recovers 0 at q = 0. With a perfect detector (q = 1) recovery follows the
+retention window. Count limits fail once the damaged versions per file reach the limit: OneDrive
+personal 25 versions at r = 25 and 100, Google Drive 100 versions at r = 100
+(`results/dev_d66_retention_audit/audit_thresholds.csv`).
+
+**F6. Per-file restore under imperfect detection (D72; method C not adopted).** SlowBurn
+retention, recovery / per-file work lost (h): full grid q 0.2: verify_snap 0.980 / 6,452,
+walk-back 0.001 / 175, changepoint 0.801 / 3,914, per-file oracle 1.000 / 736; NapierOne bytes:
+verify_snap 1.000 / 4,801, walk-back 0.504 / 670, changepoint 0.994 / 3,212, oracle 1.000 /
+679. Changepoint cuts per-file work lost by 33% to 40% vs verify_snap but loses recovery
+whenever detection is imperfect (-0.12 to -0.19 at q 0.2 / 0.5; NapierOne -0.005 [-0.011,
+-0.001]); walk-back is near the oracle with perfect detection and collapses otherwise
+(`results/D72_REPORT.md`).
+
+**F7. Fleet-aware retention (D73; not adopted, negative finding).** NapierOne v2, restore A,
+K_avg 6 / 8: FLEET vs equal budget split per-file work lost -16.6% [-20.3, -12.6], but pooled
+fleet recovery -0.029 [-0.049, -0.012] and the worst (f, m, K, N) cell -0.21; vs churn split
+-7.3% [-10.8, -3.5], recovery -0.030 [-0.050, -0.012]. Synthetic bytes pass every criterion.
+Its gain comes from the pooled start posterior, not from moving slots (`results/D73_REPORT.md`).
+
+**F8. Adaptive attacker under the alarm (D74, c = 3).** Threshold-aware attacker (exactly 2
+damaged files per day, NapierOne v2, 40 runs per strategy, exact 95% CIs): the alarm still
+fires within 120 days in 26 / 40 runs (0.65 [0.48, 0.79]; median 5.5 days after the start) when
+all types are hit at damage fraction 0.1, because benign flags share the counter; 3 / 40 (0.075
+[0.016, 0.20]) at fraction 0.01 on the four weakest types; at most 4 / 40 (0.10 [0.03, 0.24])
+on csv only. Synthetic bytes: 18 / 40 (0.45 [0.29, 0.62]) all types, 2 / 40 csv only. Best
+response under the stealth constraint (selection / evaluation halves): every defence can be
+driven to evaluation recovery <= 0.05 at some delay with restore A (NapierOne, K 4 / 8),
+mostly at delays beyond M = 60 or with csv / weak-type targeting
+(`results/dev_d74_report/`). Realistic D72 attacker (uniform delays 7 to 60 days, rate 0.5,
+fraction 0.1): SlowBurn recovery 1.0 (K 4 and 8, restore A) vs GFS 0.395 / 0.6 and Tower of
+Hanoi 0.0 / 0.99.
 
 ## Limitations
 
