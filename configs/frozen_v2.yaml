@@ -1,4 +1,4 @@
-# frozen_v2.yaml: DRAFT for the single frozen TEST run (week of 2026-12-15). NOT APPROVED.
+# frozen_v2.yaml: DRAFT for the single frozen TEST run. NOT APPROVED.
 # TEST runs only after the team (incl. Aarnav) approves this file in writing; until then nothing in
 # it is executed and configs/frozen.yaml (the v1 gate) is untouched. Only claims that are in the
 # paper are listed. Hyperparameters are the DEV operating point already frozen in
@@ -8,27 +8,52 @@ status: draft
 approved: false
 approvals_required: [team, aarnav]
 drafted: 2026-10-26
-code_commit: ec1e560        # HEAD when drafted; re-pinned to the approved commit before TEST
+target: week of 2026-10-29, after approval
+code_commit: 5265aab        # TEST content path and scripts; re-pinned to the approved commit before TEST
 
 defaults:
   seed: 202                 # same seed; split "test" gives machine keys disjoint from DEV
   split: test
   napierone_pools:
-    content: "TEST: v1 sim_test files plus benign_v2/<type>/test (54 to 100 per type); never opened"
+    content: "TEST: pool version v2test = v1 sim_test files plus benign_v2/<type>/test; never opened"
     damage_families: "sim_test encrypted families (never used on DEV)"
+    calibration_content: "DEV (v2): dev-keyed calibration machines of a TEST config keep DEV content,
+      so no defender quantity is fitted on TEST files"
     truncated_pngs: "kept, as on DEV (not inspected on TEST)"
   detector: results/detector_napierone/detector.pkl   # unchanged (D78 rejected every fix)
   alarm_c: 3                                            # from DEV calibration; not recalibrated
   restore: verify_snap (A)
   statistics: "paired machine-cluster bootstrap, 2000 resamples, seed 0; Holm within each claim"
 
-prerequisites:            # code and config work before TEST, reviewed, no result read
-  - "TEST content path: _napierone() and ContentPool read sim_test + benign_v2/<type>/test with
-     sim_test damage families only when split == test and configs/frozen.yaml has frozen: true
-     (today they refuse sim_test by design)"
-  - "test_*.yaml configs generated mechanically from the DEV configs below: only split, pool
-     version (v2 -> v2test), output_dir and experiment change; a script diffs them"
-  - "configs/frozen.yaml params re-checked against these configs by the existing registry gate"
+prerequisites:            # in this order, before any TEST experiment; no result read
+  - id: test_content_path
+    status: "done, commit 2bb6985 (not run on TEST)"
+    what: "ContentPool(sim_test, v2test) and _napierone(split=test) read v1 sim_test +
+      benign_v2/<type>/test with sim_test damage families, only for test-keyed machines and only
+      when configs/frozen.yaml has frozen: true AND this file has approved: true"
+  - id: test_configs
+    status: "done, commit 2a23bc1; check output results/test_configs_check.txt"
+    what: "test_*.yaml generated from the DEV configs below by paper/scripts/test_configs.py:
+      only split (dev -> test), napierone_pool (v2 -> v2test), experiment and output_dir
+      (dev_ -> test_) differ, checked by parsing both"
+  - id: registry_gate
+    status: "OPEN, team decision needed"
+    what: "configs/frozen.yaml params re-checked against each test config by check_split_allowed.
+      Hyperparameters pass on all 9. The 5 retention-experiment configs (C2/D72 x2, D79 x2, D71)
+      fail only on scenario_grid: frozen.yaml holds the v1 headline grid, these configs use their
+      own DEV grids. They cannot run until the gate is resolved (no code change made)"
+  - id: inventory
+    status: "script written (paper/scripts/test_inventory.py), NOT run"
+    what: "count-only TEST pool inventory: files per type, validity failures per type, truncated
+      png count, TEST damage families and samples; computed and committed BEFORE any TEST
+      experiment. No detector or experiment runs during inventory"
+    rule: "inventory changes nothing; no file is removed or added; it is used only to interpret results"
+  - id: dry_run
+    status: "script written (paper/scripts/test_dry_run.py), NOT run; after inventory"
+    what: "each test_*.yaml for 1 test-keyed machine (family dry_run), 1 simulated day, output to a
+      scratch dir no analysis script reads; checked only: exit code, that content and damage files
+      load from TEST paths, and the config diff script output. Scratch output deleted after the
+      check; the deletion is logged (results/test_dry_run.log) as deleted unread"
 
 items:
   - id: C2
@@ -61,6 +86,8 @@ items:
     analysis: paper/scripts/d74_report.py        # commit b2d8042
     machines: "family d74_attack, 4 worlds x 10 reps per arm; reps 0-4 selection, 5-9 evaluation; 90 strategies x 7 delays"
     metrics: [clean_recovery, pfA_work_lost_file_hours, alarm_delay]
+    selection_note: "best-response selection on reps 0 to 4 is the attacker's selection step,
+      identical to DEV; it is not tuning of any defender parameter"
     dev_runtime_h: {napierone: 3.7, synthetic: 4.0}   # synthetic DEV took 5.0 h with a duplicate job sharing the CPU
   - id: D74_eqh
     claim: "ToH-eqh at K 8 in the D74 figure"
@@ -84,10 +111,15 @@ items:
   - id: D71
     claim: "oracle gap: restore diagnostics (held vs restored, per-file oracle ceiling)"
     dev_config: configs/dev_d71_oracle_gap.yaml
+    test_config: configs/test_d71_oracle_gap.yaml
     config_commit: bcd61d2
     analysis: paper/scripts/d71_report.py        # commit f41327f
-    metrics: [clean_recovery, oracle columns]
-    dev_runtime_h: 0.5
+    machines: "4 worlds x 40 reps, abstract evidence; sweep detect_prob {1, 0.9, 0.5, 0.2, 0}
+      x benign_invalid_rate {0, 0.01, 0.05}; count budgets K 4 / 6 / 8 / 12; delays 7-60"
+    metrics: ["clean_recovery (a verify_snap, b oracle snapshot, c oracle per file)",
+      "work_lost_whole_system_hours (a, b)", "per-file work lost hours (a, b, c)",
+      "restore diagnosis columns (restore_diag_cols)"]
+    dev_runtime_h: 0.5     # DEV machines 12:09 to 12:36 on 2026-10-23, plus calibration
 
 compute:
   basis: "DEV wall-clock of the same configs, one heavy job at a time, 5 workers; TEST pools are the same size"
