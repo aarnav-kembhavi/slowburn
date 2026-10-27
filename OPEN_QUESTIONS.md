@@ -1841,3 +1841,19 @@ Code only. No TEST file is opened, counted or simulated until configs/frozen_v2.
   heavy job at a time, memory gate as before; analysis scripts only after all items finish.
 - Approval: approved stays false until Aarnav writes in the chat "APPROVED frozen_v2.yaml at
   commit <hash>"; then code_commit is re-pinned, approved: true committed, and the queue starts.
+
+### TEST sweep entrypoint fix, output handling, prediction (team decisions 2026-10-28; registered before code)
+
+- Gap found after approval (77b3253): run_dev_sweep (the DEV entrypoint of C2/D72, D79, D71)
+  refused split test and built DEV tasks only. Fix: on test it passes the same gates as the other
+  entrypoints (check_split_allowed with the run's scenario grid hash and experiment name; the TEST
+  content gate in the pool) and builds tasks with build_tasks(cfg, split) (calibration stays on
+  DEV machines, as registered in a63fc54). No config, grid, hyperparameter, metric or analysis
+  script changes. Test: the sweep entrypoint on a tiny token-mode test-split config with
+  temporary frozen / frozen_v2 files (no real TEST file opened); a missing grid entry is refused.
+  The dry run additionally calls each entrypoint's gate check for all 9 test configs.
+- Output handling: each runner writes stdout to results/test_<item>_run.log and stderr to
+  results/test_<item>_err.log; nothing in either is read until every item has finished, except
+  the stderr traceback of a crash, as the failure rule needs. No counts-only mode for ALARM.
+- results/test_prediction.md (the team's text, verbatim) is committed before the queue starts.
+- The queue starts only after a new approval line naming the new commit.
