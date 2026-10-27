@@ -45,11 +45,6 @@ def score(k: np.ndarray, c: int) -> dict:
                                                     for N in (20, 100)}}  # fmt: skip
 
 
-def alarm_gate() -> None:
-    """ALARM entrypoint gate on test (also called by the TEST dry run)."""
-    check_split_allowed("test", {})
-
-
 def main(paths, out=OUT):
     """``--out=DIR`` as the first argument writes elsewhere (D80: held-out row with another
     detector); the machines, c and family are unchanged."""
@@ -60,7 +55,7 @@ def main(paths, out=OUT):
         raise ValueError("mixed dev and test configs")
     split = splits.pop()
     if split == "test":
-        alarm_gate()
+        check_split_allowed("test", {})
         out = TEST_OUT if out == OUT else out
     out.mkdir(parents=True, exist_ok=True)
     thr = json.loads(Path("results/dev_d74_alarm_calib/threshold.json").read_text())

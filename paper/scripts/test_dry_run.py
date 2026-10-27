@@ -18,10 +18,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-from d74_alarm_holdout import alarm_gate
-
 from slowburn.bench.attacker_experiment import attack_gate
-from slowburn.bench.registry import machine_key
+from slowburn.bench.registry import check_split_allowed, machine_key
 from slowburn.bench.retention_experiment import sweep_gate
 from slowburn.detector.napierone import PoolFile, benign_splits, family_splits
 from slowburn.fleet.experiment import fleet_gate
@@ -57,7 +55,7 @@ def entrypoint_gates(cfg) -> str:
         return "sweep"
     if name.startswith("test_d74"):
         attack_gate(cfg)
-        alarm_gate()
+        check_split_allowed("test", {})  # the gate call of d74_alarm_holdout.py on test configs
         return "attack+alarm"
     if name.startswith("test_d73"):
         fleet_gate(cfg)
