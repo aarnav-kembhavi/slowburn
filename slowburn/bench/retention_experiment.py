@@ -972,18 +972,32 @@ def sweep_summary(df: pd.DataFrame, by=()) -> pd.DataFrame:
             .reset_index())  # fmt: skip
 
 
+def sweep_gate(cfg: dict) -> str:
+    """The sweep entrypoint's gate (also called by the TEST dry run); returns the split."""
+    from slowburn.bench.registry import FROZEN_V2_PATH, check_split_allowed
+
+    split = cfg.get("split", "dev")
+    if split != "dev":
+        run_params = {**cfg["hp"], "scenario_grid": scenario_grid_of(cfg)}
+        check_split_allowed(split, run_params, cfg.get("frozen_path", "configs/frozen.yaml"),
+                            experiment=cfg.get("experiment"),
+                            v2_path=cfg.get("frozen_v2_path", FROZEN_V2_PATH))  # fmt: skip
+    return split
+
+
 def run_dev_sweep(cfg: dict, log=print) -> pd.DataFrame:
     """Evaluate the frozen hyperparameters with each variant in ``cfg['variants']`` (a name plus
-    hp overrides) on the same DEV machines. Reporting only: nothing is chosen or frozen."""
-    if cfg.get("split", "dev") != "dev":
-        raise ValueError("sweeps run on the dev split only")
+    hp overrides) on the same DEV machines. Reporting only: nothing is chosen or frozen. On the
+    test split (frozen_v2 TEST run) the registry gate checks the hyperparameters and the grid hash
+    first, and the pool's TEST content gate applies; calibration stays on DEV machines."""
     from slowburn.bench.registry import load_frozen
 
+    split = sweep_gate(cfg)
     out = resolve_path(cfg["output_dir"])
     out.mkdir(parents=True, exist_ok=True)
     frozen = load_frozen(cfg.get("frozen_path", "configs/frozen.yaml")).get("params", {})
     base = {**cfg["hp"], **{k: v for k, v in frozen.items() if k in cfg["hp"]}}
-    tasks = build_tasks(cfg, "dev", log)
+    tasks = build_tasks(cfg, split, log)
     combos = [{**base, **v["hp"], "_variant": v["name"]} for v in cfg["variants"]]
     policies = tuple(cfg.get("policies", ("slowburn", "prior_only", "gfs", "tower_of_hanoi")))
     df = _stage(cfg, tasks, combos, policies, out, "sweep", log)

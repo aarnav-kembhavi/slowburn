@@ -328,10 +328,15 @@ def calibration(cfg: dict, log=print) -> dict:
     return cal
 
 
-def run_fleet_experiment(cfg: dict, log=print, stages=("calib", "machines", "fleets")) -> None:
-    # TEST: registry gate here, TEST content gate in the pool; calibration stays on DEV machines
+def fleet_gate(cfg: dict) -> None:
+    """D73 entrypoint gate (also called by the TEST dry run): registry gate here, TEST content
+    gate in the pool; calibration stays on DEV machines."""
     check_split_allowed(cfg.get("split", "dev"), dict(cfg.get("hp", {})),
                         cfg.get("frozen_path", "configs/frozen.yaml"))  # fmt: skip
+
+
+def run_fleet_experiment(cfg: dict, log=print, stages=("calib", "machines", "fleets")) -> None:
+    fleet_gate(cfg)
     out = Path(cfg["output_dir"])
     out.mkdir(parents=True, exist_ok=True)
     fl, reps = cfg["fleet"], int(cfg["fleet"]["reps"])

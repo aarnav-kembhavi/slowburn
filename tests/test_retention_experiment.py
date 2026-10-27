@@ -237,3 +237,28 @@ def test_timing_prior_reaches_dp_and_restore_gate(cfg):
     b = pd.DataFrame(evaluate_trace(cfg, task, trace, gauss("late", 20), pols))[cols]
     for pol in pols:
         assert not a[a.policy == pol].equals(b[b.policy == pol])
+
+
+def test_dev_sweep_runs_on_test_split_behind_the_gates(cfg, tmp_path):
+    """TEST path of the sweep entrypoint (C2/D72, D79, D71): token mode, temporary gate files,
+    no real TEST file opened. A missing grid entry is refused; with the entry the machines are
+    test-keyed and differ from the DEV machines."""
+    from slowburn.bench.registry import FrozenGateError, grid_sha256
+    from slowburn.bench.retention_experiment import run_dev_sweep, scenario_grid_of
+
+    frozen, v2 = tmp_path / "frozen.yaml", tmp_path / "frozen_v2.yaml"
+    frozen.write_text("frozen: true\nparams: {}\n")
+    scfg = {**cfg, "reps": 1, "budgets": cfg["budgets"][:1], "split": "test",
+            "experiment": "test_tiny", "frozen_path": str(frozen), "frozen_v2_path": str(v2),
+            "variants": [{"name": "base", "hp": {}}], "policies": ["slowburn", "gfs"]}
+    v2.write_text("scenario_grids: {}\n")
+    with pytest.raises(FrozenGateError, match="no scenario_grids entry"):
+        run_dev_sweep({**scfg, "output_dir": str(tmp_path / "t0")}, log=lambda *a: None)
+    digest = grid_sha256(scenario_grid_of(scfg))
+    v2.write_text(f"scenario_grids:\n  test_tiny:\n    sha256: {digest}\n")
+    test = run_dev_sweep({**scfg, "output_dir": str(tmp_path / "t")}, log=lambda *a: None)
+    dev = run_dev_sweep({**scfg, "split": "dev", "output_dir": str(tmp_path / "d")},
+                        log=lambda *a: None)  # fmt: skip
+    assert len(test) == len(dev) > 0
+    cols = ["work_lost_h"]  # summary over the same cells: other machines, other values
+    assert not test[cols].reset_index(drop=True).equals(dev[cols].reset_index(drop=True))

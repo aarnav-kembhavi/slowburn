@@ -127,10 +127,15 @@ def calibration(cfg: dict, log=print) -> dict:
     return cal
 
 
-def run_attacker_experiment(cfg: dict, log=print) -> pd.DataFrame:
-    # TEST: registry gate here, TEST content gate in the pool; calibration stays on DEV machines
+def attack_gate(cfg: dict) -> None:
+    """D74 entrypoint gate (also called by the TEST dry run): registry gate here, TEST content
+    gate in the pool; calibration stays on DEV machines."""
     check_split_allowed(cfg.get("split", "dev"), dict(cfg["hp"]),
                         cfg.get("frozen_path", "configs/frozen.yaml"))  # fmt: skip
+
+
+def run_attacker_experiment(cfg: dict, log=print) -> pd.DataFrame:
+    attack_gate(cfg)
     out = Path(cfg["output_dir"])
     out.mkdir(parents=True, exist_ok=True)
     frozen = load_frozen(cfg.get("frozen_path", "configs/frozen.yaml")).get("params", {})
