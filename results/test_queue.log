@@ -5,3 +5,25 @@
 2026-10-27T02:56:16+05:30 QUEUE STOPPED before ALARM: run_dev_sweep (C2/D72, D79, D71) refuses split test at 77b3253; no TEST experiment started; awaiting team decision
 2026-10-28T03:21:48+05:30 dry_run (rerun on 3b1e107) start
 2026-10-28T03:21:57+05:30 dry_run exit 0
+2026-10-28T03:37:45+05:30 QUEUE start at alarm, commit 51fe9db
+2026-10-28T03:37:45+05:30 START alarm (RAM 14 GB, disk 65 GB): uv run python -u paper/scripts/d74_alarm_holdout.py configs/test_d74_attack_napierone.yaml configs/test_d74_attack_synthetic.yaml
+2026-10-28T03:52:57+05:30 END alarm exit 0
+2026-10-28T03:52:58+05:30 START c2_d72_napierone (RAM 13 GB, disk 63 GB): uv run python -u -m slowburn.cli dev-sweep configs/test_d72_bytes_napierone_v2pool.yaml
+2026-10-28T05:19:24+05:30 END c2_d72_napierone exit 0
+2026-10-28T05:19:25+05:30 START d79_napierone (RAM 14 GB, disk 49 GB): uv run python -u -m slowburn.cli dev-sweep configs/test_d79_eqh_napierone.yaml
+2026-10-28T06:38:28+05:30 END d79_napierone exit 0
+2026-10-28T06:38:29+05:30 START d71 (RAM 14 GB, disk 67 GB): uv run python -u -m slowburn.cli dev-sweep configs/test_d71_oracle_gap.yaml
+2026-10-28T06:57:44+05:30 END d71 exit 0
+2026-10-28T06:57:45+05:30 START d74_napierone (RAM 14 GB, disk 66 GB): uv run python -u paper/scripts/d74_run.py configs/test_d74_attack_napierone.yaml
+2026-10-28T10:49:53+05:30 END d74_napierone exit 0
+2026-10-28T10:49:55+05:30 START c2_d72_synthetic (RAM 14 GB, disk 65 GB): uv run python -u -m slowburn.cli dev-sweep configs/test_d72_bytes_synthetic.yaml
+2026-10-28T12:21:24+05:30 END c2_d72_synthetic exit 0
+2026-10-28T12:21:25+05:30 START d79_synthetic (RAM 14 GB, disk 64 GB): uv run python -u -m slowburn.cli dev-sweep configs/test_d79_eqh_synthetic.yaml
+2026-10-28T13:49:01+05:30 END d79_synthetic exit 0
+2026-10-28T13:49:01+05:30 START d74_synthetic (RAM 14 GB, disk 64 GB): uv run python -u paper/scripts/d74_run.py configs/test_d74_attack_synthetic.yaml
+2026-10-28T17:28:42+05:30 END d74_synthetic exit 0
+2026-10-28T17:28:43+05:30 START d73_napierone (RAM 14 GB, disk 66 GB): uv run python -u paper/scripts/d73_run.py configs/test_d73_fleet_napierone_v2pool.yaml
+2026-10-28T22:16:17+05:30 END d73_napierone exit 0
+2026-10-28T22:16:18+05:30 START d73_synthetic (RAM 13 GB, disk 66 GB): uv run python -u paper/scripts/d73_run.py configs/test_d73_fleet_synthetic.yaml
+2026-10-29T04:16:21+05:30 END d73_synthetic exit 0
+2026-10-29T04:16:21+05:30 QUEUE DONE: all items finished; analysis may start
