@@ -1857,3 +1857,52 @@ Code only. No TEST file is opened, counted or simulated until configs/frozen_v2.
   the stderr traceback of a crash, as the failure rule needs. No counts-only mode for ALARM.
 - results/test_prediction.md (the team's text, verbatim) is committed before the queue starts.
 - The queue starts only after a new approval line naming the new commit.
+
+### TEST analysis by path override (Aarnav 2026-10-29, "APPROVED test_analysis.py path override"; registered before code)
+
+- Why: the analysis scripts listed in configs/frozen_v2.yaml hard-code DEV run folders
+  (results/dev_*), so run unchanged they re-analyse DEV or crash on arms without a TEST run.
+  They are not edited. paper/scripts/test_analysis.py imports each one unchanged and replaces
+  only its path constants, then calls its main() once.
+- Hash check first: before any analysis, the SHA-256 of every analysis script listed in
+  frozen_v2.yaml (d72_c2r_holm, d72_report, d79_report, d74_report, d74_alarm_holdout,
+  d73_report, d71_report) and of the scripts they import from paper/scripts (d74_alarm_calib)
+  is compared with `git show 51fe9db:<path>`; any mismatch aborts. `git diff 51fe9db -- slowburn`
+  must also be empty (library code the scripts import), else abort.
+- Two runs of the same wrapper, mode dev then mode test, after QUEUE DONE. The report's DEV
+  column comes from the dev run, not from older DEV outputs. Outputs: results/analysis_dev/<script>/
+  and results/analysis_test/<script>/, stdout of each main() in <script>.txt there.
+- Path overrides (mode dev uses the dev_ folder, mode test the test_ folder of the same name):
+  d72_c2r_holm ARMS = {napierone_bytes: d72_bytes_napierone_v2pool, synthetic_bytes:
+  d72_bytes_synthetic}; d72_report UNITS = {bytes_synthetic: d72_bytes_synthetic,
+  bytes_napierone_v2pool: d72_bytes_napierone_v2pool} (qs None, as the byte units);
+  d79_report ARMS = {napierone_bytes: (d79_eqh_napierone, d72_bytes_napierone_v2pool),
+  synthetic_bytes: (d79_eqh_synthetic, d72_bytes_synthetic)}; d74_report arms =
+  {synthetic_bytes: d74_attack_synthetic, napierone_bytes: d74_attack_napierone} (passed as
+  arguments); d73_report ARMS = {synthetic_bytes: d73_fleet_synthetic, napierone_bytes:
+  d73_fleet_napierone_v2pool}; d71_report R = results/analysis_<mode>/d71_report holding a hard
+  link to <folder>/d71_oracle_gap/tuning_sweep.csv (d71_report writes its CSVs into R, so this
+  keeps the run folders unwritten; the link source is logged). OUT of every script goes to
+  results/analysis_<mode>/<script>. d74_report CALIB stays results/dev_d74_alarm_calib
+  (calibration is DEV, a63fc54).
+- Arms dropped (no TEST run): d72_c2r_holm napierone_bytes_v1pool; d72_report full, worst,
+  bytes_napierone (v1 pool); d73_report napierone_bytes_v1pool. Numbers from these stay labelled
+  DEV only wherever claims.md or the paper use them.
+- ALARM: d74_alarm_holdout is both the TEST run and its analysis and already ran in the queue
+  (results/test_d74_alarm); it is not run again in mode test (no rerun except for a crash). The
+  wrapper copies results/test_d74_alarm/holdout.json into results/analysis_test/d74_alarm_holdout.
+  In mode dev it runs main() on the two DEV configs with --out=results/analysis_dev/d74_alarm_holdout
+  (DEV family d74_alarm_holdout, the same 100 runs per arm).
+- File access audit: a Python audit hook (sys.addaudithook; also installed in worker processes
+  through a sitecustomize on PYTHONPATH) logs every file open with its mode, listdir/scandir,
+  mkdir, link and remove under the repo (not .venv, not __pycache__) during each main(), to
+  results/analysis_<mode>/audit.log (committed). Abort rules: mode test aborts on any read under
+  results/dev_* except the allow list; mode dev aborts on any read under results/test_*, and on
+  a read under results/dev_* outside that script's dev run folders and the allow list; both
+  modes abort on a write under results/ outside results/analysis_<mode>/. Allow list (DEV
+  calibration, read in both modes): results/dev_d74_alarm_calib/threshold.json,
+  results/dev_d74_alarm_calib/daily_counts_napierone_bytes.csv.gz,
+  results/dev_d74_alarm_calib/daily_counts_synthetic_bytes.csv.gz. Reads outside results/
+  (data/, configs/, detector pickles under results/detector*) are logged, not restricted.
+- No metric, test, threshold or analysis logic changes. Outputs and audit logs are committed
+  (results/ is git-ignored; force-added, except the hard-linked tuning_sweep.csv).
