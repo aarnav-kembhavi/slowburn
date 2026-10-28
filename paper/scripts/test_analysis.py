@@ -151,6 +151,8 @@ def main(mode: str) -> int:
         m = importlib.import_module(name)
         for k, v in consts.items():
             setattr(m, k, v)
+            if k == "OUT":  # d72_c2r_holm writes into OUT without creating it
+                v.mkdir(parents=True, exist_ok=True)
         print(f"== {name}: {', '.join(f'{k}={v}' for k, v in consts.items()) or 'no override'}",
               flush=True)  # fmt: skip
         err = None
