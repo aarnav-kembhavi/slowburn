@@ -1,1 +1,3 @@
 2026-10-29T04:17:18+05:30 analysis mode dev attempt 1 (commit b7bb8c0) ABORT in d72_c2r_holm: OSError non-existent directory results/analysis_dev/d72_c2r_holm (wrapper did not create OUT); hash check passed, audit 2 accesses 0 DENY; results/analysis_dev removed unread
+2026-10-29T04:19:13+05:30 analysis mode dev attempt 2 (commit fcdbcc0) KILLED by Claude Code during d74_report (system critically low on memory); d72_c2r_holm, d72_report, d79_report had finished; partial results/analysis_dev left in place unread, not used; not restarted (awaiting Aarnav)
+2026-10-29T15:07:44+05:30 results/analysis_dev (DEV attempt 2 partial) deleted unread on Aarnav's instruction; DEV mode reruns from scratch

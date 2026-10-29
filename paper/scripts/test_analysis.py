@@ -5,10 +5,10 @@ constants with the run folders of one mode (dev_* or test_*), and calls its main
 the file access audit (paper/scripts/audit). Before any analysis: SHA-256 of every analysis
 script (and d74_alarm_calib, which d74_alarm_holdout imports) against 51fe9db, and no change
 under slowburn/ since 51fe9db; any mismatch aborts. Outputs and audit.log go to
-results/analysis_<mode>/. Run from the repo root after QUEUE DONE, dev first:
+results/analysis_<mode>/. One script per process (amendment fe42e5f); run from the repo root after QUEUE DONE through
+paper/scripts/test_analysis_queue.py, or for one script:
 
-    uv run python -u paper/scripts/test_analysis.py dev
-    uv run python -u paper/scripts/test_analysis.py test
+    uv run python -u paper/scripts/test_analysis.py dev d72_c2r_holm
 """
 
 import contextlib
@@ -40,7 +40,7 @@ def analysis_scripts() -> list[str]:
     return list(dict.fromkeys(it["analysis"] for it in items if "analysis" in it))
 
 
-def hash_check(scripts: list[str], out: Path) -> bool:
+def hash_check(scripts: list[str], out: Path, name: str) -> bool:
     rows, ok = [], True
     for p in [*scripts, *DEPS]:
         cur = hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -52,7 +52,7 @@ def hash_check(scripts: list[str], out: Path) -> bool:
                          capture_output=True, text=True, check=True).stdout.split()  # fmt: skip
     ok &= not lib
     rows.append(f"git diff {BASE} -- slowburn: {'empty' if not lib else ' '.join(lib)}")
-    (out / "hashes.txt").write_text("path\tsha256 now\tsha256 at " + BASE + "\tresult\n"
+    (out / f"hashes_{name}.txt").write_text("path\tsha256 now\tsha256 at " + BASE + "\tresult\n"
                                     + "\n".join(rows) + "\n")  # fmt: skip
     print("\n".join(rows))
     return ok
@@ -124,57 +124,60 @@ def merge_parts(log: Path, name: str) -> list[str]:
     return [x for x in lines if "\tDENY: " in x]
 
 
-def main(mode: str) -> int:
+def main(mode: str, name: str) -> int:
+    """One script in this process (amendment fe42e5f); test_analysis_queue.py runs them in
+    order, one process each. Exit 0 ok, 1 abort (hash mismatch, audit DENY, error in main)."""
     if mode not in ("dev", "test"):
         raise SystemExit("mode: dev or test")
     if "QUEUE DONE" not in QUEUE_LOG.read_text().strip().splitlines()[-1]:
         raise SystemExit("the TEST queue has not finished (no QUEUE DONE)")
-    if mode == "test" and not Path("results/analysis_dev/done.json").exists():
-        raise SystemExit("run mode dev first")
+    scripts = {Path(p).stem: p for p in analysis_scripts()}
+    if name not in scripts:
+        raise SystemExit(f"script: one of {', '.join(scripts)}")
     out = Path(f"results/analysis_{mode}")
-    if out.exists():
-        raise SystemExit(f"{out} exists; each mode runs once")
-    out.mkdir(parents=True)
+    if mode == "test" and not Path(f"results/analysis_dev/done_{name}.json").exists():
+        raise SystemExit(f"run {name} in mode dev first")
+    if (out / f"done_{name}.json").exists():
+        raise SystemExit(f"{name} already done in mode {mode}; each script runs once per mode")
+    out.mkdir(parents=True, exist_ok=True)
     head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True,
                           text=True, check=True).stdout.strip()  # fmt: skip
-    print(f"mode {mode}, commit {head}")
-    if not hash_check(analysis_scripts(), out):
+    print(f"mode {mode}, script {name}, commit {head}")
+    if not hash_check(list(scripts.values()), out, name):
         print("ABORT: analysis script hash or library mismatch vs " + BASE)
         return 1
     os.environ["PYTHONPATH"] = os.pathsep.join(
         [str(HERE / "audit"), str(HERE), *filter(None, [os.environ.get("PYTHONPATH")])])
-    log, steps = out / "audit.log", plan(mode)
-    done = {}
-    for path in analysis_scripts():
-        name = Path(path).stem
-        consts, runs, call = steps[name]
-        m = importlib.import_module(name)
-        for k, v in consts.items():
-            setattr(m, k, v)
-            if k == "OUT":  # d72_c2r_holm writes into OUT without creating it
-                v.mkdir(parents=True, exist_ok=True)
-        print(f"== {name}: {', '.join(f'{k}={v}' for k, v in consts.items()) or 'no override'}",
-              flush=True)  # fmt: skip
-        err = None
-        with (out / f"{name}.txt").open("w", encoding="utf-8") as fh:
-            audit.start({"mode": mode, "runs": runs, "log": str(log.resolve())})
-            try:
-                with contextlib.redirect_stdout(fh):
-                    call(m)
-            except Exception as e:  # noqa: BLE001
-                err = repr(e)
-            finally:
-                audit.stop()
-        denied = merge_parts(log, name)
-        if err or denied:
-            print(f"ABORT in {name}: {err or ''} {denied[:5]}")
-            return 1
-        done[name] = {"constants": {k: str(v) for k, v in consts.items()}, "dev_runs": runs}
-        print(f"   ok ({name}.txt)", flush=True)
-    (out / "done.json").write_text(json.dumps({"mode": mode, "commit": head, "scripts": done},
-                                              indent=1))  # fmt: skip
+    log = out / "audit.log"
+    consts, runs, call = plan(mode)[name]
+    m = importlib.import_module(name)
+    for k, v in consts.items():
+        setattr(m, k, v)
+        if k == "OUT":  # d72_c2r_holm writes into OUT without creating it
+            v.mkdir(parents=True, exist_ok=True)
+    print(f"== {name}: {', '.join(f'{k}={v}' for k, v in consts.items()) or 'no override'}",
+          flush=True)  # fmt: skip
+    err = None
+    with (out / f"{name}.txt").open("w", encoding="utf-8") as fh:
+        audit.start({"mode": mode, "runs": runs, "log": str(log.resolve())})
+        try:
+            with contextlib.redirect_stdout(fh):
+                call(m)
+        except Exception as e:  # noqa: BLE001
+            err = repr(e)
+        finally:
+            audit.stop()
+    peak = audit.peak_mb()
+    denied = merge_parts(log, name)
+    if err or denied:
+        print(f"ABORT in {name}: {err or ''} {denied[:5]}")
+        return 1
+    (out / f"done_{name}.json").write_text(json.dumps(
+        {"mode": mode, "script": name, "commit": head, "peak_mb": round(peak),
+         "constants": {k: str(v) for k, v in consts.items()}, "dev_runs": runs}, indent=1))  # fmt: skip
+    print(f"   ok ({name}.txt), peak working set {peak:.0f} MB", flush=True)
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else ""))
+    sys.exit(main(*(sys.argv[1:3] + ["", ""])[:2]))

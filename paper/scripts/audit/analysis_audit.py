@@ -116,8 +116,37 @@ def stop() -> None:
     os.environ.pop(ENV, None)
 
 
+def peak_mb() -> float:
+    """Peak working set of this process (Windows GetProcessMemoryInfo), MB."""
+    import ctypes
+    from ctypes import wintypes
+
+    class PMC(ctypes.Structure):
+        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                    *[(n, ctypes.c_size_t) for n in (
+                        "PeakWorkingSetSize", "WorkingSetSize", "QuotaPeakPagedPoolUsage",
+                        "QuotaPagedPoolUsage", "QuotaPeakNonPagedPoolUsage",
+                        "QuotaNonPagedPoolUsage", "PagefileUsage", "PeakPagefileUsage")]]  # fmt: skip
+
+    c = PMC()
+    c.cb = ctypes.sizeof(c)
+    k32, psapi = ctypes.windll.kernel32, ctypes.windll.psapi
+    psapi.GetProcessMemoryInfo(k32.GetCurrentProcess(), ctypes.byref(c), c.cb)
+    return c.PeakWorkingSetSize / 2**20
+
+
+def _log_peak() -> None:
+    if _state["log"] is not None:
+        _state["log"].write(f"{os.getpid()}\tpeak\t-\t-\t{peak_mb():.0f} MB\n")
+        _state["log"].flush()
+
+
 def from_env() -> None:
-    """Worker processes: start with the rules the wrapper put in the environment."""
+    """Worker processes: start with the rules the wrapper put in the environment; log the
+    process peak working set at exit."""
     s = os.environ.get(ENV)
     if s:
+        import atexit
+
         start(json.loads(s))
+        atexit.register(_log_peak)
