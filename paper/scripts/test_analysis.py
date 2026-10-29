@@ -132,11 +132,13 @@ def main(mode: str, name: str) -> int:
     if "QUEUE DONE" not in QUEUE_LOG.read_text().strip().splitlines()[-1]:
         raise SystemExit("the TEST queue has not finished (no QUEUE DONE)")
     scripts = {Path(p).stem: p for p in analysis_scripts()}
-    if name not in scripts:
-        raise SystemExit(f"script: one of {', '.join(scripts)}")
+    base, *arm_sub = name.split(":")  # d74_report:<arm>:<folder suffix> (amendment 2, bc38c2c)
+    if base not in scripts or (arm_sub and (base != "d74_report" or len(arm_sub) != 2)):
+        raise SystemExit(f"script: one of {', '.join(scripts)}, or d74_report:<arm>:<suffix>")
     out = Path(f"results/analysis_{mode}")
-    if mode == "test" and not Path(f"results/analysis_dev/done_{name}.json").exists():
-        raise SystemExit(f"run {name} in mode dev first")
+    if mode == "test" and not Path(f"results/analysis_dev/done_{base}.json").exists():
+        raise SystemExit(f"run {base} in mode dev first")
+    name = name.replace(":", "_")
     if (out / f"done_{name}.json").exists():
         raise SystemExit(f"{name} already done in mode {mode}; each script runs once per mode")
     out.mkdir(parents=True, exist_ok=True)
@@ -150,8 +152,13 @@ def main(mode: str, name: str) -> int:
         [str(HERE / "audit"), str(HERE), *filter(None, [os.environ.get("PYTHONPATH")])]
     )
     log = out / "audit.log"
-    consts, runs, call = plan(mode)[name]
-    m = importlib.import_module(name)
+    consts, runs, call = plan(mode)[base]
+    if arm_sub:  # one arm through d74_report.main(arms, out), the script unchanged
+        arm, suffix = arm_sub
+        arms = {arm: f"results/{mode}_d74_attack_{arm.removesuffix('_bytes')}"}
+        o = out / f"d74_report_{suffix}" / arm
+        consts, runs, call = {"OUT": o}, list(arms.values()), lambda m: m.main(arms, o)
+    m = importlib.import_module(base)
     for k, v in consts.items():
         setattr(m, k, v)
         if k == "OUT":  # d72_c2r_holm writes into OUT without creating it
