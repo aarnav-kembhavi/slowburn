@@ -1918,3 +1918,18 @@ Code only. No TEST file is opened, counted or simulated until configs/frozen_v2.
   of fixed run outputs is deterministic, so this applies to analysis only; TEST simulation
   outputs are never rerun. An audit DENY or a hash mismatch is not a crash: it stops the queue.
   Hash and audit checks run in every script process.
+- Amendment 2 (Aarnav 2026-10-29, "resume at 22 GB"; before code): the remaining analysis (TEST
+  d74_report, then the TEST ALARM copy) waits for free RAM >= 22 GB (DEV d74_report peak 17.6 GB
+  + 4 GB), polling every 5 minutes, never stopping. Fallback if free RAM stays below 22 GB for
+  30 minutes: d74_report is called once per arm (napierone_bytes, then synthetic_bytes) through
+  its existing arms and out arguments, the script unchanged. Validation first on DEV: per-arm
+  runs into results/analysis_dev/d74_report_per_arm_check/<arm>, then per output file the two
+  arms' rows concatenated (NapierOne first, as ordered() writes them; false_alarms.csv is built
+  from the DEV calibration for both arms in every call, so the NapierOne call's copy is used)
+  and compared with the combined DEV output results/analysis_dev/d74_report: byte identical
+  (.csv.gz compared after decompression, since the gzip header holds a timestamp), else
+  identical after sorting rows; the result per file is logged. The per-arm mode is used on TEST
+  only if every file is identical by one of the two; else stop and report. Per-arm runs use the
+  earlier 16 GB gate (one arm at a time; their peaks logged). The TEST per-arm outputs stay in
+  results/analysis_test/d74_report_per_arm/<arm> and are merged the same way into
+  results/analysis_test/d74_report. Hash and audit checks in every process.
