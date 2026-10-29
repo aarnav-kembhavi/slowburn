@@ -5,8 +5,8 @@ constants with the run folders of one mode (dev_* or test_*), and calls its main
 the file access audit (paper/scripts/audit). Before any analysis: SHA-256 of every analysis
 script (and d74_alarm_calib, which d74_alarm_holdout imports) against 51fe9db, and no change
 under slowburn/ since 51fe9db; any mismatch aborts. Outputs and audit.log go to
-results/analysis_<mode>/. One script per process (amendment fe42e5f); run from the repo root after QUEUE DONE through
-paper/scripts/test_analysis_queue.py, or for one script:
+results/analysis_<mode>/. One script per process (amendment fe42e5f); run from the repo root
+after QUEUE DONE through paper/scripts/test_analysis_queue.py, or for one script:
 
     uv run python -u paper/scripts/test_analysis.py dev d72_c2r_holm
 """
@@ -147,7 +147,8 @@ def main(mode: str, name: str) -> int:
         print("ABORT: analysis script hash or library mismatch vs " + BASE)
         return 1
     os.environ["PYTHONPATH"] = os.pathsep.join(
-        [str(HERE / "audit"), str(HERE), *filter(None, [os.environ.get("PYTHONPATH")])])
+        [str(HERE / "audit"), str(HERE), *filter(None, [os.environ.get("PYTHONPATH")])]
+    )
     log = out / "audit.log"
     consts, runs, call = plan(mode)[name]
     m = importlib.import_module(name)
@@ -174,7 +175,8 @@ def main(mode: str, name: str) -> int:
         return 1
     (out / f"done_{name}.json").write_text(json.dumps(
         {"mode": mode, "script": name, "commit": head, "peak_mb": round(peak),
-         "constants": {k: str(v) for k, v in consts.items()}, "dev_runs": runs}, indent=1))  # fmt: skip
+         "constants": {k: str(v) for k, v in consts.items()}, "dev_runs": runs},
+        indent=1))  # fmt: skip
     print(f"   ok ({name}.txt), peak working set {peak:.0f} MB", flush=True)
     return 0
 

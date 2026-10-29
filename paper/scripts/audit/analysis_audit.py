@@ -12,11 +12,13 @@ import os
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")).replace("\\", "/")
 ENV = "SLOWBURN_AUDIT"
-ALLOW = frozenset({  # DEV calibration, read in both modes (a63fc54)
-    "results/dev_d74_alarm_calib/threshold.json",
-    "results/dev_d74_alarm_calib/daily_counts_napierone_bytes.csv.gz",
-    "results/dev_d74_alarm_calib/daily_counts_synthetic_bytes.csv.gz",
-})
+ALLOW = frozenset(
+    {  # DEV calibration, read in both modes (a63fc54)
+        "results/dev_d74_alarm_calib/threshold.json",
+        "results/dev_d74_alarm_calib/daily_counts_napierone_bytes.csv.gz",
+        "results/dev_d74_alarm_calib/daily_counts_synthetic_bytes.csv.gz",
+    }
+)
 WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_TRUNC
 _state = {"rules": None, "log": None, "installed": False}
 
@@ -51,8 +53,10 @@ def verdict(r: str, kind: str, rules: dict) -> str | None:
             return "results/dev_* read in mode test"
         if mode == "dev" and r.startswith("results/test_"):
             return "results/test_* read in mode dev"
-        if mode == "dev" and r.startswith("results/dev_") and not any(
-            _under(r, f) for f in rules["runs"]
+        if (
+            mode == "dev"
+            and r.startswith("results/dev_")
+            and not any(_under(r, f) for f in rules["runs"])
         ):
             return "results/dev_* read outside this script's DEV run folders"
         return None
@@ -122,15 +126,29 @@ def peak_mb() -> float:
     from ctypes import wintypes
 
     class PMC(ctypes.Structure):
-        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
-                    *[(n, ctypes.c_size_t) for n in (
-                        "PeakWorkingSetSize", "WorkingSetSize", "QuotaPeakPagedPoolUsage",
-                        "QuotaPagedPoolUsage", "QuotaPeakNonPagedPoolUsage",
-                        "QuotaNonPagedPoolUsage", "PagefileUsage", "PeakPagefileUsage")]]  # fmt: skip
+        _fields_ = [
+            ("cb", wintypes.DWORD),
+            ("PageFaultCount", wintypes.DWORD),
+            *[
+                (n, ctypes.c_size_t)
+                for n in (
+                    "PeakWorkingSetSize",
+                    "WorkingSetSize",
+                    "QuotaPeakPagedPoolUsage",
+                    "QuotaPagedPoolUsage",
+                    "QuotaPeakNonPagedPoolUsage",
+                    "QuotaNonPagedPoolUsage",
+                    "PagefileUsage",
+                    "PeakPagefileUsage",
+                )
+            ],
+        ]
 
     c = PMC()
     c.cb = ctypes.sizeof(c)
     k32, psapi = ctypes.windll.kernel32, ctypes.windll.psapi
+    k32.GetCurrentProcess.restype = wintypes.HANDLE
+    psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(PMC), wintypes.DWORD]
     psapi.GetProcessMemoryInfo(k32.GetCurrentProcess(), ctypes.byref(c), c.cb)
     return c.PeakWorkingSetSize / 2**20
 

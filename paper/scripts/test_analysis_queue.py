@@ -25,10 +25,22 @@ RAM_GB, POLL_S, ATTEMPTS = 16, 300, 3
 
 def free_ram_gb() -> float:
     class MS(ctypes.Structure):
-        _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
-                    *[(n, ctypes.c_ulonglong) for n in (
-                        "ullTotalPhys", "ullAvailPhys", "ullTotalPageFile", "ullAvailPageFile",
-                        "ullTotalVirtual", "ullAvailVirtual", "ullAvailExtendedVirtual")]]  # fmt: skip
+        _fields_ = [
+            ("dwLength", ctypes.c_ulong),
+            ("dwMemoryLoad", ctypes.c_ulong),
+            *[
+                (n, ctypes.c_ulonglong)
+                for n in (
+                    "ullTotalPhys",
+                    "ullAvailPhys",
+                    "ullTotalPageFile",
+                    "ullAvailPageFile",
+                    "ullTotalVirtual",
+                    "ullAvailVirtual",
+                    "ullAvailExtendedVirtual",
+                )
+            ],
+        ]
 
     m = MS()
     m.dwLength = ctypes.sizeof(m)
@@ -75,8 +87,8 @@ def run(mode: str, name: str) -> bool:
         Path(f"results/analysis_{mode}").mkdir(parents=True, exist_ok=True)
         con = Path(f"results/analysis_{mode}/console_{name}_{attempt}.log")
         with con.open("w", encoding="utf-8") as fh:
-            rc = subprocess.run([sys.executable, "-u", "paper/scripts/test_analysis.py", mode, name],
-                                stdout=fh, stderr=subprocess.STDOUT).returncode  # fmt: skip
+            cmd = [sys.executable, "-u", "paper/scripts/test_analysis.py", mode, name]
+            rc = subprocess.run(cmd, stdout=fh, stderr=subprocess.STDOUT).returncode
         if rc == 0:
             peak = json.loads(done.read_text())["peak_mb"]
             w = worker_peaks(mode, name)
@@ -100,7 +112,9 @@ def run(mode: str, name: str) -> bool:
 
 
 def main() -> int:
-    log(f"ANALYSIS QUEUE start, commit {subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True).stdout.strip()}")  # noqa: E501
+    git = ["git", "rev-parse", "--short", "HEAD"]
+    head = subprocess.run(git, capture_output=True, text=True).stdout.strip()
+    log(f"ANALYSIS QUEUE start, commit {head}")
     for mode in ("dev", "test"):
         for name in ORDER:
             if not run(mode, name):
