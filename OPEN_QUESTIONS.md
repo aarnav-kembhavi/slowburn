@@ -1906,3 +1906,15 @@ Code only. No TEST file is opened, counted or simulated until configs/frozen_v2.
   (data/, configs/, detector pickles under results/detector*) are logged, not restricted.
 - No metric, test, threshold or analysis logic changes. Outputs and audit logs are committed
   (results/ is git-ignored; force-added, except the hard-linked tuning_sweep.csv).
+- Amendment (Aarnav 2026-10-29, after the DEV attempt killed for low memory; before code): one
+  process per script, one at a time, order d72_c2r_holm, d72_report, d79_report, d71_report,
+  d73_report, d74_report, then d74_alarm_holdout (registered above, not in the team's list of
+  six: on test a copy, on dev the 100 DEV holdout runs per arm); DEV mode first, then TEST mode
+  in the same order (paper/scripts/test_analysis_queue.py). Before each script free RAM >= 16 GB,
+  else wait and poll every 5 minutes. Logged per script: free RAM at start and the peak working
+  set of the script process and of each worker process. If a script process is killed or
+  crashes in either mode: its partial output (its folder, its .txt, its audit parts) is deleted
+  unread, the cause fixed only if it is in the wrapper, logged, and that script rerun; analysis
+  of fixed run outputs is deterministic, so this applies to analysis only; TEST simulation
+  outputs are never rerun. An audit DENY or a hash mismatch is not a crash: it stops the queue.
+  Hash and audit checks run in every script process.
