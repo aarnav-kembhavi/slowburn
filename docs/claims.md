@@ -239,7 +239,7 @@ verify_snap 0.980 / 6,452, walk-back 0.001 / 175, changepoint 0.801 / 3,914, per
 
 **F7. Fleet-aware retention (D73; not adopted, negative finding).** TEST, NapierOne v2, restore
 A, K_avg 6 / 8: FLEET vs equal budget split per-file work lost -18.7% [-22.4, -15.2] (DEV -16.6%
-[-20.3, -12.6]), but pooled fleet recovery -0.035 [-0.055, -0.017] (DEV -0.029) and the worst
+[-20.3, -12.6]), but pooled fleet recovery -0.035 [-0.055, -0.017] (DEV -0.028) and the worst
 (f, m, K, N) cell -0.19 (DEV -0.21); vs churn split -14.5% [-18.4, -10.8] (DEV -7.3%), recovery
 -0.033 [-0.059, -0.011] (DEV -0.030), worst cell -0.21. Synthetic bytes pass every criterion on
 TEST and DEV. FLEET is not adopted on TEST (`results/analysis_test/d73_report/criteria.csv`).
