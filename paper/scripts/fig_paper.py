@@ -1,7 +1,8 @@
-"""Paper figures (IEEE Access draft), from committed DEV outputs only:
+"""Paper figures (IEEE Access draft), from the TEST analysis outputs (results/analysis_test,
+frozen_v2; neither figure compares DEV and TEST, so no DEV series):
 - fig_d74_recovery_vs_delay.pdf: best-response recovery (evaluation half, recovery-minimising
   attacker, restore A, NapierOne v2) vs discovery delay, one line per policy, K 4 / 8 panels;
-  equal-horizon rows are added when the D74 eqh report exists.
+  at K = 8 Tower of Hanoi is its own equal-horizon configuration.
 - fig_c2_d79_forest.pdf: SlowBurn's relative work lost vs each baseline (C2) and the age-capped
   SlowBurn vs the equal-horizon schedules (D79), NapierOne v2, paired bootstrap 95% CIs.
 Palette: the dataviz reference categorical slots in fixed order (validated, light mode); every
@@ -31,8 +32,7 @@ plt.rcParams.update({"font.family": "serif", "font.size": 8, "axes.edgecolor": M
 
 
 def recovery_vs_delay():
-    src = Path("results/dev_d74_eqh_report/best_response.csv")
-    br = pd.read_csv(src if src.exists() else "results/dev_d74_report/best_response.csv")
+    br = pd.read_csv("results/analysis_test/d74_report/best_response.csv")
     br = br[(br.arm == "napierone_bytes") & (br.restore == "A") & (br.objective == "rec")
             & (br.analysis == "primary_feasible")]  # fmt: skip
     fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.4), sharey=True)
@@ -60,9 +60,9 @@ def recovery_vs_delay():
 
 
 def forest():
-    c2 = pd.read_csv("results/dev_d72_c2r/c2_holm.csv")
+    c2 = pd.read_csv("results/analysis_test/d72_c2r_holm/c2_holm.csv")
     c2 = c2[c2.arm == "napierone_bytes"]
-    d79 = pd.read_csv("results/dev_d79_report/primary.csv")
+    d79 = pd.read_csv("results/analysis_test/d79_report/primary.csv")
     d79 = d79[d79.arm == "napierone_bytes"]
     names = {"gfs": "GFS (default)", "tower_of_hanoi": "Tower of Hanoi (default)",
              "shamir_recursive": "Bar-On recursive", "shamir_rr": "Bar-On round robin",
