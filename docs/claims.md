@@ -1,13 +1,19 @@
-# Claims (DRAFT wording, team to confirm; numbers from the adopted pipeline, 2026-10-22)
+# Claims (TEST numbers primary since 2026-10-30; DEV v2 in parentheses)
 
-**Data (correction 2026-10-23): every number below uses synthetic benign files and synthetic
+**TEST (frozen_v2, single frozen run, queue done 2026-10-29; analysis by path override,
+results/analysis_test; DEV v2 rerun of the same scripts in results/analysis_dev).** Claims C2,
+D79, D72 (F6), D73 (F7), ALARM (F4) and D74 (F8) give the TEST number first and the DEV v2
+number in parentheses. Every other number in this file is DEV and is labelled "DEV only, not
+covered by TEST". Numbers from the v1 pools appear only as "DEV, v1 pools, sensitivity".
+
+**Data (correction 2026-10-23): every DEV-only number below uses synthetic benign files and synthetic
 damage** (abstract chunk tokens, random-token damage, abstract detector with detection
 probability q), unless marked NapierOne. See docs/data_card.md.
 
-**NapierOne check (D67, post-D71b, on the D75 enlarged pools v2, 2026-10-24, DEV): C1, C2 (vs
-default GFS / Tower of Hanoi configurations) and C3' hold on NapierOne bytes, with much smaller
-effects than on the small v1 pools.** The v1 numbers (pools of 5 to 15 files per type, marked
-provisional) are superseded; results/D75_REPORT.md has both side by side. Arms on the same
+**NapierOne check (D67, post-D71b, on the D75 enlarged pools v2, 2026-10-24; DEV only, not
+covered by TEST except C2): C1, C2 (vs default GFS / Tower of Hanoi configurations) and C3' hold
+on NapierOne bytes, with much smaller effects than on the small v1 pools.** Numbers from the v1
+pools (5 to 15 files per type) are DEV, v1 pools, sensitivity only; results/D75_REPORT.md has both side by side. Arms on the same
 machines, w 0.75, verify_snap: the abstract q grid (the numbers below), synthetic bytes with the
 synthetic detector, NapierOne benign bytes (v2 pools, 59 to 115 DEV files per type) with
 NapierOne damage and the detector trained on NapierOne (file flag p <= 0.01, unchanged).
@@ -22,27 +28,32 @@ false flag stress axis is weaker there). (3) zip and png v2 DEV pools stay below
 33% of the new txt files; this does not raise benign csv flags (0.000) but txt benign flags are
 0.010 (known limitation, validator unchanged).
 
-**Evaluation finding (D75, reworded 2026-10-26 after the png mechanism check): a handful of
-invalid benign files can halve measured retention gains.** The 9 truncated NapierOne pngs (13%
+**Evaluation finding (D75, reworded 2026-10-26 after the png mechanism check; DEV only, not
+covered by TEST): a handful of invalid benign files can halve measured retention gains.**
+Pre-registered prediction (results/test_prediction.md, committed before any TEST result): with
+4 truncated pngs of 57 on TEST vs 9 of 54 on DEV, C2 vs default GFS and ToH on TEST would fall
+between the scored DEV value and the no-png DEV value. It held: TEST -19.1% [-22.8, -15.2] vs
+GFS (DEV -14.0%, no-png DEV -32.2%) and -23.0% [-26.3, -19.7] vs ToH (DEV -19.6%, no-png DEV
+-34.0%); both TEST intervals overlap the scored DEV intervals. The 9 truncated NapierOne pngs (13%
 of the v2 DEV png pool) cause 87% to 88% of benign flags; without them (unscored sensitivity
 row) SlowBurn vs default GFS is -32.2% [-35.7, -28.2] instead of -14.0%, C3' -9.7% [-11.0,
 -8.5] instead of -3.8%, recovery unchanged. The channel is the restore, not the start
 estimate: with the pngs SlowBurn scans 2.44 vs 1.66 snapshots and restores 28 days deeper,
 while its start estimate error barely moves (-27.7 vs -26.0 days, bursty); GFS / ToH move by
 1% to 7% (`results/dev_png_mechanism.md`, `results/PNG_SENSITIVITY.md`). Benign flags on the
-no-png pool were not recounted. Original wording, kept for the record: content pool size changed
-the NapierOne effect sizes by about 2.5x. Same machines, seeds, detector and grid; only the benign pool grew from 5 to 15
+no-png pool were not recounted. Original wording, kept for the record (DEV, v1 pools, sensitivity): content
+pool size changed the NapierOne effect sizes by about 2.5x. Same machines, seeds, detector and grid; only the benign pool grew from 5 to 15
 (v1) to 59 to 115 files per type (v2). C2 vs default GFS -34.4% -> -14.0% (2.5x), vs default
 Tower of Hanoi -35.7% -> -19.6% (1.8x); C3' -11.9% -> -3.8% (3.1x). Cause: the small pools had
 no benign files failing validity and easier-to-detect damage (benign false flags at injected
 rate 0: 0.000 -> 0.017; damage detection 0.947 -> 0.875). Real-data evaluations with a few
 files per type can overstate evidence-based gains; results/D75_REPORT.md.
 
-All numbers are DEV (seed 202), count budgets K in {4, 6, 8, 12}, method v2 = blind weight 0.75
+Numbers not marked TEST are DEV (seed 202), count budgets K in {4, 6, 8, 12}, method v2 = blind weight 0.75
 with the fixed 0.8 gate, restored with the ADOPTED restore (D64a verify_snap: every version in a
 candidate snapshot is checked against its shared write-time flag, D29 any-flag rule, select),
 for EVERY policy (D64b). Brackets: 95% machine-cluster bootstrap CIs. The fresh TEST set (P5)
-decides; nothing here is a test result. Old-vs-new tables: `results/dev_d64a_*/old_vs_new*.csv`.
+decided; TEST numbers are marked TEST. Old-vs-new tables: `results/dev_d64a_*/old_vs_new*.csv`.
 Decisions: D59, D60, D64a, D64b, team list of 2026-10-22.
 
 ## Thesis
@@ -56,8 +67,8 @@ by detector quality".
 
 ## Claims
 
-**C1. Timing-aware budgeted retention beats fixed schedules on recovery, even with a blind
-detector.** Worlds grid (`results/dev_d64a_full`, all q and benign rates), clean recovery
+**C1 (DEV only, not covered by TEST). Timing-aware budgeted retention beats fixed schedules on
+recovery, even with a blind detector.** Worlds grid (`results/dev_d64a_full`, all q and benign rates), clean recovery
 bursty / early / late / uniform: prior-only 0.9888 / 0.9858 / 0.9810 / 0.9822, SlowBurn
 0.9892 / 0.9865 / 0.9838 / 0.9860, GFS 0.5760 / 0.6146 / 0.5356 / 0.5666, Tower of Hanoi
 0.6003 / 0.5274 / 0.5941 / 0.5498. Worst-case timing grid (starts 112-143 x delays 7-60, q in
@@ -66,62 +77,52 @@ SlowBurn 0.9793, GFS 0.6025, Tower of Hanoi 0.5926; at q = 0 prior-only 0.9456, 
 0.9450. Not circular: the policy's timing prior is near flat and differs from every simulator
 world.
 
-**C2. On work lost, retention horizon dominates slot placement: GFS and Tower of Hanoi with an
-equal horizon lose less work than SlowBurn, although SlowBurn keeps higher recovery than
-equal-horizon Tower of Hanoi (+0.061); SlowBurn loses less work only than the default
-configurations and, by a small margin, Bar-On.** NapierOne bytes on the v2 pools, count budgets,
-w 0.75, verify_snap; paired machine-cluster bootstrap 95% CIs (2000 resamples, seed 0); Holm
-across the six baselines per arm (`results/dev_d72_c2r/c2_holm.csv`; Holm p < 0.001 means no
-bootstrap resample crossed 0).
+**C2. Against the default GFS and Tower of Hanoi configurations SlowBurn loses less work at
+much higher recovery; it matches Bar-On; it loses to GFS and Tower of Hanoi configured to the
+same horizon.** TEST, NapierOne bytes on the v2 pools, count budgets, w 0.75, verify_snap;
+paired machine-cluster bootstrap 95% CIs (2000 resamples, seed 0); Holm across the six
+baselines per arm (`results/analysis_test/d72_c2r_holm/c2_holm.csv`; DEV v2 in parentheses from
+`results/analysis_dev/d72_c2r_holm/c2_holm.csv`).
 Sign convention: every work-lost delta is SlowBurn relative to the baseline (sum SlowBurn / sum
 baseline - 1; positive = SlowBurn loses more) and every recovery delta is SlowBurn minus
-baseline (positive = SlowBurn recovers more). The Holm family is the six pooled comparisons per
-arm; per-world comparisons (including the early world) are not in it and are secondary and
-unadjusted.
-- Equal horizon (horizon >= M; GFS-eqh exists only at K = 12, ToH-eqh at K 8 and 12): SlowBurn
-  loses +24.9% [+19.8, +30.3] more work than GFS-eqh (recovery +0.001 [0.000, +0.003]) and
-  +14.9% [+10.5, +19.8] more than ToH-eqh (recovery +0.061 [+0.039, +0.085] for SlowBurn);
-  Holm p < 0.001 both.
-- Default configurations: SlowBurn loses -14.0% [-18.3, -9.4] work vs GFS and -19.6% [-23.0,
-  -16.0] vs Tower of Hanoi, recovery +0.425 [+0.407, +0.444] / +0.428 [+0.416, +0.440]; Holm
-  p < 0.001 both. Early world vs GFS (secondary, unadjusted) +4.2% [-2.9, +11.7], CI includes 0.
-- Bar-On: -5.3% [-8.6, -2.0] vs recursive and -6.7% [-10.5, -2.9] vs round robin, recovery
-  equal (+0.002 [0.000, +0.006] / +0.001 [-0.000, +0.002]); Holm p < 0.001 both; not uniform
-  (early world, secondary and unadjusted: SlowBurn worse, +8.6% [+4.6, +12.6] / +10.7% [+5.2,
-  +16.2]).
-- Synthetic bytes (sanity arm): equal horizon +16.1% [+12.1, +20.1] / +10.1% [+6.3, +13.9];
-  default -27.6% [-31.0, -24.0] / -30.2% [-32.8, -27.5]; Bar-On -4.4% [-7.5, -1.1] (Holm p
-  0.007) / -6.8% [-10.0, -3.6] (Holm p < 0.001); all Holm significant.
-- Sensitivity (pool size): the equal-horizon gap grew from +6.9% [+3.6, +10.5] / +3.0% [-0.5,
-  +6.4] on the v1 pools (ToH-eqh Holm p 0.093, not significant) to +24.9% / +14.9% on v2.
-**D79 (pre-registered test, 2026-10-26): placement does not help at equal horizon.** SlowBurn
-with its retention age capped at the eqh schedule's held age (NapierOne v2, Holm across two):
-vs GFS-eqh -0.9% [-3.2, +1.7] work lost, recovery -0.003 [-0.009, +0.002], Holm p 0.48 (no
-difference); vs ToH-eqh +6.3% [+2.3, +10.6] (SlowBurn loses more), recovery +0.061 [+0.039,
-+0.085], Holm p 0.004. Synthetic (sanity): -4.1% [-5.8, -2.2] / +1.8% [-1.6, +5.1]. The cap
-alone moves SlowBurn's deficit vs GFS-eqh from +24.9% to -0.9% (descriptive, unadjusted), so the
-C2 gap is a horizon effect (`results/D79_REPORT.md`).
-NapierOne numbers carry the caveats in the header.
-Supporting detail, default configurations:
-Lower work lost than default GFS / Tower of Hanoi pooled (-23.4% vs GFS,
--26.7% vs Tower of Hanoi) and in 3 of 4 attack worlds; in the early world SlowBurn vs GFS is
--3.0% [-9.5, +3.9], not significant. Whole-system work lost (h) bursty / early / late /
-uniform: prior-only 2325.4 / 1813.1 / 2394.0 / 2061.7, SlowBurn 2189.2 / 1729.4 / 2301.2 /
-1968.6, GFS 2939.1 / 1783.0 / 3480.2 / 2489.5, Tower of Hanoi 3111.0 / 1990.6 / 3493.5 / 2580.3.
-Paired SlowBurn vs GFS: -25.5% [-31.2, -18.8] / -3.0% [-9.5, +3.9] / -33.9% [-38.8, -28.7] /
--20.9% [-27.1, -12.8], pooled -23.4% [-26.8, -19.8]; vs Tower of Hanoi pooled -26.7% [-29.1,
--24.2], every world significant (`results/dev_d64a_full/c2_vs_fixed_schedules.csv`). Reported
-as is (team decision 2026-10-22, no post hoc rescue).
-NapierOne bytes (D67 on the D75 v2 pools, count budgets): recovery vs GFS +0.425 [+0.407,
-+0.444], vs Tower of Hanoi +0.428 [+0.416, +0.440]; work lost vs GFS **-14.0% [-18.3, -9.4]**,
-vs Tower of Hanoi **-19.6% [-23.0, -16.0]**; by world vs GFS bursty -13.8%, **early +4.2%
-[-2.9, +11.7] (not significant)**, late -25.4%, uniform -11.3%; vs Tower of Hanoi every world
-significant. Synthetic bytes: -27.6% [-31.0, -24.0] / -30.2% [-32.8, -27.5]. **C2 (vs default
-GFS / Tower of Hanoi configurations) holds on NapierOne bytes, with a smaller effect than on
-synthetic bytes and not in the early world vs GFS.** NapierOne caveats: see the header. (v1
-pools, superseded: -34.4% / -35.7%; pre-D71b, withdrawn: +7.9% / -2.3%.)
+baseline. The Holm family is the six pooled comparisons per arm.
+- Default configurations: work lost -19.1% [-22.8, -15.2] vs GFS and -23.0% [-26.3, -19.7] vs
+  Tower of Hanoi, recovery +0.428 [+0.411, +0.445] / +0.411 [+0.404, +0.421]; Holm p < 0.001
+  both (DEV -14.0% [-18.3, -9.4] / -19.6% [-23.0, -16.0], recovery +0.425 / +0.428). The
+  pre-registered png prediction (results/test_prediction.md) held (see the D75 paragraph).
+  Synthetic bytes: -22.8% [-26.0, -19.4] / -26.0% [-28.6, -23.4] (DEV -27.6% / -30.2%).
+- Bar-On: **SlowBurn matches Bar-On** (TEST +0.2% [-3.1, +3.9] vs recursive, Holm p 0.865;
+  -2.1% [-5.5, +1.5] vs round robin, Holm p 0.450; not significant); the small DEV advantage
+  (-5.3% / -6.7%, Holm p < 0.001) did not replicate. Synthetic: -0.5% [-3.6, +2.3] / -2.4%
+  [-5.3, +0.8], not significant (DEV -4.4% / -6.8%).
+- Equal horizon (horizon >= M; GFS-eqh exists only at K = 12, ToH-eqh at K 8 and 12): uncapped
+  SlowBurn loses +15.6% [+11.3, +20.3] more work than GFS-eqh (recovery +0.000 [-0.003,
+  +0.004]) and +14.9% [+10.6, +19.3] more than ToH-eqh (recovery +0.031 [+0.016, +0.049]);
+  Holm p < 0.001 both (DEV +24.9% / +14.9%). Synthetic +17.4% [+13.3, +21.6] / +14.0% [+10.1,
+  +17.8] (DEV +16.1% / +10.1%).
+- DEV, v1 pools, sensitivity: equal-horizon gap +6.9% [+3.6, +10.5] / +3.0% [-0.5, +6.4] on
+  the v1 pools vs +24.9% / +14.9% on DEV v2.
 
-**C3'. Evidence reduces work lost by 4.7% [3.9, 5.5] at equal recovery. With a blind detector
+**D79 (pre-registered test). Retention horizon dominates.** Uncapped SlowBurn loses to
+equal-horizon GFS and ToH (TEST +15.6% / +14.9% work lost). With the same age cap, SlowBurn
+beats GFS-eqh (TEST -4.6% [-7.1, -2.0] NapierOne, -4.0% [-6.1, -1.8] synthetic, Holm p 0.001
+and < 0.001, recovery unchanged: -0.003 [-0.008, +0.001] / -0.002 [-0.005, 0.000]) but loses
+to ToH-eqh on work lost (+7.7% [+4.1, +11.4] / +7.1% [+3.7, +10.6], Holm p < 0.001) while
+recovering 0.03 more (+0.030 [+0.015, +0.048] both arms). On DEV the NapierOne GFS-eqh
+comparison was a tie (-0.9% [-3.2, +1.7], Holm p 0.48); TEST is the confirmatory run (DEV
+ToH-eqh +6.3% NapierOne; synthetic +1.8% [-1.6, +5.1], not significant). The age cap is taken
+from each baseline's own held age (104 days for GFS-eqh at K 12; 127 / 255 days for ToH-eqh at
+K 8 / 12), so this is a controlled comparison, not a standalone method
+(`results/analysis_test/d79_report/primary.csv`).
+NapierOne numbers carry the caveats in the header.
+Supporting detail, default configurations (DEV only, abstract grid, not covered by TEST):
+lower work lost than default GFS / Tower of Hanoi pooled (-23.4% vs GFS, -26.7% vs Tower of
+Hanoi) and in 3 of 4 attack worlds; in the early world SlowBurn vs GFS is -3.0% [-9.5, +3.9],
+not significant (`results/dev_d64a_full/c2_vs_fixed_schedules.csv`).
+(DEV, v1 pools, sensitivity: -34.4% / -35.7% vs default GFS / ToH; pre-D71b, withdrawn: +7.9%
+/ -2.3%.)
+
+**C3' (DEV only, not covered by TEST). Evidence reduces work lost by 4.7% [3.9, 5.5] at equal recovery. With a blind detector
 (q = 0), recovery is non-inferior (pre-registered, 8 of 8 units) but work lost is 0.85% [0.03,
 1.65] higher than prior-only.** Both halves go in the paper. Full grid: SlowBurn 0.9864 /
 2047.1 h vs prior-only 0.9845 / 2148.5 h, -4.72% [-5.46, -3.93] (old restore -6.42%), recovery
@@ -137,7 +138,7 @@ every world significant (bursty -5.0%, early -3.3%, late -4.1%, uniform -2.5%); 
 0 / 0.01 / 0.05: -7.3% / -5.2% / +0.1% [-1.3, +1.6]. Byte budgets: recovery +0.077 [+0.064,
 +0.091], work lost -11.7% [-13.8, -9.5]. **C3' holds on NapierOne bytes, smaller than on
 synthetic bytes, and vanishes at the highest injected benign rate.** NapierOne caveats: see the
-header. (v1 pools, superseded: -11.9%; pre-D71b, withdrawn: +1.5%, the PPMd validator bug.)
+header. (DEV, v1 pools, sensitivity: -11.9%; pre-D71b, withdrawn: +1.5%, the PPMd validator bug.)
 
 ## Guarantee (theory, docs/theory.md, NEEDS HUMAN REVIEW)
 
@@ -166,7 +167,7 @@ restored); do not use it without them.
 
 ## Findings
 
-**F1. Beyond the assumed bound, recovery is ~0 unless the detector is near perfect, and even
+**F1 (DEV only, not covered by TEST). Beyond the assumed bound, recovery is ~0 unless the detector is near perfect, and even
 then it is capped by the fraction of rows where retention kept a clean snapshot.** True delay >
 assumed hard bound, recovery at q = 0 / 0.2 / 0.5: 0 / 0 / 0.0026 (M = 14) and 0 / 0 / 0.0062
 (M = 30), SlowBurn and prior-only alike. At q = 1, SlowBurn / prior-only: M = 14: 0.1495 /
@@ -181,14 +182,14 @@ recovers more than SlowBurn at q = 1 (0.708 / 0.634 / 0.525 vs 0 / 0.230 / 0.142
 (CHANGELOG 2026-10-22). Over-estimating is safe but costs work lost (D52: assumed 90 / 120 vs
 60 days, +492.3 / +1084.2 h; old restore, not rerun).
 
-**F2. A never-zero delay tail restores recovery but moves the whole budget to old snapshots.**
+**F2 (DEV only, not covered by TEST). A never-zero delay tail restores recovery but moves the whole budget to old snapshots.**
 Soft tail (D56) under the adopted restore: recovery 0.9980 on the normal grid at 3918.0 h vs
 2078.2 h for the hard bound (1.89x; old restore 2.30x) and 1.0 on the worst case (3123.3 vs
 2179.2 h). Insensitive to tail weight in 0.02-0.2 (D56, D60). Mechanism (D60): retention, not
 the restore gate; the newest clean snapshot the soft-tail DP keeps is 155.4 days back vs 49.8
 with the hard bound (K = 12: 139.3 vs 42.6; retention is unchanged by the restore).
 
-**F3. Evidence-gated restore rescues only with a near-perfect detector.** Method v4 (D60:
+**F3 (DEV only, not covered by TEST). Evidence-gated restore rescues only with a near-perfect detector.** Method v4 (D60:
 hard-bound restore that walks back on detected damage, soft tail only in retention) beyond the
 bound: q = 1: 1.0 at M = 14 and 30; q <= 0.5: <= 0.006 (q = 0.5: 0.0042 / 0.0062 at M = 14 /
 30; q = 0.2 and 0: 0). v4 FAILED on cost: normal-grid work lost 3911.8-3918.1 h vs limit 2286.1
@@ -197,16 +198,17 @@ d60_scoreboard_vsnap.csv`). Claim "(3) evidence rescues mis-specified delays" wa
 three times and dropped (D55b, D56, D60).
 
 **F4. The daily flagged-file count alarm (D74) at c = 3 rarely fires on benign machines.**
-Threshold c = 3 chosen on 100 attack-free 120-day calibration runs per arm (smallest c with at
-most 5% of runs alarming). In sample (the same runs): per-run false alarm 0 / 100 synthetic
-bytes, 1 / 100 NapierOne v2 (at c = 2: 8% / 31%). Held out (100 new attack-free runs per arm,
-family d74_alarm_holdout, c fixed): 0 / 100 on both arms, exact 95% upper bound 0.036 per run;
-per machine-day 0 of 12,000, upper bound 3.1e-4; fleet false alarms per week upper bounds 0.043
-(N = 20) / 0.22 (N = 100) (`results/dev_d74_alarm_holdout/holdout.json`). The alarm limits a
-threshold-aware attacker to c - 1 = 2 flagged files per day by construction; how much damage
-that still allows is the D74 attack result (not yet in this file).
+Threshold c = 3 chosen on 100 attack-free 120-day calibration runs per arm (DEV; smallest c with
+at most 5% of runs alarming; in sample 0 / 100 synthetic, 1 / 100 NapierOne; at c = 2: 8% /
+31%). TEST held out (100 new attack-free runs per arm on TEST machines and content, c fixed):
+NapierOne 0 / 100, exact 95% upper bound 0.036 per run, 0 of 12,000 machine-days (upper
+3.1e-4), fleet false alarms per week upper 0.043 (N = 20) / 0.22 (N = 100); synthetic 1 / 100
+= 0.010 [0.0003, 0.054], 1 of 12,000 machine-days (8.3e-5, upper 4.6e-4), fleet false alarms
+per week 0.012 (upper 0.065) at N = 20 and 0.058 (upper 0.32) at N = 100
+(`results/analysis_test/d74_alarm_holdout/holdout.json`). DEV held out: 0 / 100 on both arms.
+The alarm gives no guarantee against a threshold-aware attacker (F8).
 
-**F5. Product retention defaults (D66 audit, FSL Homes churn, delays 1 to 400 days, 160
+**F5 (DEV only, not covered by TEST). Product retention defaults (D66 audit, FSL Homes churn, delays 1 to 400 days, 160
 machines; descriptive).** Rules checked against vendor pages on 2026-10-27 (Dropbox version
 history overview; Google Drive "Check activity & file versions"; Microsoft Learn "Set default
 organization version limits"; restic forget docs, stable). With a blind detector (q = 0)
@@ -222,48 +224,56 @@ stated on the vendor page): OneDrive personal 25 versions and its 30-day variant
 periodic retention; keep-within-7d and keep-last-1 are restic flags, not documented defaults,
 and stay as reference rows only.
 
-**F6. Per-file restore under imperfect detection (D72; method C not adopted).** SlowBurn
-retention, recovery / per-file work lost (h): full grid q 0.2: verify_snap 0.980 / 6,452,
-walk-back 0.001 / 175, changepoint 0.801 / 3,914, per-file oracle 1.000 / 736; NapierOne bytes:
-verify_snap 1.000 / 4,801, walk-back 0.504 / 670, changepoint 0.994 / 3,212, oracle 1.000 /
-679. Changepoint cuts per-file work lost by 33% to 40% vs verify_snap but loses recovery
-whenever detection is imperfect (-0.12 to -0.19 at q 0.2 / 0.5; NapierOne -0.005 [-0.011,
--0.001]); walk-back is near the oracle with perfect detection and collapses otherwise
-(`results/D72_REPORT.md`).
+**F6. Per-file restore under imperfect detection (D72; method C not adopted).** TEST, SlowBurn
+retention, NapierOne bytes v2, recovery / per-file work lost (h), DEV v2 in parentheses:
+verify_snap 0.998 / 6,448 (0.999 / 7,130), walk-back 0.199 / 709 (0.230 / 715), changepoint
+0.964 / 3,757 (0.969 / 3,848), per-file oracle 1.000 / 747 (1.000 / 712), snapshot oracle 0.998
+/ 3,676 (1.000 / 3,640). Changepoint vs verify_snap: recovery -0.033 [-0.051, -0.018] (DEV
+-0.030 [-0.045, -0.017]), per-file work lost -41.7% [-43.7, -39.7] (DEV -46.0%). Synthetic
+bytes: changepoint keeps recovery (difference 0) at -39.6% [-41.1, -37.9] work lost (DEV
+-37.7%). Walk-back is near the per-file oracle on work lost but recovers 0.199 on NapierOne.
+The adoption verdict is unchanged: NapierOne fails, so method C is not adopted
+(`results/analysis_test/d72_report/`). DEV only, not covered by TEST: full grid q 0.2
+verify_snap 0.980 / 6,452, walk-back 0.001 / 175, changepoint 0.801 / 3,914, per-file oracle
+1.000 / 736; changepoint loses 0.12 to 0.19 recovery at q 0.2 / 0.5 (`results/D72_REPORT.md`).
 
-**F7. Fleet-aware retention (D73; not adopted, negative finding).** NapierOne v2, restore A,
-K_avg 6 / 8: FLEET vs equal budget split per-file work lost -16.6% [-20.3, -12.6], but pooled
-fleet recovery -0.029 [-0.049, -0.012] and the worst (f, m, K, N) cell -0.21; vs churn split
--7.3% [-10.8, -3.5], recovery -0.030 [-0.050, -0.012]. Synthetic bytes pass every criterion.
-Its gain comes from the pooled start posterior, not from moving slots (`results/D73_REPORT.md`).
+**F7. Fleet-aware retention (D73; not adopted, negative finding).** TEST, NapierOne v2, restore
+A, K_avg 6 / 8: FLEET vs equal budget split per-file work lost -18.7% [-22.4, -15.2] (DEV -16.6%
+[-20.3, -12.6]), but pooled fleet recovery -0.035 [-0.055, -0.017] (DEV -0.029) and the worst
+(f, m, K, N) cell -0.19 (DEV -0.21); vs churn split -14.5% [-18.4, -10.8] (DEV -7.3%), recovery
+-0.033 [-0.059, -0.011] (DEV -0.030), worst cell -0.21. Synthetic bytes pass every criterion on
+TEST and DEV. FLEET is not adopted on TEST (`results/analysis_test/d73_report/criteria.csv`).
+DEV only: its gain comes from the pooled start posterior, not from moving slots
+(`results/D73_REPORT.md`).
 
-**F8. Adaptive attacker under the alarm (D74, c = 3).** Threshold-aware attacker (exactly 2
-damaged files per day, NapierOne v2, 40 runs per strategy, exact 95% CIs): the alarm still
-fires within 120 days in 26 / 40 runs (0.65 [0.48, 0.79]; median 5.5 days after the start) when
-all types are hit at damage fraction 0.1, because benign flags share the counter; 3 / 40 (0.075
-[0.016, 0.20]) at fraction 0.01 on the four weakest types; at most 4 / 40 (0.10 [0.03, 0.24])
-on csv only. Synthetic bytes: 18 / 40 (0.45 [0.29, 0.62]) all types, 2 / 40 csv only.
-Median time to alarm is over caught runs only (runs whose alarm fires within 120 days).
-**Most catches come from benign flags sharing the counter.** By construction the attacker writes
-exactly 2 new damaging versions per day, below c = 3, so every alarm day (100% of alarms, every
-strategy) needed at least one further flagged version that day: a benign flag or a benign
-re-edit of an already damaged file; existing outputs cannot split those two. For scale,
-attack-free NapierOne runs have at least one benign flag on 7.0% of days (calibration 0.0703,
-held out 0.0696; synthetic 0.033 / 0.035) and two or more on 0.3%. The attacker also runs out
-of targets: it damages only undamaged files of its target types (about 4 csv files per 40-file
-machine), which bounds csv-only damage to the first few days. Best
-response under the stealth constraint (chosen on the selection half, scored on the evaluation
-half; NapierOne, restore A, K 4 / 8, recovery-minimising attacker): SlowBurn keeps evaluation
-recovery >= 0.65 up to a 45-day delay, 0.3 at 60 and <= 0.05 at 90 / 120 (prior-only and
-Bar-On recursive alike); GFS reaches 0 by 30 days (K 4) / 60 days (K 8); Tower of Hanoi at K 4
-is 0 at every delay; every defence is <= 0.05 beyond the assumed bound
-(`results/dev_d74_report/best_response.csv`). Realistic D72 attacker (uniform delays 7 to 60 days, rate 0.5,
-fraction 0.1): SlowBurn recovery 1.0 (K 4 and 8, restore A) vs GFS 0.395 / 0.6 and Tower of
-Hanoi 0.0 / 0.99. D74 eqh arm (descriptive): at K = 8 the equal-horizon Tower of Hanoi is
-the default rotation (base 2, horizon 63; rows identical); against the best-response attacker
-it matches SlowBurn's recovery by delay (1.00 / 1.00 / 0.90 / 0.65 / 0.30 / 0.05 / 0.00 vs
-1.00 / 0.85 / 0.90 / 0.85 / 0.30 / 0.05 / 0.05 at 7-120 days) and loses less per-file work at
-every delay (`results/D74_EQH_REPORT.md`). No equal-horizon configuration exists at K = 4.
+**F8. Adaptive attacker under the alarm (D74, c = 3).** TEST, threshold-aware attacker (exactly
+2 damaged files per day, 40 runs per strategy, exact 95% CIs, caught within 120 days; median
+days to alarm over caught runs), DEV in parentheses. NapierOne: all types, fraction 0.01: 13 /
+40 = 0.325 [0.186, 0.491], median 10 (DEV 0.40, 7.5); all types, 0.1: 19 / 40 = 0.475 [0.315,
+0.639], median 8 (DEV 0.65 [0.48, 0.79], 5.5); four weakest types, 0.01: 3 / 40 = 0.075
+[0.016, 0.204], median 7 (DEV 0.075, 13); four weakest, 0.1: 10 / 40 = 0.25 [0.127, 0.412],
+median 5 (DEV 0.45, 6.5); csv only, 0.1: 2 / 40 = 0.05 [0.006, 0.169], median 1.5 (DEV 0.10,
+1). Synthetic: all types 0.1: 23 / 40 = 0.575 [0.409, 0.730] (DEV 0.45); csv only 5 / 40 =
+0.125 [0.042, 0.268] (DEV 0.05). **The alarm gives no guarantee against this attacker.** By
+construction the attacker writes exactly 2 new damaging versions per day, below c = 3, so every
+alarm day needed at least one further flagged version that day: a benign flag or a benign
+re-edit of an already damaged file. DEV only: attack-free NapierOne runs have at least one
+benign flag on 7.0% of days.
+Best response under the stealth constraint (TEST; chosen on the selection half, scored on the
+evaluation half; NapierOne, restore A, recovery-minimising attacker; 20 machines per point;
+delays 7 / 14 / 30 / 45 / 60 / 90 / 120): K = 4: SlowBurn 1.00 / 1.00 / 0.90 / 0.60 / 0.30 / 0
+/ 0, prior-only identical, Bar-On recursive 1.00 / 1.00 / 0.80 / 0.65 / 0.30 / 0 / 0, GFS 0.75
+/ 0.55 / 0.10 / 0 / 0 / 0 / 0, Tower of Hanoi 0 at every delay. K = 8: SlowBurn 1.00 / 1.00 /
+0.90 / 0.50 / 0.30 / 0 / 0, Tower of Hanoi 1.00 / 1.00 / 0.80 / 0.60 / 0.15 / 0 / 0.05, GFS
+0.95 / 0.70 / 0.55 / 0.05 / 0 / 0 / 0. At K = 8 Tower of Hanoi (its own equal-horizon
+configuration) is within 0.15 of SlowBurn's recovery at every delay and loses 7% to 28% less
+per-file work up to 90 days (36% at 120). DEV: K = 8 SlowBurn 1.00 / 0.85 / 0.90 / 0.85 / 0.30
+/ 0.05 / 0.05, Tower of Hanoi 1.00 / 1.00 / 0.90 / 0.65 / 0.30 / 0.05 / 0.00 (13% to 27% less
+work up to 90 days). Every defence is at most 0.05 beyond the assumed bound on TEST. Synthetic
+recovery vs delay: TEST only; DEV produced no scored best-response rows
+(`results/analysis_test/d74_report/best_response.csv`). Realistic D72 attacker (delays 7 to
+60, rate 0.5, fraction 0.1; mean recovery): TEST SlowBurn 0.99 (K 4 and 8) vs GFS 0.41 / 0.615
+and Tower of Hanoi 0.0 / 0.93 (DEV 1.0 vs 0.395 / 0.6 and 0.0 / 0.99).
 
 ## Limitations
 
@@ -298,4 +308,5 @@ every delay (`results/D74_EQH_REPORT.md`). No equal-horizon configuration exists
   (a) (drop <= 0.01). `results/dev_d65_*/v21_vs_step1*.csv`.
 - Guideline figure: done (D63, `paper/generated/fig_delay_guideline_*`); caption must state
   the edge effect at true delay = M (D63 outcome).
-- Fresh TEST confirmation of C1, C2, C3' and F1 (under-estimated rows included).
+- TEST done 2026-10-29 for C2, D79, D72, D71, D73, ALARM and D74 (frozen_v2). C1, C3', F1 to
+  F3 and F5 are DEV only and not covered by TEST.
