@@ -1,0 +1,92 @@
+== d72_c2r_holm: 3 accesses
+18044	read	open	results/test_d72_bytes_napierone_v2pool/tuning_sweep.csv	ok
+18044	read	open	results/test_d72_bytes_synthetic/tuning_sweep.csv	ok
+18044	write	open	results/analysis_test/d72_c2r_holm/c2_holm.csv	ok
+== d72_report: 6 accesses
+29192	write	os.mkdir	results/analysis_test/d72_report	ok
+29192	read	open	results/test_d72_bytes_synthetic/tuning_sweep.csv	ok
+29192	read	open	results/test_d72_bytes_napierone_v2pool/tuning_sweep.csv	ok
+29192	write	open	results/analysis_test/d72_report/summary.csv	ok
+29192	write	open	results/analysis_test/d72_report/criteria.csv	ok
+29192	write	open	results/analysis_test/d72_report/verdict.csv	ok
+== d79_report: 8 accesses
+27896	write	os.mkdir	results/analysis_test/d79_report	ok
+27896	read	open	results/test_d79_eqh_napierone/tuning_sweep.csv	ok
+27896	read	open	results/test_d72_bytes_napierone_v2pool/tuning_sweep.csv	ok
+27896	read	open	results/test_d79_eqh_synthetic/tuning_sweep.csv	ok
+27896	read	open	results/test_d72_bytes_synthetic/tuning_sweep.csv	ok
+27896	write	open	results/analysis_test/d79_report/primary.csv	ok
+27896	write	open	results/analysis_test/d79_report/secondary.csv	ok
+27896	write	open	results/analysis_test/d79_report/by_world_budget.csv	ok
+== d71_report: 12 accesses
+28664	write	os.mkdir	results/analysis_test/d71_report	ok
+28664	read	os.link	results/test_d71_oracle_gap/tuning_sweep.csv	ok
+28664	write	os.link	results/analysis_test/d71_report/tuning_sweep.csv	ok
+28664	read	open	results/analysis_test/d71_report/tuning_sweep.csv	ok
+28664	write	open	results/analysis_test/d71_report/gap_full_by_q.csv	ok
+28664	write	open	results/analysis_test/d71_report/gap_full_by_q_K.csv	ok
+28664	write	open	results/analysis_test/d71_report/gap_worlds_by_q.csv	ok
+28664	write	open	results/analysis_test/d71_report/gap_worlds_by_q_K.csv	ok
+28664	write	open	results/analysis_test/d71_report/diag_full_by_q.csv	ok
+28664	write	open	results/analysis_test/d71_report/diag_full_by_q_K.csv	ok
+28664	write	open	results/analysis_test/d71_report/diag_worlds_by_q.csv	ok
+28664	write	os.remove	results/analysis_test/d71_report/tuning_sweep.csv	ok
+== d73_report: 7 accesses
+26812	write	os.mkdir	results/analysis_test/d73_report	ok
+26812	write	open	results/analysis_test/d73_report/greedy_check.csv	ok
+26812	read	open	results/test_d73_fleet_synthetic/fleet_rows.csv.gz	ok
+26812	read	open	results/test_d73_fleet_napierone_v2pool/fleet_rows.csv.gz	ok
+26812	write	open	results/analysis_test/d73_report/summary.csv	ok
+26812	write	open	results/analysis_test/d73_report/k4_no_reallocation_room.csv	ok
+26812	write	open	results/analysis_test/d73_report/criteria.csv	ok
+== d74_report_napierone_bytes_per_arm: 21 accesses
+17568	write	os.mkdir	results/analysis_test/d74_report_per_arm/napierone_bytes	ok
+17568	read	open	results/test_d74_attack_napierone/attack_rows.csv.gz	ok
+17568	read	open	paper/scripts/d74_report.py	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/feasibility.csv	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/threshold_aware_detection.csv	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/best_response.csv	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/worst_case_over_delays.csv	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/realistic.csv	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/surface.csv.gz	ok
+17568	read	open	results/dev_d74_alarm_calib/threshold.json	ok
+17568	read	open	results/dev_d74_alarm_calib/daily_counts_napierone_bytes.csv.gz	ok
+17568	read	open	results/dev_d74_alarm_calib/daily_counts_synthetic_bytes.csv.gz	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/false_alarms.csv	ok
+17568	read	open	results/analysis_test/d74_report_per_arm/napierone_bytes/feasibility.csv	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/feasibility.csv	ok
+17568	read	open	results/analysis_test/d74_report_per_arm/napierone_bytes/best_response.csv	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/best_response.csv	ok
+17568	read	open	results/analysis_test/d74_report_per_arm/napierone_bytes/worst_case_over_delays.csv	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/worst_case_over_delays.csv	ok
+17568	read	open	results/analysis_test/d74_report_per_arm/napierone_bytes/realistic.csv	ok
+17568	write	open	results/analysis_test/d74_report_per_arm/napierone_bytes/realistic.csv	ok
+== d74_report_synthetic_bytes_per_arm: 21 accesses
+16248	write	os.mkdir	results/analysis_test/d74_report_per_arm/synthetic_bytes	ok
+16248	read	open	results/test_d74_attack_synthetic/attack_rows.csv.gz	ok
+16248	read	open	paper/scripts/d74_report.py	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/feasibility.csv	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/threshold_aware_detection.csv	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/best_response.csv	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/worst_case_over_delays.csv	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/realistic.csv	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/surface.csv.gz	ok
+16248	read	open	results/dev_d74_alarm_calib/threshold.json	ok
+16248	read	open	results/dev_d74_alarm_calib/daily_counts_napierone_bytes.csv.gz	ok
+16248	read	open	results/dev_d74_alarm_calib/daily_counts_synthetic_bytes.csv.gz	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/false_alarms.csv	ok
+16248	read	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/feasibility.csv	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/feasibility.csv	ok
+16248	read	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/best_response.csv	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/best_response.csv	ok
+16248	read	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/worst_case_over_delays.csv	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/worst_case_over_delays.csv	ok
+16248	read	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/realistic.csv	ok
+16248	write	open	results/analysis_test/d74_report_per_arm/synthetic_bytes/realistic.csv	ok
+== d74_alarm_holdout: 6 accesses
+6520	write	os.mkdir	results/analysis_test/d74_alarm_holdout	ok
+6520	read	shutil.copyfile	results/test_d74_alarm/holdout.json	ok
+6520	write	shutil.copyfile	results/analysis_test/d74_alarm_holdout/holdout.json	ok
+6520	read	open	results/test_d74_alarm/holdout.json	ok
+6520	write	open	results/analysis_test/d74_alarm_holdout/holdout.json	ok
+6520	read	open	results/analysis_test/d74_alarm_holdout/holdout.json	ok

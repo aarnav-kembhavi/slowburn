@@ -1,0 +1,5 @@
+unit,q,vs,adopt_passes,required_policies
+bytes_napierone_v2pool,detector,A,False,2
+bytes_napierone_v2pool,detector,B,False,2
+bytes_synthetic,detector,A,True,2
+bytes_synthetic,detector,B,False,2

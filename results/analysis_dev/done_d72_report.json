@@ -1,0 +1,14 @@
+{
+ "mode": "dev",
+ "script": "d72_report",
+ "commit": "1c1556b",
+ "peak_mb": 433,
+ "constants": {
+  "OUT": "results\\analysis_dev\\d72_report",
+  "UNITS": "{'bytes_synthetic': ('results/dev_d72_bytes_synthetic', None), 'bytes_napierone_v2pool': ('results/dev_d72_bytes_napierone_v2pool', None)}"
+ },
+ "dev_runs": [
+  "results/dev_d72_bytes_napierone_v2pool",
+  "results/dev_d72_bytes_synthetic"
+ ]
+}

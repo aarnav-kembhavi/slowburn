@@ -1,0 +1,16 @@
+{
+ "mode": "test",
+ "script": "d79_report",
+ "commit": "1c1556b",
+ "peak_mb": 415,
+ "constants": {
+  "OUT": "results\\analysis_test\\d79_report",
+  "ARMS": "{'napierone_bytes': ('results/test_d79_eqh_napierone', 'results/test_d72_bytes_napierone_v2pool'), 'synthetic_bytes': ('results/test_d79_eqh_synthetic', 'results/test_d72_bytes_synthetic')}"
+ },
+ "dev_runs": [
+  "results/test_d79_eqh_napierone",
+  "results/test_d72_bytes_napierone_v2pool",
+  "results/test_d79_eqh_synthetic",
+  "results/test_d72_bytes_synthetic"
+ ]
+}

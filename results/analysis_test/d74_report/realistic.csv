@@ -1,0 +1,41 @@
+arm,policy,budget,restore,rec,wl
+napierone_bytes,gfs,4,A,0.41,1648.2
+napierone_bytes,gfs,4,B,0.155,224.88
+napierone_bytes,gfs,8,A,0.615,2672.76
+napierone_bytes,gfs,8,B,0.17,197.4
+napierone_bytes,prior_only,4,A,0.995,6968.64
+napierone_bytes,prior_only,4,B,0.175,987.84
+napierone_bytes,prior_only,8,A,0.995,6467.28
+napierone_bytes,prior_only,8,B,0.175,619.44
+napierone_bytes,shamir_recursive,4,A,0.99,6006.48
+napierone_bytes,shamir_recursive,4,B,0.175,1131.36
+napierone_bytes,shamir_recursive,8,A,0.985,5367.12
+napierone_bytes,shamir_recursive,8,B,0.175,573.72
+napierone_bytes,slowburn,4,A,0.99,6346.44
+napierone_bytes,slowburn,4,B,0.175,984.12
+napierone_bytes,slowburn,8,A,0.99,5980.56
+napierone_bytes,slowburn,8,B,0.175,626.16
+napierone_bytes,tower_of_hanoi,4,A,0.0,379.32
+napierone_bytes,tower_of_hanoi,4,B,0.0,11.4
+napierone_bytes,tower_of_hanoi,8,A,0.93,4605.0
+napierone_bytes,tower_of_hanoi,8,B,0.175,360.84
+synthetic_bytes (sanity),gfs,4,A,0.41,1720.32
+synthetic_bytes (sanity),gfs,4,B,0.41,246.48
+synthetic_bytes (sanity),gfs,8,A,0.615,2733.84
+synthetic_bytes (sanity),gfs,8,B,0.615,224.4
+synthetic_bytes (sanity),prior_only,4,A,1.0,7057.32
+synthetic_bytes (sanity),prior_only,4,B,1.0,1191.6
+synthetic_bytes (sanity),prior_only,8,A,1.0,6185.76
+synthetic_bytes (sanity),prior_only,8,B,1.0,658.68
+synthetic_bytes (sanity),shamir_recursive,4,A,1.0,6186.36
+synthetic_bytes (sanity),shamir_recursive,4,B,1.0,1311.48
+synthetic_bytes (sanity),shamir_recursive,8,A,1.0,4753.44
+synthetic_bytes (sanity),shamir_recursive,8,B,1.0,635.16
+synthetic_bytes (sanity),slowburn,4,A,0.995,6483.12
+synthetic_bytes (sanity),slowburn,4,B,0.995,1163.04
+synthetic_bytes (sanity),slowburn,8,A,1.0,5437.56
+synthetic_bytes (sanity),slowburn,8,B,1.0,654.72
+synthetic_bytes (sanity),tower_of_hanoi,4,A,0.0,388.56
+synthetic_bytes (sanity),tower_of_hanoi,4,B,0.0,11.16
+synthetic_bytes (sanity),tower_of_hanoi,8,A,0.93,4476.12
+synthetic_bytes (sanity),tower_of_hanoi,8,B,0.93,430.08

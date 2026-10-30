@@ -1,0 +1,28 @@
+2026-10-29T15:10:26+05:30 ANALYSIS QUEUE start, commit 1c1556b
+2026-10-29T15:10:26+05:30 analysis dev d72_c2r_holm: free RAM 16.0 GB < 16, waiting 300 s
+2026-10-29T15:15:26+05:30 analysis dev d72_c2r_holm: free RAM 15.9 GB < 16, waiting 300 s
+2026-10-29T15:20:26+05:30 START analysis dev d72_c2r_holm attempt 1 (free RAM 16.1 GB)
+2026-10-29T15:20:40+05:30 END analysis dev d72_c2r_holm exit 0, peak working set 472 MB
+2026-10-29T15:20:40+05:30 START analysis dev d72_report attempt 1 (free RAM 16.0 GB)
+2026-10-29T15:20:50+05:30 END analysis dev d72_report exit 0, peak working set 433 MB
+2026-10-29T15:20:50+05:30 START analysis dev d79_report attempt 1 (free RAM 16.1 GB)
+2026-10-29T15:20:59+05:30 END analysis dev d79_report exit 0, peak working set 415 MB
+2026-10-29T15:20:59+05:30 START analysis dev d71_report attempt 1 (free RAM 16.1 GB)
+2026-10-29T15:21:48+05:30 END analysis dev d71_report exit 0, peak working set 1030 MB
+2026-10-29T15:21:48+05:30 START analysis dev d73_report attempt 1 (free RAM 16.5 GB)
+2026-10-29T15:21:56+05:30 END analysis dev d73_report exit 0, peak working set 169 MB
+2026-10-29T15:21:56+05:30 START analysis dev d74_report attempt 1 (free RAM 16.5 GB)
+2026-10-29T15:33:26+05:30 END analysis dev d74_report exit 0, peak working set 17604 MB
+2026-10-29T15:33:26+05:30 START analysis dev d74_alarm_holdout attempt 1 (free RAM 18.0 GB)
+2026-10-29T15:45:06+05:30 END analysis dev d74_alarm_holdout exit 0, peak working set 120 MB; workers: pid 11064 340 MB, pid 11580 794 MB, pid 11588 340 MB, pid 12088 336 MB, pid 17176 316 MB, pid 18360 798 MB, pid 24156 789 MB, pid 25884 794 MB, pid 28120 341 MB, pid 29224 804 MB
+2026-10-29T15:45:06+05:30 START analysis test d72_c2r_holm attempt 1 (free RAM 17.8 GB)
+2026-10-29T15:45:16+05:30 END analysis test d72_c2r_holm exit 0, peak working set 471 MB
+2026-10-29T15:45:16+05:30 START analysis test d72_report attempt 1 (free RAM 17.8 GB)
+2026-10-29T15:45:27+05:30 END analysis test d72_report exit 0, peak working set 434 MB
+2026-10-29T15:45:27+05:30 START analysis test d79_report attempt 1 (free RAM 17.7 GB)
+2026-10-29T15:45:36+05:30 END analysis test d79_report exit 0, peak working set 415 MB
+2026-10-29T15:45:36+05:30 START analysis test d71_report attempt 1 (free RAM 17.7 GB)
+2026-10-29T15:46:25+05:30 END analysis test d71_report exit 0, peak working set 1029 MB
+2026-10-29T15:46:25+05:30 START analysis test d73_report attempt 1 (free RAM 17.8 GB)
+2026-10-29T15:46:38+05:30 END analysis test d73_report exit 0, peak working set 169 MB
+2026-10-29T15:46:38+05:30 START analysis test d74_report attempt 1 (free RAM 17.8 GB)

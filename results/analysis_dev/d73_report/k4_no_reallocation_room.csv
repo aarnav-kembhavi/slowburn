@@ -1,0 +1,11 @@
+arm,method,fleet_clean_A,work_lost_file_hours_A
+napierone_bytes,a_equal,0.9444444444444444,159352.10833333334
+napierone_bytes,b_churn,0.9409722222222222,157697.80833333332
+napierone_bytes,c_fleet,0.9107638888888889,130395.975
+napierone_bytes,d_slowburn,0.94375,150129.16666666666
+napierone_bytes,e_fleet_indep,0.9444444444444444,142671.40833333333
+synthetic_bytes,a_equal,1.0,135010.45
+synthetic_bytes,b_churn,1.0,128760.4
+synthetic_bytes,c_fleet,1.0,107786.9
+synthetic_bytes,d_slowburn,0.9986111111111111,129382.84166666666
+synthetic_bytes,e_fleet_indep,1.0,121039.14166666666

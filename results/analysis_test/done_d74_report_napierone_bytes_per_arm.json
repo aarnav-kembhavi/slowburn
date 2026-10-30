@@ -1,0 +1,12 @@
+{
+ "mode": "test",
+ "script": "d74_report_napierone_bytes_per_arm",
+ "commit": "ae4b0aa",
+ "peak_mb": 8367,
+ "constants": {
+  "OUT": "results\\analysis_test\\d74_report_per_arm\\napierone_bytes"
+ },
+ "dev_runs": [
+  "results/test_d74_attack_napierone"
+ ]
+}

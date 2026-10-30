@@ -1,0 +1,21 @@
+arm,policy,budget,restore,rec,wl
+synthetic_bytes (sanity),gfs,4,A,0.395,1725.96
+synthetic_bytes (sanity),gfs,4,B,0.395,248.52
+synthetic_bytes (sanity),gfs,8,A,0.6,2695.32
+synthetic_bytes (sanity),gfs,8,B,0.6,228.48
+synthetic_bytes (sanity),prior_only,4,A,1.0,6795.12
+synthetic_bytes (sanity),prior_only,4,B,1.0,1161.96
+synthetic_bytes (sanity),prior_only,8,A,1.0,5911.68
+synthetic_bytes (sanity),prior_only,8,B,1.0,700.56
+synthetic_bytes (sanity),shamir_recursive,4,A,1.0,6569.16
+synthetic_bytes (sanity),shamir_recursive,4,B,1.0,1613.52
+synthetic_bytes (sanity),shamir_recursive,8,A,1.0,4760.64
+synthetic_bytes (sanity),shamir_recursive,8,B,1.0,784.92
+synthetic_bytes (sanity),slowburn,4,A,1.0,5850.72
+synthetic_bytes (sanity),slowburn,4,B,1.0,1124.76
+synthetic_bytes (sanity),slowburn,8,A,1.0,4989.36
+synthetic_bytes (sanity),slowburn,8,B,1.0,693.6
+synthetic_bytes (sanity),tower_of_hanoi,4,A,0.0,398.16
+synthetic_bytes (sanity),tower_of_hanoi,4,B,0.0,10.8
+synthetic_bytes (sanity),tower_of_hanoi,8,A,0.99,4502.76
+synthetic_bytes (sanity),tower_of_hanoi,8,B,0.99,395.4

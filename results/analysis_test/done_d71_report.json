@@ -1,0 +1,12 @@
+{
+ "mode": "test",
+ "script": "d71_report",
+ "commit": "1c1556b",
+ "peak_mb": 1029,
+ "constants": {
+  "R": "results\\analysis_test\\d71_report"
+ },
+ "dev_runs": [
+  "results/test_d71_oracle_gap"
+ ]
+}

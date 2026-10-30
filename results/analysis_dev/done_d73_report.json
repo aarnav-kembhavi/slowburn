@@ -1,0 +1,14 @@
+{
+ "mode": "dev",
+ "script": "d73_report",
+ "commit": "1c1556b",
+ "peak_mb": 169,
+ "constants": {
+  "OUT": "results\\analysis_dev\\d73_report",
+  "ARMS": "{'synthetic_bytes': 'results/dev_d73_fleet_synthetic', 'napierone_bytes': 'results/dev_d73_fleet_napierone_v2pool'}"
+ },
+ "dev_runs": [
+  "results/dev_d73_fleet_synthetic",
+  "results/dev_d73_fleet_napierone_v2pool"
+ ]
+}

@@ -1,0 +1,14 @@
+{
+ "mode": "dev",
+ "script": "d74_report",
+ "commit": "1c1556b",
+ "peak_mb": 17604,
+ "constants": {
+  "OUT": "results\\analysis_dev\\d74_report",
+  "ARMS": "{'synthetic_bytes': 'results/dev_d74_attack_synthetic', 'napierone_bytes': 'results/dev_d74_attack_napierone'}"
+ },
+ "dev_runs": [
+  "results/dev_d74_attack_synthetic",
+  "results/dev_d74_attack_napierone"
+ ]
+}

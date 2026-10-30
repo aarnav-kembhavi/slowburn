@@ -1,0 +1,262 @@
+== threshold-aware attacker (c - 1 files/day; benign and attacker flags share one
+   daily counter): detection probability per run within d, time to detection (days)
+                     arm  strategy_fraction strategy_targets  discovery_delay  runs  p_detect  ttd_median  ttd_mean  detected_runs
+synthetic_bytes (sanity)               0.01              all                7    40     0.225         8.0     6.684             19
+synthetic_bytes (sanity)               0.01              all               14    40     0.475         8.0     6.684             19
+synthetic_bytes (sanity)               0.01              all               30    40     0.475         8.0     6.684             19
+synthetic_bytes (sanity)               0.01              all               45    40     0.475         8.0     6.684             19
+synthetic_bytes (sanity)               0.01              all               60    40     0.475         8.0     6.684             19
+synthetic_bytes (sanity)               0.01              all               90    40     0.475         8.0     6.684             19
+synthetic_bytes (sanity)               0.01              all              120    40     0.475         8.0     6.684             19
+synthetic_bytes (sanity)               0.01              csv                7    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.01              csv               14    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.01              csv               30    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.01              csv               45    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.01              csv               60    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.01              csv               90    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.01              csv              120    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.01            weak4                7    40     0.150         6.0     5.556              9
+synthetic_bytes (sanity)               0.01            weak4               14    40     0.225         6.0     5.556              9
+synthetic_bytes (sanity)               0.01            weak4               30    40     0.225         6.0     5.556              9
+synthetic_bytes (sanity)               0.01            weak4               45    40     0.225         6.0     5.556              9
+synthetic_bytes (sanity)               0.01            weak4               60    40     0.225         6.0     5.556              9
+synthetic_bytes (sanity)               0.01            weak4               90    40     0.225         6.0     5.556              9
+synthetic_bytes (sanity)               0.01            weak4              120    40     0.225         6.0     5.556              9
+synthetic_bytes (sanity)               0.05              all                7    40     0.300         6.0     6.478             23
+synthetic_bytes (sanity)               0.05              all               14    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.05              all               30    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.05              all               45    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.05              all               60    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.05              all               90    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.05              all              120    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.05              csv                7    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.05              csv               14    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.05              csv               30    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.05              csv               45    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.05              csv               60    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.05              csv               90    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.05              csv              120    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.05            weak4                7    40     0.250         6.0     5.250             16
+synthetic_bytes (sanity)               0.05            weak4               14    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.05            weak4               30    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.05            weak4               45    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.05            weak4               60    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.05            weak4               90    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.05            weak4              120    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.10              all                7    40     0.300         6.0     6.478             23
+synthetic_bytes (sanity)               0.10              all               14    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.10              all               30    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.10              all               45    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.10              all               60    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.10              all               90    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.10              all              120    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.10              csv                7    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.10              csv               14    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.10              csv               30    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.10              csv               45    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.10              csv               60    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.10              csv               90    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.10              csv              120    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.10            weak4                7    40     0.250         6.0     5.250             16
+synthetic_bytes (sanity)               0.10            weak4               14    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.10            weak4               30    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.10            weak4               45    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.10            weak4               60    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.10            weak4               90    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.10            weak4              120    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.50              all                7    40     0.300         6.0     6.478             23
+synthetic_bytes (sanity)               0.50              all               14    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.50              all               30    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.50              all               45    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.50              all               60    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.50              all               90    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.50              all              120    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               0.50              csv                7    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.50              csv               14    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.50              csv               30    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.50              csv               45    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.50              csv               60    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.50              csv               90    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.50              csv              120    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               0.50            weak4                7    40     0.250         6.0     5.250             16
+synthetic_bytes (sanity)               0.50            weak4               14    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.50            weak4               30    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.50            weak4               45    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.50            weak4               60    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.50            weak4               90    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               0.50            weak4              120    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               1.00              all                7    40     0.300         6.0     6.478             23
+synthetic_bytes (sanity)               1.00              all               14    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               1.00              all               30    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               1.00              all               45    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               1.00              all               60    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               1.00              all               90    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               1.00              all              120    40     0.575         6.0     6.478             23
+synthetic_bytes (sanity)               1.00              csv                7    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               1.00              csv               14    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               1.00              csv               30    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               1.00              csv               45    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               1.00              csv               60    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               1.00              csv               90    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               1.00              csv              120    40     0.125         1.0     1.400              5
+synthetic_bytes (sanity)               1.00            weak4                7    40     0.250         6.0     5.250             16
+synthetic_bytes (sanity)               1.00            weak4               14    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               1.00            weak4               30    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               1.00            weak4               45    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               1.00            weak4               60    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               1.00            weak4               90    40     0.400         6.0     5.250             16
+synthetic_bytes (sanity)               1.00            weak4              120    40     0.400         6.0     5.250             16
+   boundary-straddling attacker: identical to these rows in the daily model (OPEN_QUESTIONS 2026-10-25)
+== count alarm false alarms (in sample; held-out check registered separately)
+                     arm  c                                       sample  per_run_far  per_run_far_upper95  per_run_far_at_c_minus_1   p_day  p_day_upper95  fleet_fa_per_week_N20  fleet_fa_per_week_N100  fleet_fa_per_week_N20_upper95  fleet_fa_per_week_N100_upper95
+         napierone_bytes  3 in sample (calibration runs d74_alarm_calib)         0.01              0.05446                      0.31 0.00008        0.00046                0.01167                 0.05833                        0.06499                         0.32495
+synthetic_bytes (sanity)  3 in sample (calibration runs d74_alarm_calib)         0.00              0.03622                      0.08 0.00000        0.00031                0.00000                 0.00000                        0.04303                         0.21515
+   finding: at c - 1 = 2 the benign per-run false-alarm rate is 8% on synthetic bytes vs 31% on NapierOne: synthetic data underestimates benign noise
+== feasible share of grid strategies by arm and delay
+discovery_delay           7      14     30     45     60     90     120
+arm                                                                    
+synthetic_bytes (sanity)  0.3  0.222  0.167  0.122  0.122  0.111  0.111
+== worst case over delays (evaluation half), per defence
+                     arm           policy  budget restore               analysis objective  worst_eval_rec  worst_eval_wl
+synthetic_bytes (sanity)              gfs       4       A  bound_threshold_aware       rec            0.00         1929.6
+synthetic_bytes (sanity)              gfs       4       A  bound_threshold_aware        wl            0.00         1929.6
+synthetic_bytes (sanity)              gfs       4       A       primary_feasible       rec            0.00         1983.6
+synthetic_bytes (sanity)              gfs       4       A       primary_feasible        wl            0.00         1983.6
+synthetic_bytes (sanity)              gfs       4       A secondary_alarm_caught       rec            0.10         1992.0
+synthetic_bytes (sanity)              gfs       4       A secondary_alarm_caught        wl            0.20         1988.4
+synthetic_bytes (sanity)              gfs       4       B  bound_threshold_aware       rec            0.00          618.0
+synthetic_bytes (sanity)              gfs       4       B  bound_threshold_aware        wl            0.00          675.6
+synthetic_bytes (sanity)              gfs       4       B       primary_feasible       rec            0.00          162.0
+synthetic_bytes (sanity)              gfs       4       B       primary_feasible        wl            0.00          162.0
+synthetic_bytes (sanity)              gfs       4       B secondary_alarm_caught       rec            0.00          264.0
+synthetic_bytes (sanity)              gfs       4       B secondary_alarm_caught        wl            0.00          381.6
+synthetic_bytes (sanity)              gfs       8       A  bound_threshold_aware       rec            0.00         3114.0
+synthetic_bytes (sanity)              gfs       8       A  bound_threshold_aware        wl            0.00         3114.0
+synthetic_bytes (sanity)              gfs       8       A       primary_feasible       rec            0.00         3127.2
+synthetic_bytes (sanity)              gfs       8       A       primary_feasible        wl            0.00         3127.2
+synthetic_bytes (sanity)              gfs       8       A secondary_alarm_caught       rec            0.10         3127.2
+synthetic_bytes (sanity)              gfs       8       A secondary_alarm_caught        wl            0.05         3135.6
+synthetic_bytes (sanity)              gfs       8       B  bound_threshold_aware       rec            0.00          867.6
+synthetic_bytes (sanity)              gfs       8       B  bound_threshold_aware        wl            0.00          961.2
+synthetic_bytes (sanity)              gfs       8       B       primary_feasible       rec            0.00          159.6
+synthetic_bytes (sanity)              gfs       8       B       primary_feasible        wl            0.00          159.6
+synthetic_bytes (sanity)              gfs       8       B secondary_alarm_caught       rec            0.05          147.6
+synthetic_bytes (sanity)              gfs       8       B secondary_alarm_caught        wl            0.40          393.6
+synthetic_bytes (sanity)       prior_only       4       A  bound_threshold_aware       rec            0.00        11131.2
+synthetic_bytes (sanity)       prior_only       4       A  bound_threshold_aware        wl            1.00        11263.2
+synthetic_bytes (sanity)       prior_only       4       A       primary_feasible       rec            1.00        11389.2
+synthetic_bytes (sanity)       prior_only       4       A       primary_feasible        wl            1.00        11389.2
+synthetic_bytes (sanity)       prior_only       4       A secondary_alarm_caught       rec            0.10        10128.0
+synthetic_bytes (sanity)       prior_only       4       A secondary_alarm_caught        wl            1.00        10790.4
+synthetic_bytes (sanity)       prior_only       4       B  bound_threshold_aware       rec            0.00         2467.2
+synthetic_bytes (sanity)       prior_only       4       B  bound_threshold_aware        wl            0.95         2722.8
+synthetic_bytes (sanity)       prior_only       4       B       primary_feasible       rec            0.05          862.8
+synthetic_bytes (sanity)       prior_only       4       B       primary_feasible        wl            0.05          862.8
+synthetic_bytes (sanity)       prior_only       4       B secondary_alarm_caught       rec            0.05          920.4
+synthetic_bytes (sanity)       prior_only       4       B secondary_alarm_caught        wl            0.20         2599.2
+synthetic_bytes (sanity)       prior_only       8       A  bound_threshold_aware       rec            0.00        11390.4
+synthetic_bytes (sanity)       prior_only       8       A  bound_threshold_aware        wl            1.00        11583.6
+synthetic_bytes (sanity)       prior_only       8       A       primary_feasible       rec            1.00        11709.6
+synthetic_bytes (sanity)       prior_only       8       A       primary_feasible        wl            1.00        11709.6
+synthetic_bytes (sanity)       prior_only       8       A secondary_alarm_caught       rec            0.10        10404.0
+synthetic_bytes (sanity)       prior_only       8       A secondary_alarm_caught        wl            1.00        11097.6
+synthetic_bytes (sanity)       prior_only       8       B  bound_threshold_aware       rec            0.00         1520.4
+synthetic_bytes (sanity)       prior_only       8       B  bound_threshold_aware        wl            0.95         1653.6
+synthetic_bytes (sanity)       prior_only       8       B       primary_feasible       rec            0.05          536.4
+synthetic_bytes (sanity)       prior_only       8       B       primary_feasible        wl            0.05          536.4
+synthetic_bytes (sanity)       prior_only       8       B secondary_alarm_caught       rec            0.05          625.2
+synthetic_bytes (sanity)       prior_only       8       B secondary_alarm_caught        wl            0.20         1561.2
+synthetic_bytes (sanity) shamir_recursive       4       A  bound_threshold_aware       rec            0.00        12104.4
+synthetic_bytes (sanity) shamir_recursive       4       A  bound_threshold_aware        wl            0.95        12301.2
+synthetic_bytes (sanity) shamir_recursive       4       A       primary_feasible       rec            0.95        12446.4
+synthetic_bytes (sanity) shamir_recursive       4       A       primary_feasible        wl            0.95        12446.4
+synthetic_bytes (sanity) shamir_recursive       4       A secondary_alarm_caught       rec            0.10        11077.2
+synthetic_bytes (sanity) shamir_recursive       4       A secondary_alarm_caught        wl            0.95        11839.2
+synthetic_bytes (sanity) shamir_recursive       4       B  bound_threshold_aware       rec            0.00         2787.6
+synthetic_bytes (sanity) shamir_recursive       4       B  bound_threshold_aware        wl            0.90         3063.6
+synthetic_bytes (sanity) shamir_recursive       4       B       primary_feasible       rec            0.05         1113.6
+synthetic_bytes (sanity) shamir_recursive       4       B       primary_feasible        wl            0.05         1113.6
+synthetic_bytes (sanity) shamir_recursive       4       B secondary_alarm_caught       rec            0.05         1190.4
+synthetic_bytes (sanity) shamir_recursive       4       B secondary_alarm_caught        wl            0.95         2799.6
+synthetic_bytes (sanity) shamir_recursive       8       A  bound_threshold_aware       rec            0.00        10975.2
+synthetic_bytes (sanity) shamir_recursive       8       A  bound_threshold_aware        wl            1.00        11155.2
+synthetic_bytes (sanity) shamir_recursive       8       A       primary_feasible       rec            1.00        11281.2
+synthetic_bytes (sanity) shamir_recursive       8       A       primary_feasible        wl            1.00        11281.2
+synthetic_bytes (sanity) shamir_recursive       8       A secondary_alarm_caught       rec            0.10         9950.4
+synthetic_bytes (sanity) shamir_recursive       8       A secondary_alarm_caught        wl            1.00        10474.8
+synthetic_bytes (sanity) shamir_recursive       8       B  bound_threshold_aware       rec            0.00         1543.2
+synthetic_bytes (sanity) shamir_recursive       8       B  bound_threshold_aware        wl            0.95         1711.2
+synthetic_bytes (sanity) shamir_recursive       8       B       primary_feasible       rec            0.05          529.2
+synthetic_bytes (sanity) shamir_recursive       8       B       primary_feasible        wl            0.05          529.2
+synthetic_bytes (sanity) shamir_recursive       8       B secondary_alarm_caught       rec            0.05          573.6
+synthetic_bytes (sanity) shamir_recursive       8       B secondary_alarm_caught        wl            0.20         1738.8
+synthetic_bytes (sanity)         slowburn       4       A  bound_threshold_aware       rec            0.00         9625.2
+synthetic_bytes (sanity)         slowburn       4       A  bound_threshold_aware        wl            0.95        11066.4
+synthetic_bytes (sanity)         slowburn       4       A       primary_feasible       rec            0.95        11190.0
+synthetic_bytes (sanity)         slowburn       4       A       primary_feasible        wl            0.95        11190.0
+synthetic_bytes (sanity)         slowburn       4       A secondary_alarm_caught       rec            0.10         9798.0
+synthetic_bytes (sanity)         slowburn       4       A secondary_alarm_caught        wl            0.95        10591.2
+synthetic_bytes (sanity)         slowburn       4       B  bound_threshold_aware       rec            0.00         2234.4
+synthetic_bytes (sanity)         slowburn       4       B  bound_threshold_aware        wl            0.75         2420.4
+synthetic_bytes (sanity)         slowburn       4       B       primary_feasible       rec            0.05          838.8
+synthetic_bytes (sanity)         slowburn       4       B       primary_feasible        wl            0.05          838.8
+synthetic_bytes (sanity)         slowburn       4       B secondary_alarm_caught       rec            0.05          889.2
+synthetic_bytes (sanity)         slowburn       4       B secondary_alarm_caught        wl            0.95         2396.4
+synthetic_bytes (sanity)         slowburn       8       A  bound_threshold_aware       rec            0.00        11319.6
+synthetic_bytes (sanity)         slowburn       8       A  bound_threshold_aware        wl            1.00        11510.4
+synthetic_bytes (sanity)         slowburn       8       A       primary_feasible       rec            1.00        11636.4
+synthetic_bytes (sanity)         slowburn       8       A       primary_feasible        wl            1.00        11636.4
+synthetic_bytes (sanity)         slowburn       8       A secondary_alarm_caught       rec            0.10        10339.2
+synthetic_bytes (sanity)         slowburn       8       A secondary_alarm_caught        wl            1.00        10885.2
+synthetic_bytes (sanity)         slowburn       8       B  bound_threshold_aware       rec            0.00         1410.0
+synthetic_bytes (sanity)         slowburn       8       B  bound_threshold_aware        wl            0.85         1536.0
+synthetic_bytes (sanity)         slowburn       8       B       primary_feasible       rec            0.05          536.4
+synthetic_bytes (sanity)         slowburn       8       B       primary_feasible        wl            0.05          536.4
+synthetic_bytes (sanity)         slowburn       8       B secondary_alarm_caught       rec            0.05          625.2
+synthetic_bytes (sanity)         slowburn       8       B secondary_alarm_caught        wl            0.30         1557.6
+synthetic_bytes (sanity)   tower_of_hanoi       4       A  bound_threshold_aware       rec            0.00          442.8
+synthetic_bytes (sanity)   tower_of_hanoi       4       A  bound_threshold_aware        wl            0.00          442.8
+synthetic_bytes (sanity)   tower_of_hanoi       4       A       primary_feasible       rec            0.00          448.8
+synthetic_bytes (sanity)   tower_of_hanoi       4       A       primary_feasible        wl            0.00          448.8
+synthetic_bytes (sanity)   tower_of_hanoi       4       A secondary_alarm_caught       rec            0.00          445.2
+synthetic_bytes (sanity)   tower_of_hanoi       4       A secondary_alarm_caught        wl            1.00          423.6
+synthetic_bytes (sanity)   tower_of_hanoi       4       B  bound_threshold_aware       rec            0.00           31.2
+synthetic_bytes (sanity)   tower_of_hanoi       4       B  bound_threshold_aware        wl            0.00           31.2
+synthetic_bytes (sanity)   tower_of_hanoi       4       B       primary_feasible       rec            0.00            9.6
+synthetic_bytes (sanity)   tower_of_hanoi       4       B       primary_feasible        wl            0.00            9.6
+synthetic_bytes (sanity)   tower_of_hanoi       4       B secondary_alarm_caught       rec            0.00           16.8
+synthetic_bytes (sanity)   tower_of_hanoi       4       B secondary_alarm_caught        wl            0.05           21.6
+synthetic_bytes (sanity)   tower_of_hanoi       8       A  bound_threshold_aware       rec            0.00         7260.0
+synthetic_bytes (sanity)   tower_of_hanoi       8       A  bound_threshold_aware        wl            0.10         7281.6
+synthetic_bytes (sanity)   tower_of_hanoi       8       A       primary_feasible       rec            0.10         7393.2
+synthetic_bytes (sanity)   tower_of_hanoi       8       A       primary_feasible        wl            0.10         7393.2
+synthetic_bytes (sanity)   tower_of_hanoi       8       A secondary_alarm_caught       rec            0.20         6820.8
+synthetic_bytes (sanity)   tower_of_hanoi       8       A secondary_alarm_caught        wl            0.05         7148.4
+synthetic_bytes (sanity)   tower_of_hanoi       8       B  bound_threshold_aware       rec            0.00         1804.8
+synthetic_bytes (sanity)   tower_of_hanoi       8       B  bound_threshold_aware        wl            0.10         1969.2
+synthetic_bytes (sanity)   tower_of_hanoi       8       B       primary_feasible       rec            0.05          400.8
+synthetic_bytes (sanity)   tower_of_hanoi       8       B       primary_feasible        wl            0.05          400.8
+synthetic_bytes (sanity)   tower_of_hanoi       8       B secondary_alarm_caught       rec            0.05          597.6
+synthetic_bytes (sanity)   tower_of_hanoi       8       B secondary_alarm_caught        wl            0.20         1287.6
+== realistic attacker (D72 attacker, delays 7-60)
+                     arm           policy  budget restore   rec      wl
+synthetic_bytes (sanity)              gfs       4       A 0.410 1720.32
+synthetic_bytes (sanity)              gfs       4       B 0.410  246.48
+synthetic_bytes (sanity)              gfs       8       A 0.615 2733.84
+synthetic_bytes (sanity)              gfs       8       B 0.615  224.40
+synthetic_bytes (sanity)       prior_only       4       A 1.000 7057.32
+synthetic_bytes (sanity)       prior_only       4       B 1.000 1191.60
+synthetic_bytes (sanity)       prior_only       8       A 1.000 6185.76
+synthetic_bytes (sanity)       prior_only       8       B 1.000  658.68
+synthetic_bytes (sanity) shamir_recursive       4       A 1.000 6186.36
+synthetic_bytes (sanity) shamir_recursive       4       B 1.000 1311.48
+synthetic_bytes (sanity) shamir_recursive       8       A 1.000 4753.44
+synthetic_bytes (sanity) shamir_recursive       8       B 1.000  635.16
+synthetic_bytes (sanity)         slowburn       4       A 0.995 6483.12
+synthetic_bytes (sanity)         slowburn       4       B 0.995 1163.04
+synthetic_bytes (sanity)         slowburn       8       A 1.000 5437.56
+synthetic_bytes (sanity)         slowburn       8       B 1.000  654.72
+synthetic_bytes (sanity)   tower_of_hanoi       4       A 0.000  388.56
+synthetic_bytes (sanity)   tower_of_hanoi       4       B 0.000   11.16
+synthetic_bytes (sanity)   tower_of_hanoi       8       A 0.930 4476.12
+synthetic_bytes (sanity)   tower_of_hanoi       8       B 0.930  430.08

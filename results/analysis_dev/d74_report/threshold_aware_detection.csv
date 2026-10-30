@@ -1,0 +1,211 @@
+arm,strategy_fraction,strategy_targets,discovery_delay,runs,p_detect,ttd_median,ttd_mean,detected_runs
+napierone_bytes,0.01,all,7,40,0.2,7.5,7.1875,16.0
+napierone_bytes,0.01,all,14,40,0.375,7.5,7.1875,16.0
+napierone_bytes,0.01,all,30,40,0.4,7.5,7.1875,16.0
+napierone_bytes,0.01,all,45,40,0.4,7.5,7.1875,16.0
+napierone_bytes,0.01,all,60,40,0.4,7.5,7.1875,16.0
+napierone_bytes,0.01,all,90,40,0.4,7.5,7.1875,16.0
+napierone_bytes,0.01,all,120,40,0.4,7.5,7.1875,16.0
+napierone_bytes,0.01,csv,7,40,0.0,,,
+napierone_bytes,0.01,csv,14,40,0.0,,,
+napierone_bytes,0.01,csv,30,40,0.0,,,
+napierone_bytes,0.01,csv,45,40,0.0,,,
+napierone_bytes,0.01,csv,60,40,0.0,,,
+napierone_bytes,0.01,csv,90,40,0.0,,,
+napierone_bytes,0.01,csv,120,40,0.0,,,
+napierone_bytes,0.01,weak4,7,40,0.025,13.0,14.333333333333334,3.0
+napierone_bytes,0.01,weak4,14,40,0.05,13.0,14.333333333333334,3.0
+napierone_bytes,0.01,weak4,30,40,0.075,13.0,14.333333333333334,3.0
+napierone_bytes,0.01,weak4,45,40,0.075,13.0,14.333333333333334,3.0
+napierone_bytes,0.01,weak4,60,40,0.075,13.0,14.333333333333334,3.0
+napierone_bytes,0.01,weak4,90,40,0.075,13.0,14.333333333333334,3.0
+napierone_bytes,0.01,weak4,120,40,0.075,13.0,14.333333333333334,3.0
+napierone_bytes,0.05,all,7,40,0.325,6.0,6.571428571428571,21.0
+napierone_bytes,0.05,all,14,40,0.525,6.0,6.571428571428571,21.0
+napierone_bytes,0.05,all,30,40,0.525,6.0,6.571428571428571,21.0
+napierone_bytes,0.05,all,45,40,0.525,6.0,6.571428571428571,21.0
+napierone_bytes,0.05,all,60,40,0.525,6.0,6.571428571428571,21.0
+napierone_bytes,0.05,all,90,40,0.525,6.0,6.571428571428571,21.0
+napierone_bytes,0.05,all,120,40,0.525,6.0,6.571428571428571,21.0
+napierone_bytes,0.05,csv,7,40,0.05,1.0,1.0,2.0
+napierone_bytes,0.05,csv,14,40,0.05,1.0,1.0,2.0
+napierone_bytes,0.05,csv,30,40,0.05,1.0,1.0,2.0
+napierone_bytes,0.05,csv,45,40,0.05,1.0,1.0,2.0
+napierone_bytes,0.05,csv,60,40,0.05,1.0,1.0,2.0
+napierone_bytes,0.05,csv,90,40,0.05,1.0,1.0,2.0
+napierone_bytes,0.05,csv,120,40,0.05,1.0,1.0,2.0
+napierone_bytes,0.05,weak4,7,40,0.075,7.5,10.166666666666666,6.0
+napierone_bytes,0.05,weak4,14,40,0.125,7.5,10.166666666666666,6.0
+napierone_bytes,0.05,weak4,30,40,0.15,7.5,10.166666666666666,6.0
+napierone_bytes,0.05,weak4,45,40,0.15,7.5,10.166666666666666,6.0
+napierone_bytes,0.05,weak4,60,40,0.15,7.5,10.166666666666666,6.0
+napierone_bytes,0.05,weak4,90,40,0.15,7.5,10.166666666666666,6.0
+napierone_bytes,0.05,weak4,120,40,0.15,7.5,10.166666666666666,6.0
+napierone_bytes,0.1,all,7,40,0.4,5.5,6.538461538461538,26.0
+napierone_bytes,0.1,all,14,40,0.625,5.5,6.538461538461538,26.0
+napierone_bytes,0.1,all,30,40,0.65,5.5,6.538461538461538,26.0
+napierone_bytes,0.1,all,45,40,0.65,5.5,6.538461538461538,26.0
+napierone_bytes,0.1,all,60,40,0.65,5.5,6.538461538461538,26.0
+napierone_bytes,0.1,all,90,40,0.65,5.5,6.538461538461538,26.0
+napierone_bytes,0.1,all,120,40,0.65,5.5,6.538461538461538,26.0
+napierone_bytes,0.1,csv,7,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.1,csv,14,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.1,csv,30,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.1,csv,45,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.1,csv,60,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.1,csv,90,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.1,csv,120,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.1,weak4,7,40,0.25,6.5,7.555555555555555,18.0
+napierone_bytes,0.1,weak4,14,40,0.425,6.5,7.555555555555555,18.0
+napierone_bytes,0.1,weak4,30,40,0.45,6.5,7.555555555555555,18.0
+napierone_bytes,0.1,weak4,45,40,0.45,6.5,7.555555555555555,18.0
+napierone_bytes,0.1,weak4,60,40,0.45,6.5,7.555555555555555,18.0
+napierone_bytes,0.1,weak4,90,40,0.45,6.5,7.555555555555555,18.0
+napierone_bytes,0.1,weak4,120,40,0.45,6.5,7.555555555555555,18.0
+napierone_bytes,0.5,all,7,40,0.475,5.0,6.111111111111111,27.0
+napierone_bytes,0.5,all,14,40,0.65,5.0,6.111111111111111,27.0
+napierone_bytes,0.5,all,30,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,0.5,all,45,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,0.5,all,60,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,0.5,all,90,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,0.5,all,120,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,0.5,csv,7,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.5,csv,14,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.5,csv,30,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.5,csv,45,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.5,csv,60,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.5,csv,90,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.5,csv,120,40,0.1,1.0,1.25,4.0
+napierone_bytes,0.5,weak4,7,40,0.475,5.5,6.076923076923077,26.0
+napierone_bytes,0.5,weak4,14,40,0.625,5.5,6.076923076923077,26.0
+napierone_bytes,0.5,weak4,30,40,0.65,5.5,6.076923076923077,26.0
+napierone_bytes,0.5,weak4,45,40,0.65,5.5,6.076923076923077,26.0
+napierone_bytes,0.5,weak4,60,40,0.65,5.5,6.076923076923077,26.0
+napierone_bytes,0.5,weak4,90,40,0.65,5.5,6.076923076923077,26.0
+napierone_bytes,0.5,weak4,120,40,0.65,5.5,6.076923076923077,26.0
+napierone_bytes,1.0,all,7,40,0.475,5.0,6.111111111111111,27.0
+napierone_bytes,1.0,all,14,40,0.65,5.0,6.111111111111111,27.0
+napierone_bytes,1.0,all,30,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,1.0,all,45,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,1.0,all,60,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,1.0,all,90,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,1.0,all,120,40,0.675,5.0,6.111111111111111,27.0
+napierone_bytes,1.0,csv,7,40,0.1,1.0,1.25,4.0
+napierone_bytes,1.0,csv,14,40,0.1,1.0,1.25,4.0
+napierone_bytes,1.0,csv,30,40,0.1,1.0,1.25,4.0
+napierone_bytes,1.0,csv,45,40,0.1,1.0,1.25,4.0
+napierone_bytes,1.0,csv,60,40,0.1,1.0,1.25,4.0
+napierone_bytes,1.0,csv,90,40,0.1,1.0,1.25,4.0
+napierone_bytes,1.0,csv,120,40,0.1,1.0,1.25,4.0
+napierone_bytes,1.0,weak4,7,40,0.45,6.0,6.384615384615385,26.0
+napierone_bytes,1.0,weak4,14,40,0.625,6.0,6.384615384615385,26.0
+napierone_bytes,1.0,weak4,30,40,0.65,6.0,6.384615384615385,26.0
+napierone_bytes,1.0,weak4,45,40,0.65,6.0,6.384615384615385,26.0
+napierone_bytes,1.0,weak4,60,40,0.65,6.0,6.384615384615385,26.0
+napierone_bytes,1.0,weak4,90,40,0.65,6.0,6.384615384615385,26.0
+napierone_bytes,1.0,weak4,120,40,0.65,6.0,6.384615384615385,26.0
+synthetic_bytes (sanity),0.01,all,7,40,0.15,8.5,9.166666666666666,18.0
+synthetic_bytes (sanity),0.01,all,14,40,0.35,8.5,9.166666666666666,18.0
+synthetic_bytes (sanity),0.01,all,30,40,0.45,8.5,9.166666666666666,18.0
+synthetic_bytes (sanity),0.01,all,45,40,0.45,8.5,9.166666666666666,18.0
+synthetic_bytes (sanity),0.01,all,60,40,0.45,8.5,9.166666666666666,18.0
+synthetic_bytes (sanity),0.01,all,90,40,0.45,8.5,9.166666666666666,18.0
+synthetic_bytes (sanity),0.01,all,120,40,0.45,8.5,9.166666666666666,18.0
+synthetic_bytes (sanity),0.01,csv,7,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.01,csv,14,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.01,csv,30,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.01,csv,45,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.01,csv,60,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.01,csv,90,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.01,csv,120,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.01,weak4,7,40,0.15,6.0,5.7,10.0
+synthetic_bytes (sanity),0.01,weak4,14,40,0.25,6.0,5.7,10.0
+synthetic_bytes (sanity),0.01,weak4,30,40,0.25,6.0,5.7,10.0
+synthetic_bytes (sanity),0.01,weak4,45,40,0.25,6.0,5.7,10.0
+synthetic_bytes (sanity),0.01,weak4,60,40,0.25,6.0,5.7,10.0
+synthetic_bytes (sanity),0.01,weak4,90,40,0.25,6.0,5.7,10.0
+synthetic_bytes (sanity),0.01,weak4,120,40,0.25,6.0,5.7,10.0
+synthetic_bytes (sanity),0.05,all,7,40,0.175,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.05,all,14,40,0.35,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.05,all,30,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.05,all,45,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.05,all,60,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.05,all,90,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.05,all,120,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.05,csv,7,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.05,csv,14,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.05,csv,30,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.05,csv,45,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.05,csv,60,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.05,csv,90,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.05,csv,120,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.05,weak4,7,40,0.2,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.05,weak4,14,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.05,weak4,30,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.05,weak4,45,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.05,weak4,60,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.05,weak4,90,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.05,weak4,120,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.1,all,7,40,0.175,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.1,all,14,40,0.35,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.1,all,30,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.1,all,45,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.1,all,60,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.1,all,90,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.1,all,120,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.1,csv,7,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.1,csv,14,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.1,csv,30,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.1,csv,45,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.1,csv,60,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.1,csv,90,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.1,csv,120,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.1,weak4,7,40,0.2,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.1,weak4,14,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.1,weak4,30,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.1,weak4,45,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.1,weak4,60,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.1,weak4,90,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.1,weak4,120,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.5,all,7,40,0.175,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.5,all,14,40,0.35,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.5,all,30,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.5,all,45,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.5,all,60,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.5,all,90,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.5,all,120,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),0.5,csv,7,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.5,csv,14,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.5,csv,30,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.5,csv,45,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.5,csv,60,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.5,csv,90,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.5,csv,120,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),0.5,weak4,7,40,0.2,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.5,weak4,14,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.5,weak4,30,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.5,weak4,45,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.5,weak4,60,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.5,weak4,90,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),0.5,weak4,120,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),1.0,all,7,40,0.175,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),1.0,all,14,40,0.35,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),1.0,all,30,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),1.0,all,45,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),1.0,all,60,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),1.0,all,90,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),1.0,all,120,40,0.45,8.5,8.944444444444445,18.0
+synthetic_bytes (sanity),1.0,csv,7,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),1.0,csv,14,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),1.0,csv,30,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),1.0,csv,45,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),1.0,csv,60,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),1.0,csv,90,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),1.0,csv,120,40,0.05,2.0,2.0,2.0
+synthetic_bytes (sanity),1.0,weak4,7,40,0.2,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),1.0,weak4,14,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),1.0,weak4,30,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),1.0,weak4,45,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),1.0,weak4,60,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),1.0,weak4,90,40,0.325,5.0,5.615384615384615,13.0
+synthetic_bytes (sanity),1.0,weak4,120,40,0.325,5.0,5.615384615384615,13.0

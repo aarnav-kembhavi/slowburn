@@ -1,0 +1,8 @@
+{
+ "mode": "dev",
+ "script": "d74_alarm_holdout",
+ "commit": "1c1556b",
+ "peak_mb": 120,
+ "constants": {},
+ "dev_runs": []
+}

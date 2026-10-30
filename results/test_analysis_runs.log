@@ -143,3 +143,7 @@
 2026-10-30T08:08:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
 2026-10-30T08:13:43+05:30 analysis test d74_alarm_holdout: free RAM 17.6 GB < 22, waiting 300 s
 2026-10-30T08:14:59+05:30 waiting loop for the TEST ALARM copy stopped by process tree (22 GB gate, waited since 00:28); amendment 3: copy at 16 GB
+2026-10-30T08:15:02+05:30 analysis TEST ALARM copy at 16 GB (amendment 3)
+2026-10-30T08:15:02+05:30 START analysis test d74_alarm_holdout attempt 1 (free RAM 17.7 GB)
+2026-10-30T08:15:07+05:30 END analysis test d74_alarm_holdout exit 0, peak working set 118 MB
+2026-10-30T08:15:07+05:30 ANALYSIS QUEUE DONE: dev and test, all scripts

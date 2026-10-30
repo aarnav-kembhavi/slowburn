@@ -1,0 +1,36 @@
+== greedy vs exact: 500 cases, optimal 0.990, largest relative excess 0.2410
+== K_avg = 4: no reallocation room (floor 3 of 4); descriptive only
+                               fleet_clean_A  work_lost_file_hours_A
+arm             method                                              
+napierone_bytes a_equal                0.946              135444.258
+                b_churn                0.941              130025.825
+                c_fleet                0.899              101276.217
+                d_slowburn             0.935              127967.117
+                e_fleet_indep          0.938              120013.983
+synthetic_bytes a_equal                1.000              128049.017
+                b_churn                1.000              122559.667
+                c_fleet                1.000               95923.142
+                d_slowburn             1.000              119166.583
+                e_fleet_indep          1.000              112576.992
+            arm      vs restore  primary  pairs  worst_cell_recovery_diff  c1_recovery  pooled_recovery_diff  rec_lo  rec_hi  pooled_file_wl_rel   wl_lo   wl_hi  c2_pooled_wl  fm_cells_lower  c3_cells   all
+napierone_bytes a_equal       A     True   5760                   -0.1937        False               -0.0347 -0.0547 -0.0170             -0.1874 -0.2235 -0.1517          True               9      True False
+napierone_bytes a_equal       B    False   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.1301 -0.1691 -0.0827          True               9      True  True
+napierone_bytes a_equal       C    False   5760                   -0.0250        False                0.0757  0.0465  0.1038             -0.1742 -0.2143 -0.1309          True               9      True False
+napierone_bytes a_equal       D    False   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.1335 -0.1734 -0.0841          True               9      True  True
+napierone_bytes a_equal       E    False   5760                   -0.1688        False               -0.0167 -0.0337 -0.0010             -0.0103 -0.0764  0.0682         False               4     False False
+napierone_bytes b_churn       A     True   5760                   -0.2062        False               -0.0332 -0.0585 -0.0113             -0.1448 -0.1838 -0.1079          True               9      True False
+napierone_bytes b_churn       B    False   5760                    0.0000         True                0.0000  0.0000  0.0000              0.0041 -0.0452  0.0592         False               3     False False
+napierone_bytes b_churn       C    False   5760                   -0.0250        False                0.0760  0.0469  0.1042             -0.1225 -0.1617 -0.0817          True               9      True False
+napierone_bytes b_churn       D    False   5760                    0.0000         True                0.0000  0.0000  0.0000              0.0052 -0.0447  0.0617         False               2     False False
+napierone_bytes b_churn       E    False   5760                   -0.1875        False               -0.0307 -0.0523 -0.0130              0.0114 -0.0424  0.0681         False               0     False False
+synthetic_bytes a_equal       A     True   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.1572 -0.1937 -0.1168          True               9      True  True
+synthetic_bytes a_equal       B    False   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.1425 -0.1817 -0.0993          True               9      True  True
+synthetic_bytes a_equal       C    False   5760                    0.0000         True                0.0003  0.0000  0.0010             -0.1600 -0.1989 -0.1127          True               9      True  True
+synthetic_bytes a_equal       D    False   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.1429 -0.1829 -0.0990          True               9      True  True
+synthetic_bytes a_equal       E    False   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.0272 -0.0919  0.0530         False               5     False False
+synthetic_bytes b_churn       A     True   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.0976 -0.1310 -0.0641          True               9      True  True
+synthetic_bytes b_churn       B    False   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.0244 -0.0733  0.0283         False               9      True False
+synthetic_bytes b_churn       C    False   5760                    0.0000         True                0.0003  0.0000  0.0010             -0.1141 -0.1525 -0.0716          True               9      True  True
+synthetic_bytes b_churn       D    False   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.0250 -0.0758  0.0291         False               9      True False
+synthetic_bytes b_churn       E    False   5760                    0.0000         True                0.0000  0.0000  0.0000             -0.0084 -0.0612  0.0485         False               5     False False
+== FLEET adopted (primary restore A, vs a and b, both arms): False

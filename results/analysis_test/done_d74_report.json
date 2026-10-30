@@ -1,0 +1,6 @@
+{
+ "mode": "test",
+ "script": "d74_report",
+ "per_arm": true,
+ "merged_from": "results\\analysis_test\\d74_report_per_arm"
+}

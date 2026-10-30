@@ -1,0 +1,12 @@
+{
+ "mode": "dev",
+ "script": "d74_report_synthetic_bytes_per_arm_check",
+ "commit": "ae4b0aa",
+ "peak_mb": 9063,
+ "constants": {
+  "OUT": "results\\analysis_dev\\d74_report_per_arm_check\\synthetic_bytes"
+ },
+ "dev_runs": [
+  "results/dev_d74_attack_synthetic"
+ ]
+}

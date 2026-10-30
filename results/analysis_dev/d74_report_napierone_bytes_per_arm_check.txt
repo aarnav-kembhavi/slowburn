@@ -1,0 +1,262 @@
+== threshold-aware attacker (c - 1 files/day; benign and attacker flags share one
+   daily counter): detection probability per run within d, time to detection (days)
+            arm  strategy_fraction strategy_targets  discovery_delay  runs  p_detect  ttd_median  ttd_mean  detected_runs
+napierone_bytes               0.01              all                7    40     0.200         7.5     7.188           16.0
+napierone_bytes               0.01              all               14    40     0.375         7.5     7.188           16.0
+napierone_bytes               0.01              all               30    40     0.400         7.5     7.188           16.0
+napierone_bytes               0.01              all               45    40     0.400         7.5     7.188           16.0
+napierone_bytes               0.01              all               60    40     0.400         7.5     7.188           16.0
+napierone_bytes               0.01              all               90    40     0.400         7.5     7.188           16.0
+napierone_bytes               0.01              all              120    40     0.400         7.5     7.188           16.0
+napierone_bytes               0.01              csv                7    40     0.000         NaN       NaN            NaN
+napierone_bytes               0.01              csv               14    40     0.000         NaN       NaN            NaN
+napierone_bytes               0.01              csv               30    40     0.000         NaN       NaN            NaN
+napierone_bytes               0.01              csv               45    40     0.000         NaN       NaN            NaN
+napierone_bytes               0.01              csv               60    40     0.000         NaN       NaN            NaN
+napierone_bytes               0.01              csv               90    40     0.000         NaN       NaN            NaN
+napierone_bytes               0.01              csv              120    40     0.000         NaN       NaN            NaN
+napierone_bytes               0.01            weak4                7    40     0.025        13.0    14.333            3.0
+napierone_bytes               0.01            weak4               14    40     0.050        13.0    14.333            3.0
+napierone_bytes               0.01            weak4               30    40     0.075        13.0    14.333            3.0
+napierone_bytes               0.01            weak4               45    40     0.075        13.0    14.333            3.0
+napierone_bytes               0.01            weak4               60    40     0.075        13.0    14.333            3.0
+napierone_bytes               0.01            weak4               90    40     0.075        13.0    14.333            3.0
+napierone_bytes               0.01            weak4              120    40     0.075        13.0    14.333            3.0
+napierone_bytes               0.05              all                7    40     0.325         6.0     6.571           21.0
+napierone_bytes               0.05              all               14    40     0.525         6.0     6.571           21.0
+napierone_bytes               0.05              all               30    40     0.525         6.0     6.571           21.0
+napierone_bytes               0.05              all               45    40     0.525         6.0     6.571           21.0
+napierone_bytes               0.05              all               60    40     0.525         6.0     6.571           21.0
+napierone_bytes               0.05              all               90    40     0.525         6.0     6.571           21.0
+napierone_bytes               0.05              all              120    40     0.525         6.0     6.571           21.0
+napierone_bytes               0.05              csv                7    40     0.050         1.0     1.000            2.0
+napierone_bytes               0.05              csv               14    40     0.050         1.0     1.000            2.0
+napierone_bytes               0.05              csv               30    40     0.050         1.0     1.000            2.0
+napierone_bytes               0.05              csv               45    40     0.050         1.0     1.000            2.0
+napierone_bytes               0.05              csv               60    40     0.050         1.0     1.000            2.0
+napierone_bytes               0.05              csv               90    40     0.050         1.0     1.000            2.0
+napierone_bytes               0.05              csv              120    40     0.050         1.0     1.000            2.0
+napierone_bytes               0.05            weak4                7    40     0.075         7.5    10.167            6.0
+napierone_bytes               0.05            weak4               14    40     0.125         7.5    10.167            6.0
+napierone_bytes               0.05            weak4               30    40     0.150         7.5    10.167            6.0
+napierone_bytes               0.05            weak4               45    40     0.150         7.5    10.167            6.0
+napierone_bytes               0.05            weak4               60    40     0.150         7.5    10.167            6.0
+napierone_bytes               0.05            weak4               90    40     0.150         7.5    10.167            6.0
+napierone_bytes               0.05            weak4              120    40     0.150         7.5    10.167            6.0
+napierone_bytes               0.10              all                7    40     0.400         5.5     6.538           26.0
+napierone_bytes               0.10              all               14    40     0.625         5.5     6.538           26.0
+napierone_bytes               0.10              all               30    40     0.650         5.5     6.538           26.0
+napierone_bytes               0.10              all               45    40     0.650         5.5     6.538           26.0
+napierone_bytes               0.10              all               60    40     0.650         5.5     6.538           26.0
+napierone_bytes               0.10              all               90    40     0.650         5.5     6.538           26.0
+napierone_bytes               0.10              all              120    40     0.650         5.5     6.538           26.0
+napierone_bytes               0.10              csv                7    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.10              csv               14    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.10              csv               30    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.10              csv               45    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.10              csv               60    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.10              csv               90    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.10              csv              120    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.10            weak4                7    40     0.250         6.5     7.556           18.0
+napierone_bytes               0.10            weak4               14    40     0.425         6.5     7.556           18.0
+napierone_bytes               0.10            weak4               30    40     0.450         6.5     7.556           18.0
+napierone_bytes               0.10            weak4               45    40     0.450         6.5     7.556           18.0
+napierone_bytes               0.10            weak4               60    40     0.450         6.5     7.556           18.0
+napierone_bytes               0.10            weak4               90    40     0.450         6.5     7.556           18.0
+napierone_bytes               0.10            weak4              120    40     0.450         6.5     7.556           18.0
+napierone_bytes               0.50              all                7    40     0.475         5.0     6.111           27.0
+napierone_bytes               0.50              all               14    40     0.650         5.0     6.111           27.0
+napierone_bytes               0.50              all               30    40     0.675         5.0     6.111           27.0
+napierone_bytes               0.50              all               45    40     0.675         5.0     6.111           27.0
+napierone_bytes               0.50              all               60    40     0.675         5.0     6.111           27.0
+napierone_bytes               0.50              all               90    40     0.675         5.0     6.111           27.0
+napierone_bytes               0.50              all              120    40     0.675         5.0     6.111           27.0
+napierone_bytes               0.50              csv                7    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.50              csv               14    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.50              csv               30    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.50              csv               45    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.50              csv               60    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.50              csv               90    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.50              csv              120    40     0.100         1.0     1.250            4.0
+napierone_bytes               0.50            weak4                7    40     0.475         5.5     6.077           26.0
+napierone_bytes               0.50            weak4               14    40     0.625         5.5     6.077           26.0
+napierone_bytes               0.50            weak4               30    40     0.650         5.5     6.077           26.0
+napierone_bytes               0.50            weak4               45    40     0.650         5.5     6.077           26.0
+napierone_bytes               0.50            weak4               60    40     0.650         5.5     6.077           26.0
+napierone_bytes               0.50            weak4               90    40     0.650         5.5     6.077           26.0
+napierone_bytes               0.50            weak4              120    40     0.650         5.5     6.077           26.0
+napierone_bytes               1.00              all                7    40     0.475         5.0     6.111           27.0
+napierone_bytes               1.00              all               14    40     0.650         5.0     6.111           27.0
+napierone_bytes               1.00              all               30    40     0.675         5.0     6.111           27.0
+napierone_bytes               1.00              all               45    40     0.675         5.0     6.111           27.0
+napierone_bytes               1.00              all               60    40     0.675         5.0     6.111           27.0
+napierone_bytes               1.00              all               90    40     0.675         5.0     6.111           27.0
+napierone_bytes               1.00              all              120    40     0.675         5.0     6.111           27.0
+napierone_bytes               1.00              csv                7    40     0.100         1.0     1.250            4.0
+napierone_bytes               1.00              csv               14    40     0.100         1.0     1.250            4.0
+napierone_bytes               1.00              csv               30    40     0.100         1.0     1.250            4.0
+napierone_bytes               1.00              csv               45    40     0.100         1.0     1.250            4.0
+napierone_bytes               1.00              csv               60    40     0.100         1.0     1.250            4.0
+napierone_bytes               1.00              csv               90    40     0.100         1.0     1.250            4.0
+napierone_bytes               1.00              csv              120    40     0.100         1.0     1.250            4.0
+napierone_bytes               1.00            weak4                7    40     0.450         6.0     6.385           26.0
+napierone_bytes               1.00            weak4               14    40     0.625         6.0     6.385           26.0
+napierone_bytes               1.00            weak4               30    40     0.650         6.0     6.385           26.0
+napierone_bytes               1.00            weak4               45    40     0.650         6.0     6.385           26.0
+napierone_bytes               1.00            weak4               60    40     0.650         6.0     6.385           26.0
+napierone_bytes               1.00            weak4               90    40     0.650         6.0     6.385           26.0
+napierone_bytes               1.00            weak4              120    40     0.650         6.0     6.385           26.0
+   boundary-straddling attacker: identical to these rows in the daily model (OPEN_QUESTIONS 2026-10-25)
+== count alarm false alarms (in sample; held-out check registered separately)
+                     arm  c                                       sample  per_run_far  per_run_far_upper95  per_run_far_at_c_minus_1   p_day  p_day_upper95  fleet_fa_per_week_N20  fleet_fa_per_week_N100  fleet_fa_per_week_N20_upper95  fleet_fa_per_week_N100_upper95
+         napierone_bytes  3 in sample (calibration runs d74_alarm_calib)         0.01              0.05446                      0.31 0.00008        0.00046                0.01167                 0.05833                        0.06499                         0.32495
+synthetic_bytes (sanity)  3 in sample (calibration runs d74_alarm_calib)         0.00              0.03622                      0.08 0.00000        0.00031                0.00000                 0.00000                        0.04303                         0.21515
+   finding: at c - 1 = 2 the benign per-run false-alarm rate is 8% on synthetic bytes vs 31% on NapierOne: synthetic data underestimates benign noise
+== feasible share of grid strategies by arm and delay
+discovery_delay    7    14     30     45     60     90     120
+arm                                                           
+napierone_bytes  0.433  0.4  0.267  0.256  0.244  0.244  0.222
+== worst case over delays (evaluation half), per defence
+            arm           policy  budget restore               analysis objective  worst_eval_rec  worst_eval_wl
+napierone_bytes              gfs       4       A  bound_threshold_aware       rec            0.00         1858.8
+napierone_bytes              gfs       4       A  bound_threshold_aware        wl            0.00         1858.8
+napierone_bytes              gfs       4       A       primary_feasible       rec            0.00         1971.6
+napierone_bytes              gfs       4       A       primary_feasible        wl            0.00         1971.6
+napierone_bytes              gfs       4       A secondary_alarm_caught       rec            0.00         1971.6
+napierone_bytes              gfs       4       A secondary_alarm_caught        wl            0.55         1884.0
+napierone_bytes              gfs       4       B  bound_threshold_aware       rec            0.00          469.2
+napierone_bytes              gfs       4       B  bound_threshold_aware        wl            0.00          638.4
+napierone_bytes              gfs       4       B       primary_feasible       rec            0.00          138.0
+napierone_bytes              gfs       4       B       primary_feasible        wl            0.00          168.0
+napierone_bytes              gfs       4       B secondary_alarm_caught       rec            0.05          357.6
+napierone_bytes              gfs       4       B secondary_alarm_caught        wl            0.15          352.8
+napierone_bytes              gfs       8       A  bound_threshold_aware       rec            0.00         3127.2
+napierone_bytes              gfs       8       A  bound_threshold_aware        wl            0.00         3127.2
+napierone_bytes              gfs       8       A       primary_feasible       rec            0.00         3057.6
+napierone_bytes              gfs       8       A       primary_feasible        wl            0.00         3105.6
+napierone_bytes              gfs       8       A secondary_alarm_caught       rec            0.00         3096.0
+napierone_bytes              gfs       8       A secondary_alarm_caught        wl            0.35         3321.6
+napierone_bytes              gfs       8       B  bound_threshold_aware       rec            0.00          690.0
+napierone_bytes              gfs       8       B  bound_threshold_aware        wl            0.00          939.6
+napierone_bytes              gfs       8       B       primary_feasible       rec            0.00          104.4
+napierone_bytes              gfs       8       B       primary_feasible        wl            0.00          142.8
+napierone_bytes              gfs       8       B secondary_alarm_caught       rec            0.10          369.6
+napierone_bytes              gfs       8       B secondary_alarm_caught        wl            0.05          256.8
+napierone_bytes       prior_only       4       A  bound_threshold_aware       rec            0.00        10090.8
+napierone_bytes       prior_only       4       A  bound_threshold_aware        wl            0.10        10466.4
+napierone_bytes       prior_only       4       A       primary_feasible       rec            0.00        10285.2
+napierone_bytes       prior_only       4       A       primary_feasible        wl            0.70        10488.0
+napierone_bytes       prior_only       4       A secondary_alarm_caught       rec            0.00        10285.2
+napierone_bytes       prior_only       4       A secondary_alarm_caught        wl            0.00        10285.2
+napierone_bytes       prior_only       4       B  bound_threshold_aware       rec            0.00         1912.8
+napierone_bytes       prior_only       4       B  bound_threshold_aware        wl            0.00         2503.2
+napierone_bytes       prior_only       4       B       primary_feasible       rec            0.00          423.6
+napierone_bytes       prior_only       4       B       primary_feasible        wl            0.00          423.6
+napierone_bytes       prior_only       4       B secondary_alarm_caught       rec            0.05         2034.0
+napierone_bytes       prior_only       4       B secondary_alarm_caught        wl            0.05         2019.6
+napierone_bytes       prior_only       8       A  bound_threshold_aware       rec            0.00        11862.0
+napierone_bytes       prior_only       8       A  bound_threshold_aware        wl            0.15        12397.2
+napierone_bytes       prior_only       8       A       primary_feasible       rec            0.00        12346.8
+napierone_bytes       prior_only       8       A       primary_feasible        wl            0.70        12624.0
+napierone_bytes       prior_only       8       A secondary_alarm_caught       rec            0.00        12346.8
+napierone_bytes       prior_only       8       A secondary_alarm_caught        wl            0.75        11593.2
+napierone_bytes       prior_only       8       B  bound_threshold_aware       rec            0.00         1192.8
+napierone_bytes       prior_only       8       B  bound_threshold_aware        wl            0.05         1599.6
+napierone_bytes       prior_only       8       B       primary_feasible       rec            0.00          242.4
+napierone_bytes       prior_only       8       B       primary_feasible        wl            0.00          238.8
+napierone_bytes       prior_only       8       B secondary_alarm_caught       rec            0.05         1381.2
+napierone_bytes       prior_only       8       B secondary_alarm_caught        wl            0.05         1381.2
+napierone_bytes shamir_recursive       4       A  bound_threshold_aware       rec            0.00        13033.2
+napierone_bytes shamir_recursive       4       A  bound_threshold_aware        wl            0.70        13317.6
+napierone_bytes shamir_recursive       4       A       primary_feasible       rec            0.05        13078.8
+napierone_bytes shamir_recursive       4       A       primary_feasible        wl            0.70        13392.0
+napierone_bytes shamir_recursive       4       A secondary_alarm_caught       rec            0.05        13078.8
+napierone_bytes shamir_recursive       4       A secondary_alarm_caught        wl            0.05        13078.8
+napierone_bytes shamir_recursive       4       B  bound_threshold_aware       rec            0.00         2612.4
+napierone_bytes shamir_recursive       4       B  bound_threshold_aware        wl            0.05         3434.4
+napierone_bytes shamir_recursive       4       B       primary_feasible       rec            0.00          644.4
+napierone_bytes shamir_recursive       4       B       primary_feasible        wl            0.00          644.4
+napierone_bytes shamir_recursive       4       B secondary_alarm_caught       rec            0.05         2454.0
+napierone_bytes shamir_recursive       4       B secondary_alarm_caught        wl            0.10         2797.2
+napierone_bytes shamir_recursive       8       A  bound_threshold_aware       rec            0.00        12004.8
+napierone_bytes shamir_recursive       8       A  bound_threshold_aware        wl            0.70        12190.8
+napierone_bytes shamir_recursive       8       A       primary_feasible       rec            0.05        12006.0
+napierone_bytes shamir_recursive       8       A       primary_feasible        wl            0.70        12261.6
+napierone_bytes shamir_recursive       8       A secondary_alarm_caught       rec            0.05        12006.0
+napierone_bytes shamir_recursive       8       A secondary_alarm_caught        wl            0.75        10975.2
+napierone_bytes shamir_recursive       8       B  bound_threshold_aware       rec            0.00         1526.4
+napierone_bytes shamir_recursive       8       B  bound_threshold_aware        wl            0.05         2007.6
+napierone_bytes shamir_recursive       8       B       primary_feasible       rec            0.00          282.0
+napierone_bytes shamir_recursive       8       B       primary_feasible        wl            0.00          282.0
+napierone_bytes shamir_recursive       8       B secondary_alarm_caught       rec            0.05         1666.8
+napierone_bytes shamir_recursive       8       B secondary_alarm_caught        wl            0.05         1587.6
+napierone_bytes         slowburn       4       A  bound_threshold_aware       rec            0.00        10066.8
+napierone_bytes         slowburn       4       A  bound_threshold_aware        wl            0.65        10244.4
+napierone_bytes         slowburn       4       A       primary_feasible       rec            0.00        10099.2
+napierone_bytes         slowburn       4       A       primary_feasible        wl            0.65        10266.0
+napierone_bytes         slowburn       4       A secondary_alarm_caught       rec            0.00        10099.2
+napierone_bytes         slowburn       4       A secondary_alarm_caught        wl            0.00        10099.2
+napierone_bytes         slowburn       4       B  bound_threshold_aware       rec            0.00         1875.6
+napierone_bytes         slowburn       4       B  bound_threshold_aware        wl            0.00         2444.4
+napierone_bytes         slowburn       4       B       primary_feasible       rec            0.00          406.8
+napierone_bytes         slowburn       4       B       primary_feasible        wl            0.00          406.8
+napierone_bytes         slowburn       4       B secondary_alarm_caught       rec            0.05         1977.6
+napierone_bytes         slowburn       4       B secondary_alarm_caught        wl            0.05         1977.6
+napierone_bytes         slowburn       8       A  bound_threshold_aware       rec            0.00        11504.4
+napierone_bytes         slowburn       8       A  bound_threshold_aware        wl            0.10        12010.8
+napierone_bytes         slowburn       8       A       primary_feasible       rec            0.05        11973.6
+napierone_bytes         slowburn       8       A       primary_feasible        wl            0.65        12235.2
+napierone_bytes         slowburn       8       A secondary_alarm_caught       rec            0.05        11973.6
+napierone_bytes         slowburn       8       A secondary_alarm_caught        wl            0.70        11078.4
+napierone_bytes         slowburn       8       B  bound_threshold_aware       rec            0.00         1150.8
+napierone_bytes         slowburn       8       B  bound_threshold_aware        wl            0.05         1533.6
+napierone_bytes         slowburn       8       B       primary_feasible       rec            0.00          232.8
+napierone_bytes         slowburn       8       B       primary_feasible        wl            0.00          226.8
+napierone_bytes         slowburn       8       B secondary_alarm_caught       rec            0.05         1335.6
+napierone_bytes         slowburn       8       B secondary_alarm_caught        wl            0.05         1335.6
+napierone_bytes   tower_of_hanoi       4       A  bound_threshold_aware       rec            0.00          427.2
+napierone_bytes   tower_of_hanoi       4       A  bound_threshold_aware        wl            0.00          427.2
+napierone_bytes   tower_of_hanoi       4       A       primary_feasible       rec            0.00          464.4
+napierone_bytes   tower_of_hanoi       4       A       primary_feasible        wl            0.00          464.4
+napierone_bytes   tower_of_hanoi       4       A secondary_alarm_caught       rec            0.00          435.6
+napierone_bytes   tower_of_hanoi       4       A secondary_alarm_caught        wl            0.20          393.6
+napierone_bytes   tower_of_hanoi       4       B  bound_threshold_aware       rec            0.00           34.8
+napierone_bytes   tower_of_hanoi       4       B  bound_threshold_aware        wl            0.00           34.8
+napierone_bytes   tower_of_hanoi       4       B       primary_feasible       rec            0.00           16.8
+napierone_bytes   tower_of_hanoi       4       B       primary_feasible        wl            0.00           16.8
+napierone_bytes   tower_of_hanoi       4       B secondary_alarm_caught       rec            0.00           18.0
+napierone_bytes   tower_of_hanoi       4       B secondary_alarm_caught        wl            0.00           16.8
+napierone_bytes   tower_of_hanoi       8       A  bound_threshold_aware       rec            0.00         7585.2
+napierone_bytes   tower_of_hanoi       8       A  bound_threshold_aware        wl            0.05         7693.2
+napierone_bytes   tower_of_hanoi       8       A       primary_feasible       rec            0.00         7730.4
+napierone_bytes   tower_of_hanoi       8       A       primary_feasible        wl            0.00         7815.6
+napierone_bytes   tower_of_hanoi       8       A secondary_alarm_caught       rec            0.05         7730.4
+napierone_bytes   tower_of_hanoi       8       A secondary_alarm_caught        wl            0.05         7730.4
+napierone_bytes   tower_of_hanoi       8       B  bound_threshold_aware       rec            0.00         1620.0
+napierone_bytes   tower_of_hanoi       8       B  bound_threshold_aware        wl            0.05         2164.8
+napierone_bytes   tower_of_hanoi       8       B       primary_feasible       rec            0.00          217.2
+napierone_bytes   tower_of_hanoi       8       B       primary_feasible        wl            0.00          224.4
+napierone_bytes   tower_of_hanoi       8       B secondary_alarm_caught       rec            0.10         1362.0
+napierone_bytes   tower_of_hanoi       8       B secondary_alarm_caught        wl            0.05         1362.0
+== realistic attacker (D72 attacker, delays 7-60)
+            arm           policy  budget restore   rec      wl
+napierone_bytes              gfs       4       A 0.395 1721.28
+napierone_bytes              gfs       4       B 0.190  246.12
+napierone_bytes              gfs       8       A 0.600 2809.32
+napierone_bytes              gfs       8       B 0.235  228.36
+napierone_bytes       prior_only       4       A 1.000 7842.96
+napierone_bytes       prior_only       4       B 0.245 1151.52
+napierone_bytes       prior_only       8       A 1.000 7529.76
+napierone_bytes       prior_only       8       B 0.245  695.40
+napierone_bytes shamir_recursive       4       A 1.000 7553.40
+napierone_bytes shamir_recursive       4       B 0.245 1484.04
+napierone_bytes shamir_recursive       8       A 1.000 6142.32
+napierone_bytes shamir_recursive       8       B 0.245  733.80
+napierone_bytes         slowburn       4       A 1.000 7174.08
+napierone_bytes         slowburn       4       B 0.245 1134.60
+napierone_bytes         slowburn       8       A 1.000 7254.72
+napierone_bytes         slowburn       8       B 0.245  683.16
+napierone_bytes   tower_of_hanoi       4       A 0.000  389.40
+napierone_bytes   tower_of_hanoi       4       B 0.000   13.68
+napierone_bytes   tower_of_hanoi       8       A 0.990 5302.80
+napierone_bytes   tower_of_hanoi       8       B 0.245  422.76
