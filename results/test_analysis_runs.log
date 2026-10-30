@@ -30,3 +30,116 @@
 2026-10-29T15:46:38+05:30 END analysis test d73_report exit 0, peak working set 169 MB
 2026-10-29T15:46:38+05:30 START analysis test d74_report attempt 1 (free RAM 17.8 GB)
 2026-10-29T15:58:09+05:30 analysis test d74_report attempt 1 KILLED with the queue by Claude Code (system critically low on memory; DEV d74_report peak 17604 MB); partial output deleted unread: results/analysis_test/audit.log.27628 results/analysis_test/d74_report results/analysis_test/d74_report.txt results/analysis_test/hashes_d74_report.txt ; not restarted (awaiting Aarnav)
+2026-10-29T23:32:32+05:30 ANALYSIS REMAINING start (amendment 2), commit ae4b0aa
+2026-10-29T23:32:32+05:30 analysis test d74_report: free RAM 16.3 GB < 22, waiting 300 s
+2026-10-29T23:37:32+05:30 analysis test d74_report: free RAM 16.5 GB < 22, waiting 300 s
+2026-10-29T23:42:32+05:30 analysis test d74_report: free RAM 15.8 GB < 22, waiting 300 s
+2026-10-29T23:47:32+05:30 analysis test d74_report: free RAM 15.6 GB < 22, waiting 300 s
+2026-10-29T23:52:32+05:30 analysis test d74_report: free RAM 15.9 GB < 22, waiting 300 s
+2026-10-29T23:57:32+05:30 analysis test d74_report: free RAM 16.0 GB < 22, waiting 300 s
+2026-10-30T00:02:32+05:30 free RAM 17.6 GB < 22 for 30 minutes: per-arm fallback
+2026-10-30T00:02:32+05:30 START analysis dev d74_report:napierone_bytes:per_arm_check attempt 1 (free RAM 17.6 GB)
+2026-10-30T00:09:10+05:30 END analysis dev d74_report:napierone_bytes:per_arm_check exit 0, peak working set 8671 MB
+2026-10-30T00:09:10+05:30 START analysis dev d74_report:synthetic_bytes:per_arm_check attempt 1 (free RAM 17.5 GB)
+2026-10-30T00:15:51+05:30 END analysis dev d74_report:synthetic_bytes:per_arm_check exit 0, peak working set 9063 MB
+2026-10-30T00:15:52+05:30 per-arm DEV check vs combined DEV d74_report: best_response.csv: byte identical; false_alarms.csv: byte identical; feasibility.csv: byte identical; realistic.csv: byte identical; surface.csv.gz: byte identical; threshold_aware_detection.csv: identical after sorting rows; worst_case_over_delays.csv: byte identical
+2026-10-30T00:15:52+05:30 START analysis test d74_report:napierone_bytes:per_arm attempt 1 (free RAM 17.6 GB)
+2026-10-30T00:22:13+05:30 END analysis test d74_report:napierone_bytes:per_arm exit 0, peak working set 8367 MB
+2026-10-30T00:22:13+05:30 START analysis test d74_report:synthetic_bytes:per_arm attempt 1 (free RAM 18.0 GB)
+2026-10-30T00:28:43+05:30 END analysis test d74_report:synthetic_bytes:per_arm exit 0, peak working set 8839 MB
+2026-10-30T00:28:43+05:30 TEST d74_report per arm merged into results\analysis_test\d74_report
+2026-10-30T00:28:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T00:33:43+05:30 analysis test d74_alarm_holdout: free RAM 18.6 GB < 22, waiting 300 s
+2026-10-30T00:38:43+05:30 analysis test d74_alarm_holdout: free RAM 18.9 GB < 22, waiting 300 s
+2026-10-30T00:43:43+05:30 analysis test d74_alarm_holdout: free RAM 18.8 GB < 22, waiting 300 s
+2026-10-30T00:48:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T00:53:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T00:58:43+05:30 analysis test d74_alarm_holdout: free RAM 17.2 GB < 22, waiting 300 s
+2026-10-30T01:03:43+05:30 analysis test d74_alarm_holdout: free RAM 17.6 GB < 22, waiting 300 s
+2026-10-30T01:08:43+05:30 analysis test d74_alarm_holdout: free RAM 17.8 GB < 22, waiting 300 s
+2026-10-30T01:13:43+05:30 analysis test d74_alarm_holdout: free RAM 18.5 GB < 22, waiting 300 s
+2026-10-30T01:18:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T01:23:43+05:30 analysis test d74_alarm_holdout: free RAM 18.5 GB < 22, waiting 300 s
+2026-10-30T01:28:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T01:33:43+05:30 analysis test d74_alarm_holdout: free RAM 18.5 GB < 22, waiting 300 s
+2026-10-30T01:38:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T01:43:43+05:30 analysis test d74_alarm_holdout: free RAM 18.5 GB < 22, waiting 300 s
+2026-10-30T01:48:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T01:53:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T01:58:43+05:30 analysis test d74_alarm_holdout: free RAM 18.1 GB < 22, waiting 300 s
+2026-10-30T02:03:43+05:30 analysis test d74_alarm_holdout: free RAM 18.5 GB < 22, waiting 300 s
+2026-10-30T02:08:43+05:30 analysis test d74_alarm_holdout: free RAM 18.5 GB < 22, waiting 300 s
+2026-10-30T02:13:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T02:18:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T02:23:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T02:28:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T02:33:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T02:38:43+05:30 analysis test d74_alarm_holdout: free RAM 18.1 GB < 22, waiting 300 s
+2026-10-30T02:43:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T02:48:43+05:30 analysis test d74_alarm_holdout: free RAM 18.1 GB < 22, waiting 300 s
+2026-10-30T02:53:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T02:58:43+05:30 analysis test d74_alarm_holdout: free RAM 18.0 GB < 22, waiting 300 s
+2026-10-30T03:03:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T03:08:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T03:13:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T03:18:43+05:30 analysis test d74_alarm_holdout: free RAM 18.0 GB < 22, waiting 300 s
+2026-10-30T03:23:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T03:28:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T03:33:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T03:38:43+05:30 analysis test d74_alarm_holdout: free RAM 18.1 GB < 22, waiting 300 s
+2026-10-30T03:43:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T03:48:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T03:53:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T03:58:43+05:30 analysis test d74_alarm_holdout: free RAM 18.1 GB < 22, waiting 300 s
+2026-10-30T04:03:43+05:30 analysis test d74_alarm_holdout: free RAM 18.0 GB < 22, waiting 300 s
+2026-10-30T04:08:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T04:13:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T04:18:43+05:30 analysis test d74_alarm_holdout: free RAM 18.1 GB < 22, waiting 300 s
+2026-10-30T04:23:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T04:28:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T04:33:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T04:38:43+05:30 analysis test d74_alarm_holdout: free RAM 18.0 GB < 22, waiting 300 s
+2026-10-30T04:43:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T04:48:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T04:53:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T04:58:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T05:03:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T05:08:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T05:13:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T05:18:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T05:23:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T05:28:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T05:33:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T05:38:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T05:43:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T05:48:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T05:53:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T05:58:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T06:03:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T06:08:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T06:13:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T06:18:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T06:23:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T06:28:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T06:33:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T06:38:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T06:43:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T06:48:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T06:53:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T06:58:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T07:03:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T07:08:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T07:13:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T07:18:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T07:23:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T07:28:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T07:33:43+05:30 analysis test d74_alarm_holdout: free RAM 18.4 GB < 22, waiting 300 s
+2026-10-30T07:38:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T07:43:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T07:48:43+05:30 analysis test d74_alarm_holdout: free RAM 18.2 GB < 22, waiting 300 s
+2026-10-30T07:53:43+05:30 analysis test d74_alarm_holdout: free RAM 18.1 GB < 22, waiting 300 s
+2026-10-30T07:58:43+05:30 analysis test d74_alarm_holdout: free RAM 18.1 GB < 22, waiting 300 s
+2026-10-30T08:03:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T08:08:43+05:30 analysis test d74_alarm_holdout: free RAM 18.3 GB < 22, waiting 300 s
+2026-10-30T08:13:43+05:30 analysis test d74_alarm_holdout: free RAM 17.6 GB < 22, waiting 300 s
+2026-10-30T08:14:59+05:30 waiting loop for the TEST ALARM copy stopped by process tree (22 GB gate, waited since 00:28); amendment 3: copy at 16 GB

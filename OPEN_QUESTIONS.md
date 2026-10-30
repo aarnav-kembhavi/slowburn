@@ -1933,3 +1933,7 @@ Code only. No TEST file is opened, counted or simulated until configs/frozen_v2.
   earlier 16 GB gate (one arm at a time; their peaks logged). The TEST per-arm outputs stay in
   results/analysis_test/d74_report_per_arm/<arm> and are merged the same way into
   results/analysis_test/d74_report. Hash and audit checks in every process.
+- Amendment 3 (Aarnav 2026-10-30, "copy at 16 GB"): the TEST ALARM copy step only (copies
+  results/test_d74_alarm/holdout.json, about 120 MB) uses the 16 GB gate; it had waited at the
+  22 GB gate from 2026-10-30 00:28 to 08:13 (free RAM about 18 GB). The waiting loop was stopped
+  by process tree before the copy started.
