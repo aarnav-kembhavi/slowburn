@@ -1,0 +1,15 @@
+{
+ "restic": "restic 0.17.3 compiled with go1.23.3 on windows/amd64",
+ "attack_start": 161,
+ "days": 222,
+ "K": 8,
+ "benign_invalid_rate": 0.01,
+ "world": "uniform",
+ "rep": 0,
+ "family": "d76_restic",
+ "tree_bytes_day0": 2870085,
+ "plan_mismatch_days": 0,
+ "ram_gate_gb": 8,
+ "peak_python_mib": 881.61328125,
+ "peak_restic_mib": 92.296875
+}

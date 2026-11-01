@@ -1,0 +1,16 @@
+  calibrated vault thresholds, fleet null priors for 1 evidence settings
+machine: attack start 161, 222 days, 40 files
+0 {'slowburn_plan': 1, 'restic_kd7_kw5': 1, 'restic_kd4_kw4': 1}
+25 {'slowburn_plan': 8, 'restic_kd7_kw5': 10, 'restic_kd4_kw4': 6}
+50 {'slowburn_plan': 8, 'restic_kd7_kw5': 10, 'restic_kd4_kw4': 7}
+75 {'slowburn_plan': 8, 'restic_kd7_kw5': 10, 'restic_kd4_kw4': 6}
+100 {'slowburn_plan': 8, 'restic_kd7_kw5': 10, 'restic_kd4_kw4': 7}
+125 {'slowburn_plan': 8, 'restic_kd7_kw5': 10, 'restic_kd4_kw4': 6}
+150 {'slowburn_plan': 8, 'restic_kd7_kw5': 11, 'restic_kd4_kw4': 7}
+175 {'slowburn_plan': 8, 'restic_kd7_kw5': 10, 'restic_kd4_kw4': 7}
+200 {'slowburn_plan': 8, 'restic_kd7_kw5': 10, 'restic_kd4_kw4': 6}
+          repo  days  forget_s_median  forget_s_p95  prune_s_median  prune_s_max  final_repo_mib  max_repo_mib  final_snapshots
+restic_kd4_kw4   222         0.957193      1.046810        1.154795     1.471092        5.057812      6.036250                6
+restic_kd7_kw5   222         0.867753      0.960020        1.111155     1.235548        6.561319      7.882846               10
+ slowburn_plan   222         0.787131      0.871474        0.921960     1.063520       16.397134     17.933559                8
+plan mismatches: 0 days
