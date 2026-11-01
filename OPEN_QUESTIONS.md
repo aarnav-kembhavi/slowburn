@@ -1937,3 +1937,49 @@ Code only. No TEST file is opened, counted or simulated until configs/frozen_v2.
   results/test_d74_alarm/holdout.json, about 120 MB) uses the 16 GB gate; it had waited at the
   22 GB gate from 2026-10-30 00:28 to 08:13 (free RAM about 18 GB). The waiting loop was stopped
   by process tree before the copy started.
+
+### Paper expansion analyses (Aarnav 2026-11-01; registered before code; all EXPLORATORY in the paper)
+
+TEST is closed: nothing below reruns a TEST item or opens a TEST content pool. Every result here
+is labelled exploratory in the paper; none changes a confirmatory claim, and a breakdown that
+contradicts a headline is reported as such.
+- E1 Overhead (no data). SlowBurn's decision (PosteriorDP, frozen hyperparameters: penalty 90,
+  gate 0.8, backbone 0.25) replayed online for 400 days with a uniform start prior conditioned on
+  "not discovered yet" (the DP's input, built with the code's own discovery_posterior), for K in
+  {4, 6, 8, 12, 16, 24} and assumed discovery bound M in {30, 60, 120, 365} days; GFS and Tower of
+  Hanoi replayed at the same K for reference. Measured: wall time per daily decision (median and
+  95th percentile over days 30 to 399, after the budget is full), peak traced Python memory
+  (tracemalloc) per replay. One machine, single process, nothing else heavy running; machine
+  spec reported. Script paper/scripts/overhead.py, output results/exploratory/overhead/.
+  Cross-check (descriptive): dp_ms_per_decision recorded in the TEST C2 run.
+- E2 Post hoc breakdowns of TEST (no rerun). results/analysis_test holds pooled tables only
+  (plus d79_report/by_world_budget.csv), so the breakdowns read the TEST run outputs those
+  tables were computed from, read only: results/test_d72_bytes_{napierone_v2pool,synthetic}/
+  tuning_sweep.csv (C2: SlowBurn vs each of the six baselines; filter variant
+  method_v2_w075_vsnap, count budgets, as d72_c2r_holm), results/test_d79_eqh_*/tuning_sweep.csv
+  (D79 primary pairs), results/test_d74_attack_*/attack_rows.csv.gz (D74). Splits: world, K,
+  benign invalid rate (C2, D79); world (D74: realistic attacker recovery per policy and K; the
+  best-response strategy chosen in analysis_test/d74_report/best_response.csv scored on the
+  evaluation half per world). Statistic: the same paired machine-cluster bootstrap as the
+  confirmatory scripts (method_v2.policy_vs_policy with by=, 2000 resamples, seed 0); point
+  estimates and 95% CIs, no Holm, labelled "exploratory, post hoc". The same splits are computed
+  on the DEV v2 run outputs for comparison. Script paper/scripts/posthoc_breakdowns.py, output
+  results/exploratory/posthoc/.
+- E3 Storage. The TEST C2 outputs record snapshots_retained, retained_unique_bytes and
+  storage_vs_keep_last_n per row: mean per policy and K on both arms, descriptive, from the same
+  files as E2 (read only). Output results/exploratory/storage/.
+- E4 D76 restic prototype (DEV synthetic only; after E1 to E3; one heavy job at a time, RAM gate
+  16 GB and 45 GB disk floor as before). restic pinned binary (official GitHub release, SHA-256
+  checked against the release's SHA256SUMS) in gitignored tools/. Workload: one simulated DEV
+  synthetic machine (synthetic bytes, family of a new key "d76_restic", DEV split, a fixed seed),
+  materialised as a file tree in gitignored restic/ (tree + repository <= 5 GB); each simulated
+  day the tree is updated to that day's file versions (benign edits from the simulator; damaged
+  versions are the simulator's existing synthetic damaged bytes, no encryptor), `restic backup`
+  takes the day's snapshot, and SlowBurn's held set for that day (from the same simulator
+  replay) is applied by `restic forget <snapshot ids>` for every snapshot the plan drops. Check
+  every day: the set of restic snapshots equals the plan (mismatches counted and reported).
+  Measured: forget time, prune time (prune every 7 days and at the end), repository size; the
+  same tree and backups under restic's own `--keep-daily 7 --keep-weekly 5` (plus a count-matched
+  variant) for comparison. Nothing outside restic/ is read or written except the repo's own
+  code and the synthetic generator. Script paper/scripts/d76_restic.py, output
+  results/exploratory/d76_restic/.
