@@ -78,7 +78,8 @@ SlowBurn 0.9793, GFS 0.6025, Tower of Hanoi 0.5926; at q = 0 prior-only 0.9456, 
 world.
 
 **C2. Against the default GFS and Tower of Hanoi configurations SlowBurn loses less work at
-much higher recovery; it matches Bar-On; it loses to GFS and Tower of Hanoi configured to the
+much higher recovery; no significant difference from Bar-On (no equivalence margin was
+tested); it loses to GFS and Tower of Hanoi configured to the
 same horizon.** TEST, NapierOne bytes on the v2 pools, count budgets, w 0.75, verify_snap;
 paired machine-cluster bootstrap 95% CIs (2000 resamples, seed 0); Holm across the six
 baselines per arm (`results/analysis_test/d72_c2r_holm/c2_holm.csv`; DEV v2 in parentheses from
@@ -91,7 +92,7 @@ baseline. The Holm family is the six pooled comparisons per arm.
   both (DEV -14.0% [-18.3, -9.4] / -19.6% [-23.0, -16.0], recovery +0.425 / +0.428). The
   pre-registered png prediction (results/test_prediction.md) held (see the D75 paragraph).
   Synthetic bytes: -22.8% [-26.0, -19.4] / -26.0% [-28.6, -23.4] (DEV -27.6% / -30.2%).
-- Bar-On: **SlowBurn matches Bar-On** (TEST +0.2% [-3.1, +3.8] vs recursive, Holm p 0.865;
+- Bar-On: **no significant difference from Bar-On; no equivalence margin was tested** (TEST +0.2% [-3.1, +3.8] vs recursive, Holm p 0.865;
   -2.1% [-5.5, +1.5] vs round robin, Holm p 0.450; not significant); the small DEV advantage
   (-5.3% / -6.7%, Holm p < 0.001) did not replicate. Synthetic: -0.5% [-3.6, +2.3] / -2.3%
   [-5.3, +0.7], not significant (DEV -4.4% / -6.8%).

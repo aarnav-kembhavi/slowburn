@@ -1,0 +1,45 @@
+{
+ "slowburn_plan": {
+  "held_days": [
+   38,
+   72,
+   106,
+   140,
+   174,
+   208,
+   220,
+   221
+  ],
+  "oldest_age_days": 183,
+  "pre_attack_snapshots": 4
+ },
+ "restic_kd7_kw5": {
+  "held_days": [
+   199,
+   206,
+   213,
+   215,
+   216,
+   217,
+   218,
+   219,
+   220,
+   221
+  ],
+  "oldest_age_days": 22,
+  "pre_attack_snapshots": 0
+ },
+ "restic_kd4_kw4": {
+  "held_days": [
+   206,
+   213,
+   218,
+   219,
+   220,
+   221
+  ],
+  "oldest_age_days": 15,
+  "pre_attack_snapshots": 0
+ },
+ "note": "last day 221, attack start day 161 (first damaged day)"
+}
