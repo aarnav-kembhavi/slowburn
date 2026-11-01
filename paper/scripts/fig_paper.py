@@ -85,7 +85,82 @@ def forest():
     fig.savefig(OUT / "fig_c2_d79_forest.pdf", bbox_inches="tight")
 
 
+def overhead():
+    """Exploratory E1: median wall time per daily decision vs K (results/exploratory/overhead)."""
+    o = pd.read_csv("results/exploratory/overhead/overhead.csv")
+    fig, ax = plt.subplots(figsize=(3.45, 2.3))
+    lines = [(o[(o.policy == "slowburn") & (o.M == M)], f"SlowBurn, M = {M}", mk, SERIES[i])
+             for i, (M, mk) in enumerate(((30, "o"), (60, "s"), (120, "^"), (365, "D")))]
+    lines += [(o[o.policy == "gfs"], "GFS", "v", SERIES[4]),
+              (o[o.policy == "tower_of_hanoi"], "Tower of Hanoi", "P", SERIES[5])]  # fmt: skip
+    for g, label, mk, col in lines:
+        g = g.sort_values("K")
+        ax.plot(g.K, g.ms_median, color=col, lw=1.5, marker=mk, ms=4, mec="white", mew=0.8,
+                label=label)  # fmt: skip
+    ax.set_yscale("log")
+    ax.set_xticks([4, 6, 8, 12, 16, 24])
+    ax.set_xlabel("budget K (snapshots)")
+    ax.set_ylabel("median ms per daily decision")
+    ax.grid(axis="y", color=GRID, lw=0.6, which="both")
+    ax.legend(frameon=False, fontsize=6.5, ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.3))
+    fig.savefig(OUT / "fig_overhead.pdf", bbox_inches="tight")
+
+
+def architecture():
+    """System overview: data flow from file versions to the restore (no data)."""
+    from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
+
+    w, h, top, bot = 0.2, 0.3, 0.62, 0.17
+    boxes = {  # name: (x, y, text); top row = decision path, bottom row = data and restore
+        "files": (0.02, top, "Machine files\n(benign edits;\nsimulated damage)"),
+        "det": (0.27, top, "Write-time detector\nflag per changed\nversion (p <= 0.01)"),
+        "post": (0.52, top, "Start posterior\npi_t(s), conditioned\non not discovered"),
+        "dp": (0.77, top, "Retention DP\nkeep K snapshots\n(+ ToH backbone)"),
+        "snap": (0.02, bot, "Daily snapshot\n(all file versions)"),
+        "alarm": (0.27, bot, "Daily count alarm\nfires if k_t >= c"),
+        "rest": (0.52, bot, "Restore at discovery\nA verify_snap\n(B-E alternatives)"),
+        "store": (0.77, bot, "Held snapshots\n(K per machine)"),
+    }
+    fig, ax = plt.subplots(figsize=(7.0, 2.4))
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-0.04, 1)
+    ax.axis("off")
+    for x, y, text in boxes.values():
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.01,rounding_size=0.02",
+                                    fc="white", ec=MUTED, lw=0.9))  # fmt: skip
+        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=6.5, color=INK)
+
+    def right(n):
+        return boxes[n][0] + w, boxes[n][1] + h / 2
+
+    def left(n):
+        return boxes[n][0], boxes[n][1] + h / 2
+
+    def below(n):
+        return boxes[n][0] + w / 2, boxes[n][1]
+
+    def above(n):
+        return boxes[n][0] + w / 2, boxes[n][1] + h
+
+    arrows = [(right("files"), left("det")), (right("det"), left("post")),
+              (right("post"), left("dp")), (below("files"), above("snap")),
+              (below("det"), above("alarm")), (below("post"), above("rest")),
+              (below("dp"), above("store")), (right("alarm"), left("rest")),
+              (left("store"), right("rest"))]  # fmt: skip
+    for p, q in arrows:
+        ax.add_patch(FancyArrowPatch(p, q, arrowstyle="-|>", mutation_scale=7, color=SERIES[0],
+                                     lw=0.9, shrinkA=1, shrinkB=1))  # fmt: skip
+    # snapshots enter the held set under the DP's decision: routed below the bottom row
+    (sx, sy), (tx, ty) = below("snap"), below("store")
+    ax.plot([sx, sx, tx], [sy, -0.02, -0.02], color=SERIES[0], lw=0.9)
+    ax.add_patch(FancyArrowPatch((tx, -0.02), (tx, ty), arrowstyle="-|>", mutation_scale=7,
+                                 color=SERIES[0], lw=0.9, shrinkA=0, shrinkB=1))  # fmt: skip
+    fig.savefig(OUT / "fig_architecture.pdf", bbox_inches="tight")
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     recovery_vs_delay()
     forest()
+    overhead()
+    architecture()

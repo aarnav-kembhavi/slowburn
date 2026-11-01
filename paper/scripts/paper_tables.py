@@ -127,7 +127,7 @@ def full_d74() -> None:
                   & b.arm.str.startswith(arm)]  # fmt: skip
             if b.empty:
                 rows.append(f"{ARM[arm]} & {sp} & \\multicolumn{{9}}{{l}}{{no scored "
-                            "best-response rows}}\\\\")  # fmt: skip
+                            "best-response rows}\\\\")  # fmt: skip
                 continue
             for K in (4, 8):
                 for pol in POL:
