@@ -32,7 +32,7 @@ false flag stress axis is weaker there). (3) zip and png v2 DEV pools stay below
 covered by TEST): a handful of invalid benign files can halve measured retention gains.**
 Pre-registered prediction (results/test_prediction.md, committed before any TEST result): with
 4 truncated pngs of 57 on TEST vs 9 of 54 on DEV, C2 vs default GFS and ToH on TEST would fall
-between the scored DEV value and the no-png DEV value. It held: TEST -19.1% [-22.8, -15.2] vs
+between the scored DEV value and the no-png DEV value. It held: TEST -19.0% [-22.8, -15.2] vs
 GFS (DEV -14.0%, no-png DEV -32.2%) and -23.0% [-26.3, -19.7] vs ToH (DEV -19.6%, no-png DEV
 -34.0%); both TEST intervals overlap the scored DEV intervals. The 9 truncated NapierOne pngs (13%
 of the v2 DEV png pool) cause 87% to 88% of benign flags; without them (unscored sensitivity
@@ -86,15 +86,15 @@ baselines per arm (`results/analysis_test/d72_c2r_holm/c2_holm.csv`; DEV v2 in p
 Sign convention: every work-lost delta is SlowBurn relative to the baseline (sum SlowBurn / sum
 baseline - 1; positive = SlowBurn loses more) and every recovery delta is SlowBurn minus
 baseline. The Holm family is the six pooled comparisons per arm.
-- Default configurations: work lost -19.1% [-22.8, -15.2] vs GFS and -23.0% [-26.3, -19.7] vs
+- Default configurations: work lost -19.0% [-22.8, -15.2] vs GFS and -23.0% [-26.3, -19.7] vs
   Tower of Hanoi, recovery +0.428 [+0.411, +0.445] / +0.411 [+0.404, +0.421]; Holm p < 0.001
   both (DEV -14.0% [-18.3, -9.4] / -19.6% [-23.0, -16.0], recovery +0.425 / +0.428). The
   pre-registered png prediction (results/test_prediction.md) held (see the D75 paragraph).
   Synthetic bytes: -22.8% [-26.0, -19.4] / -26.0% [-28.6, -23.4] (DEV -27.6% / -30.2%).
-- Bar-On: **SlowBurn matches Bar-On** (TEST +0.2% [-3.1, +3.9] vs recursive, Holm p 0.865;
+- Bar-On: **SlowBurn matches Bar-On** (TEST +0.2% [-3.1, +3.8] vs recursive, Holm p 0.865;
   -2.1% [-5.5, +1.5] vs round robin, Holm p 0.450; not significant); the small DEV advantage
-  (-5.3% / -6.7%, Holm p < 0.001) did not replicate. Synthetic: -0.5% [-3.6, +2.3] / -2.4%
-  [-5.3, +0.8], not significant (DEV -4.4% / -6.8%).
+  (-5.3% / -6.7%, Holm p < 0.001) did not replicate. Synthetic: -0.5% [-3.6, +2.3] / -2.3%
+  [-5.3, +0.7], not significant (DEV -4.4% / -6.8%).
 - Equal horizon (horizon >= M; GFS-eqh exists only at K = 12, ToH-eqh at K 8 and 12): uncapped
   SlowBurn loses +15.6% [+11.3, +20.3] more work than GFS-eqh (recovery +0.000 [-0.003,
   +0.004]) and +14.9% [+10.6, +19.3] more than ToH-eqh (recovery +0.031 [+0.016, +0.049]);

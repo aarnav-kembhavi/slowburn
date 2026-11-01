@@ -1,0 +1,71 @@
+{
+ "pool": "sim_dev / v2",
+ "types": {
+  "bin": {
+   "files": 115,
+   "from_v1_sim_dev": 15,
+   "from_benign_v2_dev": 100,
+   "validity_failures": 0,
+   "validity_not_applicable": 115
+  },
+  "csv": {
+   "files": 115,
+   "from_v1_sim_dev": 15,
+   "from_benign_v2_dev": 100,
+   "validity_failures": 55,
+   "validity_not_applicable": 0
+  },
+  "docx": {
+   "files": 113,
+   "from_v1_sim_dev": 13,
+   "from_benign_v2_dev": 100,
+   "validity_failures": 0,
+   "validity_not_applicable": 0
+  },
+  "jpg": {
+   "files": 114,
+   "from_v1_sim_dev": 14,
+   "from_benign_v2_dev": 100,
+   "validity_failures": 0,
+   "validity_not_applicable": 0
+  },
+  "mp3": {
+   "files": 115,
+   "from_v1_sim_dev": 15,
+   "from_benign_v2_dev": 100,
+   "validity_failures": 0,
+   "validity_not_applicable": 0
+  },
+  "png": {
+   "files": 59,
+   "from_v1_sim_dev": 5,
+   "from_benign_v2_dev": 54,
+   "validity_failures": 9,
+   "validity_not_applicable": 0,
+   "truncated_png": 9
+  },
+  "txt": {
+   "files": 115,
+   "from_v1_sim_dev": 15,
+   "from_benign_v2_dev": 100,
+   "validity_failures": 33,
+   "validity_not_applicable": 0
+  },
+  "zip": {
+   "files": 69,
+   "from_v1_sim_dev": 5,
+   "from_benign_v2_dev": 64,
+   "validity_failures": 0,
+   "validity_not_applicable": 0
+  },
+  "zlib": {
+   "files": 105,
+   "from_v1_sim_dev": 5,
+   "from_benign_v2_dev": 100,
+   "validity_failures": 0,
+   "validity_not_applicable": 0
+  }
+ },
+ "damage_families": 3,
+ "encrypted_samples": 300
+}
