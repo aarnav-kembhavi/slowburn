@@ -1983,3 +1983,14 @@ contradicts a headline is reported as such.
   variant) for comparison. Nothing outside restic/ is read or written except the repo's own
   code and the synthetic generator. Script paper/scripts/d76_restic.py, output
   results/exploratory/d76_restic/.
+
+### 2026-11-02 amendment to E4 (D76), registered before the change and the run
+- RAM gate for E4 only lowered from 16 GB to 8 GB free (user instruction 2026-11-02; free RAM
+  stayed at 15.4 to 15.9 GB for hours). The 45 GB free disk gate on C: is unchanged. All other
+  jobs keep their gates. Nothing else about E4 changes (machine, policies, measurements, outputs).
+- Added measurement: peak memory of the run, logged in run.json, as the Python process's peak
+  working set and the largest peak working set of any restic subprocess (Windows
+  GetProcessMemoryInfo).
+- Fix already committed in 300bc7e: the day-by-day consistency check now compares the
+  scenario's own chunks with the trace (the earlier re-chunking check aborted on day 16; bytes
+  backed up are unchanged).
