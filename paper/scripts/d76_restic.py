@@ -11,7 +11,8 @@ snapshot set is compared with the plan. The same backups go to two more reposito
 restic's own policies (--keep-daily 7 --keep-weekly 5, and the count-matched --keep-daily 4
 --keep-weekly 4). Measured per repository: forget and prune wall time (prune every 7 days and at
 the end) and repository size after each prune. Pinned restic: tools/restic.exe (0.17.3, SHA-256
-checked). Run from the repo root (one heavy job at a time; RAM >= 16 GB, C: >= 45 GB free):
+checked). Run from the repo root (one heavy job at a time; RAM >= 8 GB, amended 2026-11-02,
+C: >= 45 GB free). Peak memory (Python process and the largest restic subprocess) goes to run.json:
 
     uv run python -u paper/scripts/d76_restic.py
 """
@@ -67,10 +68,31 @@ def free_gb() -> tuple[float, float]:
     return m.ap / 2**30, shutil.disk_usage("C:/").free / 1e9
 
 
+class PMC(ctypes.Structure):
+    _fields_ = [("cb", ctypes.c_ulong), ("PageFaultCount", ctypes.c_ulong),
+                *[(n, ctypes.c_size_t) for n in ("PeakWorkingSetSize", "WorkingSetSize", "a", "b",
+                                                  "c", "d", "PagefileUsage", "PeakPagefileUsage")]]  # fmt: skip
+
+
+def peak_wset(handle) -> int:
+    """Peak working set in bytes of a process handle (valid after exit while the handle is open)."""
+    c = PMC()
+    c.cb = ctypes.sizeof(c)
+    ctypes.windll.psapi.GetProcessMemoryInfo(ctypes.c_void_p(int(handle)), ctypes.byref(c), c.cb)
+    return c.PeakWorkingSetSize
+
+
+RESTIC_PEAK = [0]
+
+
 def restic(repo: Path, *args: str) -> tuple[subprocess.CompletedProcess, float]:
     env = {**os.environ, "RESTIC_PASSWORD": "d76-local-only", "RESTIC_REPOSITORY": str(repo)}
     t = time.perf_counter()
-    r = subprocess.run([RESTIC, *args], env=env, capture_output=True, text=True)
+    with subprocess.Popen([RESTIC, *args], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          text=True) as proc:  # fmt: skip
+        out, err = proc.communicate()
+        RESTIC_PEAK[0] = max(RESTIC_PEAK[0], peak_wset(proc._handle))
+    r = subprocess.CompletedProcess(proc.args, proc.returncode, out, err)
     if r.returncode != 0:
         raise RuntimeError(f"restic {args[0]} failed: {r.stderr[-2000:]}")
     return r, time.perf_counter() - t
@@ -125,9 +147,9 @@ def machine():
 def main() -> None:
     while True:  # gate: wait and poll every 5 minutes, as the analysis queue does
         ram, disk = free_gb()
-        if ram >= 16 and disk >= 45:
+        if ram >= 8 and disk >= 45:
             break
-        print(f"gate: free RAM {ram:.1f} GB, disk {disk:.0f} GB (need 16 / 45); waiting", flush=True)
+        print(f"gate: free RAM {ram:.1f} GB, disk {disk:.0f} GB (need 8 / 45); waiting", flush=True)
         time.sleep(300)
     OUT.mkdir(parents=True, exist_ok=True)
     if ROOT.exists():
@@ -191,7 +213,9 @@ def main() -> None:
         "attack_start": trace.start, "days": len(days), "K": K, "benign_invalid_rate": BENIGN,
         "world": WORLD, "rep": REP, "family": task.family,
         "tree_bytes_day0": sum(len(b) for b in days[0].values()),
-        "plan_mismatch_days": len(mism)}, indent=1))  # fmt: skip
+        "plan_mismatch_days": len(mism), "ram_gate_gb": 8,
+        "peak_python_mib": peak_wset(ctypes.windll.kernel32.GetCurrentProcess()) / 2**20,
+        "peak_restic_mib": RESTIC_PEAK[0] / 2**20}, indent=1))  # fmt: skip
     print(summary.to_string(index=False))
     print(f"plan mismatches: {len(mism)} days")
 
