@@ -23,6 +23,14 @@ POL = {"slowburn": "SlowBurn", "prior_only": "Prior-only", "shamir_recursive": "
 ARM = {"napierone_bytes": "NapierOne", "synthetic_bytes": "Synthetic"}
 
 
+def r(x: float, d: int) -> str:
+    """Plain decimal with ``d`` places, exact ties half away from zero (as in ``m``)."""
+    if pd.isna(x):
+        return "--"
+    q = Decimal(repr(round(float(x), 10))).quantize(Decimal(1).scaleb(-d), ROUND_HALF_UP)
+    return f"{q:.{d}f}"
+
+
 def m(x: float, d: int = 1, sign: bool = True) -> str:
     """A number in math mode (real minus sign); signed unless ``sign`` is False."""
     if pd.isna(x):
@@ -101,7 +109,7 @@ def full_d71() -> None:
             for root in (AT, AD):
                 g = pd.read_csv(root / "d71_report/gap_full_by_q.csv")
                 x = g[(g.policy == pol) & (g.q == q)].iloc[0]
-                cell.append(f"{x.rec_a:.3f} & {dif(x.rec_gap_ab, x.rec_gap_ab_lo, x.rec_gap_ab_hi)}")
+                cell.append(f"{r(x.rec_a, 3)} & {dif(x.rec_gap_ab, x.rec_gap_ab_lo, x.rec_gap_ab_hi)}")
             rows.append(f"{VS.get(pol, POL.get(pol, pol))} & {q:g} & " + " & ".join(cell) + "\\\\")
     write("tab_full_d71", "\n".join(rows) + "\n")
 
@@ -116,7 +124,7 @@ def full_d73() -> None:
                 x = c[c.primary & (c.arm == arm) & (c.vs == vs)].iloc[0]
                 cell.append(f"{pct(x.pooled_file_wl_rel, x.wl_lo, x.wl_hi)} & "
                             f"{dif(x.pooled_recovery_diff, x.rec_lo, x.rec_hi)} & "
-                            f"{x.worst_cell_recovery_diff:.2f} & {'yes' if x['all'] else 'no'}")  # fmt: skip
+                            f"{r(x.worst_cell_recovery_diff, 2)} & {'yes' if x['all'] else 'no'}")  # fmt: skip
             rows.append(f"{ARM[arm]} & {lab} & " + " & ".join(cell) + "\\\\")
     write("tab_full_d73", "\n".join(rows) + "\n")
 
@@ -136,7 +144,7 @@ def full_d74() -> None:
                 for pol in POL:
                     g = b[(b.policy == pol) & (b.budget == K)].sort_values("discovery_delay")
                     rows.append(f"{ARM[arm]} & {sp} & {K} & {POL[pol]} & "
-                                + " & ".join(f"{v:.2f}" for v in g.eval_rec) + "\\\\")  # fmt: skip
+                                + " & ".join(f"{r(v, 2)}" for v in g.eval_rec) + "\\\\")  # fmt: skip
     write("tab_full_d74", "\n".join(rows) + "\n")
 
 
@@ -146,12 +154,12 @@ def full_alarm() -> None:
         for root, sp in ((AT, "TEST"), (AD, "DEV")):
             h = json.loads((root / "d74_alarm_holdout/holdout.json").read_text())[arm]
             lo, hi = h["per_run_ci95"]
-            rows.append(f"{ARM[arm]} & {sp} & {h['run_alarms']}/{h['runs']} & [{lo:.4f}, {hi:.4f}] "
+            rows.append(f"{ARM[arm]} & {sp} & {h['run_alarms']}/{h['runs']} & [{r(lo, 4)}, {r(hi, 4)}] "
                         f"& {h['day_alarms']}/{h['machine_days']:,} & {h['p_day_upper95']:.2e} & "
-                        f"{h['fleet_false_alarms_per_week']['20']:.3f} "
-                        f"({h['fleet_false_alarms_per_week_upper95']['20']:.3f}) & "
-                        f"{h['fleet_false_alarms_per_week']['100']:.3f} "
-                        f"({h['fleet_false_alarms_per_week_upper95']['100']:.3f})\\\\")  # fmt: skip
+                        f"{r(h['fleet_false_alarms_per_week']['20'], 3)} "
+                        f"({r(h['fleet_false_alarms_per_week_upper95']['20'], 3)}) & "
+                        f"{r(h['fleet_false_alarms_per_week']['100'], 3)} "
+                        f"({r(h['fleet_false_alarms_per_week_upper95']['100'], 3)})\\\\")  # fmt: skip
     write("tab_full_alarm", "\n".join(rows).replace("e-0", "e$-$0") + "\n")
 
 
@@ -176,7 +184,7 @@ def full_threshold() -> None:
                     k = int(round(x.p_detect * x.runs))
                     lo, hi = cp(k, int(x.runs))
                     med = "--" if pd.isna(x.ttd_median) else f"{x.ttd_median:g}"
-                    cell.append(f"{k}/{int(x.runs)} [{lo:.2f}, {hi:.2f}] & {med}")
+                    cell.append(f"{k}/{int(x.runs)} [{r(lo, 2)}, {r(hi, 2)}] & {med}")
                 rows.append(f"{ARM[arm]} & {tg} & {frac:g} & " + " & ".join(cell) + "\\\\")
     write("tab_full_threshold", "\n".join(rows) + "\n")
 
@@ -232,7 +240,7 @@ def breakdown_d74() -> None:
                 for w in ("uniform", "early", "late", "bursty"):
                     x = d[(d.attacker == att) & (d.budget == K) & (d.policy == pol)
                           & (d.world == w)].iloc[0]  # fmt: skip
-                    cells.append(f"{x.rec:.2f} [{x.lo:.2f}, {x.hi:.2f}]")
+                    cells.append(f"{r(x.rec, 2)} [{r(x.lo, 2)}, {r(x.hi, 2)}]")
                 rows.append(f"{lab} & {K} & {POL[pol]} & " + " & ".join(cells) + "\\\\")
     write("tab_ex_d74", "\n".join(rows) + "\n")
 
@@ -244,14 +252,14 @@ def overhead() -> None:
         sb = [o[(o.policy == "slowburn") & (o.K == K) & (o.M == M)].iloc[0] for M in (30, 60, 120, 365)]
         g = o[(o.policy == "gfs") & (o.K == K)].iloc[0]
         h = o[(o.policy == "tower_of_hanoi") & (o.K == K)].iloc[0]
-        rows.append(f"{K} & " + " & ".join(f"{x.ms_median:.2f} ({x.ms_p95:.2f})" for x in sb)
+        rows.append(f"{K} & " + " & ".join(f"{r(x.ms_median, 2)} ({r(x.ms_p95, 2)})" for x in sb)
                     + f" & {max(x.peak_traced_mib for x in sb) * 1024:.0f} & "
-                    f"{g.ms_median * 1000:.1f} & {h.ms_median * 1000:.1f}\\\\")  # fmt: skip
+                    f"{r(g.ms_median * 1000, 1)} & {r(h.ms_median * 1000, 1)}\\\\")  # fmt: skip
     write("tab_ex_overhead", "\n".join(rows) + "\n")
     t = pd.read_csv(EX / "overhead/recorded_timing.csv")
     t = t[t.policy == "slowburn"]
-    rows = [f"{ARM[x.arm]} & {x.split.upper()} & {x.infer_ms_per_day_mean:.2f} & "
-            f"{x.dp_ms_per_decision_mean:.3f}\\\\" for x in t.itertuples()]  # fmt: skip
+    rows = [f"{ARM[x.arm]} & {x.split.upper()} & {r(x.infer_ms_per_day_mean, 2)} & "
+            f"{r(x.dp_ms_per_decision_mean, 3)}\\\\" for x in t.itertuples()]  # fmt: skip
     write("tab_ex_recorded_timing", "\n".join(rows) + "\n")
 
 
@@ -265,9 +273,9 @@ def storage() -> None:
         for K in (4, 6, 8, 12):
             x = s[(s.policy == pol) & (s.budget == K)]
             cells.append("--" if x.empty else
-                         f"{x.iloc[0].snapshots_retained:.1f} / "
-                         f"{x.iloc[0].retained_unique_bytes / 2**20:.1f} / "
-                         f"{x.iloc[0].storage_vs_keep_last_n:.2f}")  # fmt: skip
+                         f"{r(x.iloc[0].snapshots_retained, 1)} / "
+                         f"{r(x.iloc[0].retained_unique_bytes / 2**20, 1)} / "
+                         f"{r(x.iloc[0].storage_vs_keep_last_n, 2)}")  # fmt: skip
         rows.append(f"{VS.get(pol, POL.get(pol, 'Bar-On RR'))} & " + " & ".join(cells) + "\\\\")
     write("tab_ex_storage", "\n".join(rows) + "\n")
 
@@ -281,9 +289,9 @@ def restic() -> None:
     lab = {"slowburn_plan": "SlowBurn plan (forget by id)",
            "restic_kd7_kw5": "restic --keep-daily 7 --keep-weekly 5",
            "restic_kd4_kw4": "restic --keep-daily 4 --keep-weekly 4"}  # fmt: skip
-    rows = [f"{lab[x.repo]} & {x.final_snapshots} & {x.forget_s_median:.2f} ({x.forget_s_p95:.2f}) & "
-            f"{x.prune_s_median:.2f} ({x.prune_s_max:.2f}) & {x.final_repo_mib:.1f} & "
-            f"{x.max_repo_mib:.1f}\\\\".replace("--", "-{}-") for x in s.itertuples()]  # fmt: skip
+    rows = [f"{lab[x.repo]} & {x.final_snapshots} & {r(x.forget_s_median, 2)} ({r(x.forget_s_p95, 2)}) & "
+            f"{r(x.prune_s_median, 2)} ({r(x.prune_s_max, 2)}) & {r(x.final_repo_mib, 1)} & "
+            f"{r(x.max_repo_mib, 1)}\\\\".replace("--", "-{}-") for x in s.itertuples()]  # fmt: skip
     write("tab_ex_restic", "\n".join(rows) + "\n")
 
 
