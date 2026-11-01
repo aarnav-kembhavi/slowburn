@@ -267,7 +267,11 @@ delays 7 / 14 / 30 / 45 / 60 / 90 / 120): K = 4: SlowBurn 1.00 / 1.00 / 0.90 / 0
 0.90 / 0.50 / 0.30 / 0 / 0, Tower of Hanoi 1.00 / 1.00 / 0.80 / 0.60 / 0.15 / 0 / 0.05, GFS
 0.95 / 0.70 / 0.55 / 0.05 / 0 / 0 / 0. At K = 8 Tower of Hanoi (its own equal-horizon
 configuration) is within 0.15 of SlowBurn's recovery at every delay and loses 7% to 28% less
-per-file work up to 90 days (36% at 120). DEV: K = 8 SlowBurn 1.00 / 0.85 / 0.90 / 0.85 / 0.30
+per-file work up to 90 days (36% at 120). Against the attacker that maximises per-file work
+lost (same file, objective wl), Tower of Hanoi loses 3% to 33% less per-file work up to 90 days
+(41% at 120) but its recovery falls behind from 45 days: 0.85 vs 0.95 (45), 0.85 vs 1.00 (60),
+0.10 vs 0.70 (90), 0.05 vs 0.65 (120); "within 0.15" holds only against the recovery-minimising
+attacker (`results/analysis_test/d74_report_per_arm/napierone_bytes/best_response.csv`). DEV: K = 8 SlowBurn 1.00 / 0.85 / 0.90 / 0.85 / 0.30
 / 0.05 / 0.05, Tower of Hanoi 1.00 / 1.00 / 0.90 / 0.65 / 0.30 / 0.05 / 0.00 (13% to 27% less
 work up to 90 days). Every defence is at most 0.05 beyond the assumed bound on TEST. Synthetic
 recovery vs delay: TEST only; DEV produced no scored best-response rows
