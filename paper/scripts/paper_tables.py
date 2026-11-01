@@ -8,6 +8,7 @@ Writes paper/ieee_access/sections/generated/*.tex. Run from the repo root:
 """
 
 import json
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 import numpy as np
@@ -26,6 +27,8 @@ def m(x: float, d: int = 1, sign: bool = True) -> str:
     """A number in math mode (real minus sign); signed unless ``sign`` is False."""
     if pd.isna(x):
         return "--"
+    # half away from zero on the decimal value (binary floats round exact ties both ways)
+    x = Decimal(repr(round(float(x), 10))).quantize(Decimal(1).scaleb(-d), ROUND_HALF_UP)
     return f"${x:+.{d}f}$" if sign else f"${x:.{d}f}$"
 
 
