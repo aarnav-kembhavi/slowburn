@@ -97,14 +97,14 @@ def machine():
     scen_params = {k: v for k, v in task.params.items() if k in SCENARIO_FIELDS}
     n = trace_days(cfg, scen_params.get("attack_start"))
     scen = Scenario(ScenarioConfig.from_dict({**scen_params, "days": n, "content": "bytes"}))
-    days = [{f: b"".join(c) for f, c in d.files.items()} for d in
-            scen.run(child_rng(*key), RandomDamageSource(child_rng(*key, "damage")),
-                     child_rng(*key, "benign_invalid"))]  # fmt: skip
-    for t, d in enumerate(days):  # check: identical to the trace's snapshots
-        chunks = frozenset(f[i:i + trace.chunk_size] for f in d.values()
-                           for i in range(0, len(f), trace.chunk_size))  # fmt: skip
-        if chunks != trace.snapshots[t]:
+    days = []
+    for t, d in enumerate(scen.run(child_rng(*key), RandomDamageSource(child_rng(*key, "damage")),
+                                   child_rng(*key, "benign_invalid"))):  # fmt: skip
+        # check: the same chunks as the trace's snapshot (compared as chunks, not re-chunked
+        # bytes: a benign edit can place a short final chunk mid-file)
+        if frozenset(c for cs in d.files.values() for c in cs) != trace.snapshots[t]:
             raise AssertionError(f"day {t}: reconstructed tree differs from the trace")
+        days.append({f: b"".join(c) for f, c in d.files.items()})
     path, prior = start_posteriors(trace, hp, int(cfg["warmup_days"]), task.params["null_prior"], {})
     ad = hp["assumed_discovery"]
     S = discovery_survival(ad["kind"], int(ad["max_days"]))
