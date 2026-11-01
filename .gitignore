@@ -21,3 +21,6 @@ results/*
 
 # restic system experiment (D59): repository, source tree and logs, never committed
 /restic/
+
+# pinned tools (restic 0.17.3, SHA-256 checked against the release SHA256SUMS), never committed
+/tools/
