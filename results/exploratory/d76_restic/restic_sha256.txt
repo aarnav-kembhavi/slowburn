@@ -1,0 +1,7 @@
+restic 0.17.3 used by D76 (tools/restic.exe, gitignored), checked 2026-11-02.
+Release archive restic_0.17.3_windows_amd64.zip, SHA-256 as downloaded:
+fcf5875de5a995100e8a2ecad5b0ada86b47155796bece87a425a251288c800f
+Same value in the release's published SHA256SUMS line:
+fcf5875de5a995100e8a2ecad5b0ada86b47155796bece87a425a251288c800f  restic_0.17.3_windows_amd64.zip
+Executable extracted from that archive (tools/restic.exe), SHA-256:
+62c58991576a36b0f6d3a30ae6c49f436921c8a5c325afc058ebeae6e9ce4c2b
