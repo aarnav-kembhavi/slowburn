@@ -244,8 +244,9 @@ A, K_avg 6 / 8: FLEET vs equal budget split per-file work lost -18.7% [-22.4, -1
 (f, m, K, N) cell -0.19 (DEV -0.21); vs churn split -14.5% [-18.4, -10.8] (DEV -7.3%), recovery
 -0.033 [-0.059, -0.011] (DEV -0.030), worst cell -0.21. Synthetic bytes pass every criterion on
 TEST and DEV. FLEET is not adopted on TEST (`results/analysis_test/d73_report/criteria.csv`).
-DEV only: its gain comes from the pooled start posterior, not from moving slots
-(`results/D73_REPORT.md`).
+DEV only, point estimates: of FLEET's per-file gain over per-machine SlowBurn, pooling the
+start posterior accounts for more (-8.6% file-hours, FLEET vs FLEET-indep) than moving slots
+(-5.0%, FLEET-indep vs per-machine SlowBurn) (`results/analysis_dev/d73_report.txt`).
 
 **F8. Adaptive attacker under the alarm (D74, c = 3).** TEST, threshold-aware attacker (exactly
 2 damaged files per day, 40 runs per strategy, exact 95% CIs, caught within 120 days; median
