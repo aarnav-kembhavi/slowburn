@@ -6,16 +6,21 @@ the budget on every day of the run (each count simulated with the policy's own c
 fixed per machine; the machine's work lost and recovery at that level are its rows at count K',
 produced by the unchanged ``evaluate_trace``. No policy is byte-aware.
 
-Levels (multipliers of the machine's day-0 snapshot size, D46 convention):
-* primary ``sb_K{K}``, K in {4, 6, 8, 12}: the median, over the attack-free DEV calibration
-  machines and days after warm-up, of SlowBurn's retained unique bytes at count K / day-0 size;
-  per arm and benign invalid rate;
+Levels (multipliers of the machine's day-0 snapshot size, D46 convention), per arm and benign
+invalid rate, from the 40 attack-free DEV calibration machines:
+* ``sbdaymed_K{K}``, K in {4, 6, 8, 12} (written ``sb_K{K}`` in levels.json, the first run): the
+  median over all pooled calibration machine-days after warm-up (not a median over machines) of
+  SlowBurn's daily retained unique bytes at count K / that machine's day-0 size;
+* ``sbmax_K{K}`` (D81 addendum, levels_sbmax.json): the median over calibration machines of each
+  machine's MAX daily retained unique bytes at count K over every day of the run / day-0 size;
 * secondary ``keep30``: the D46 keep-last 30-day footprint (``attack_free_calibration``).
 
 Run from the repo root (one heavy job at a time):
 
     uv run python -u -m slowburn.bench.byte_matched calibrate CONFIG     # levels -> levels.json
+    uv run python -u -m slowburn.bench.byte_matched calibrate-max CONFIG # -> levels_sbmax.json
     uv run python -u -m slowburn.bench.byte_matched run CONFIG [--pilot N]
+    uv run python -u -m slowburn.bench.byte_matched run-max CONFIG [--pilot N]
 """
 
 from __future__ import annotations
@@ -110,17 +115,19 @@ def daily_bytes(cfg: dict, task: RetentionTask, trace, hp: dict, names, counts,
 
 
 def _calib_task(args) -> dict:
-    """SlowBurn's retained bytes / day-0 size at each level count, days after warm-up, on one
-    attack-free calibration machine (the machine ``attack_free_calibration`` simulates)."""
+    """SlowBurn's retained bytes / day-0 size at each level count on one attack-free calibration
+    machine (the machine ``attack_free_calibration`` simulates): the days after warm-up, and the
+    max over every day of the run (``sbmax``)."""
     task, clean = args
     cfg, hp = _W["cfg"], _W["hp"]
     trace = simulate(cfg, replace(task, params=clean))
     b, size0 = daily_bytes(cfg, task, trace, hp, ["slowburn"], LEVEL_KS, {})
     w = int(cfg["warmup_days"])
-    return {K: b[("slowburn", K)][w:] / size0 for K in LEVEL_KS}
+    days = {K: b[("slowburn", K)][w:] / size0 for K in LEVEL_KS}
+    return days | {("max", K): b[("slowburn", K)].max() / size0 for K in LEVEL_KS}
 
 
-def calibrate(cfg: dict, log=print) -> dict:
+def calibrate(cfg: dict, log=print, kind: str = "daymed") -> dict:
     from slowburn.bench.runner import expand_sweep
 
     hp = base_hp(cfg)
@@ -133,10 +140,17 @@ def calibrate(cfg: dict, log=print) -> dict:
         args = [(RetentionTask("dev", "vault_calib", params, r), clean) for r in range(n_cal)]
         res = run_tasks(_calib_task, args, workers=int(cfg.get("workers", 1)), init=_init,
                         init_args=(cfg, hp, {}), log=log)  # fmt: skip
-        ratios = {K: np.concatenate([x[K] for x in res]) for K in LEVEL_KS}
         key = f"benign_invalid_rate={setting.get('benign_invalid_rate')}"
-        levels[key] = {**{f"sb_K{K}": float(np.median(ratios[K])) for K in LEVEL_KS},
-                       "keep30": float(mult[30])}  # fmt: skip
+        if kind == "max":  # median over machines of each machine's max daily bytes
+            levels[key] = {f"sbmax_K{K}": float(np.median([x[("max", K)] for x in res]))
+                           for K in LEVEL_KS}  # fmt: skip
+            # check: the pooled machine-day medians reproduce levels.json (sb_K)
+            levels[key]["_check_sb_K"] = {f"sb_K{K}": float(np.median(np.concatenate(
+                [x[K] for x in res]))) for K in LEVEL_KS}  # fmt: skip
+        else:  # median over pooled machine-days after warm-up
+            ratios = {K: np.concatenate([x[K] for x in res]) for K in LEVEL_KS}
+            levels[key] = {**{f"sb_K{K}": float(np.median(ratios[K])) for K in LEVEL_KS},
+                           "keep30": float(mult[30])}  # fmt: skip
         log(f"  {key}: {levels[key]}")
     return levels
 
@@ -201,9 +215,13 @@ def evaluate_machine(task: RetentionTask) -> list[dict]:
     return out
 
 
-def run(cfg: dict, pilot: int | None = None, log=print) -> pd.DataFrame:
+def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81") -> pd.DataFrame:
+    """tag "d81": the levels.json levels; "d81max": the sbmax addendum levels only."""
     out = resolve_path(cfg["output_dir"])
-    levels = json.loads((out / "levels.json").read_text())["levels"]
+    lfile = "levels.json" if tag == "d81" else "levels_sbmax.json"
+    levels = json.loads((out / lfile).read_text())["levels"]
+    levels = {s: {k: v for k, v in lv.items() if not k.startswith("_")}
+              for s, lv in levels.items()}  # fmt: skip
     hp = base_hp(cfg)
     tasks = build_tasks(cfg, "dev", log)
     name = "machines"
@@ -211,11 +229,11 @@ def run(cfg: dict, pilot: int | None = None, log=print) -> pd.DataFrame:
         tasks, name = tasks[:pilot], "pilot"
     seed = int(cfg["seed"])
     res = run_tasks(evaluate_machine, tasks, workers=int(cfg.get("workers", 1)), init=_init,
-                    init_args=(cfg, hp, levels), cache_dir=out / f"{name}_d81",
+                    init_args=(cfg, hp, levels), cache_dir=out / f"{name}_{tag}",
                     task_key=lambda t: task_cache_key(seed, t), log=log)  # fmt: skip
     df = pd.DataFrame([r for rows in res for r in rows])
     df["label"] = LABEL
-    df.to_csv(out / f"d81_{name}_rows.csv.gz", index=False)
+    df.to_csv(out / f"{tag}_{name}_rows.csv.gz", index=False)
     return df
 
 
@@ -228,9 +246,13 @@ def main(argv: list[str]) -> None:
         lv = calibrate(cfg)
         (out / "levels.json").write_text(json.dumps({"label": LABEL, "config": path,
                                                      "levels": lv}, indent=1))  # fmt: skip
-    elif cmd == "run":
+    elif cmd == "calibrate-max":
+        lv = calibrate(cfg, kind="max")
+        (out / "levels_sbmax.json").write_text(json.dumps({"label": LABEL, "config": path,
+                                                           "levels": lv}, indent=1))  # fmt: skip
+    elif cmd in ("run", "run-max"):
         pilot = int(argv[3]) if len(argv) > 3 and argv[2] == "--pilot" else None
-        run(cfg, pilot)
+        run(cfg, pilot, tag="d81" if cmd == "run" else "d81max")
     else:
         raise SystemExit(f"unknown command {cmd!r}")
 
