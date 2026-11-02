@@ -2147,3 +2147,18 @@ counts below 11 and ToH-eqh below 8 (horizon not reachable).
   calibration had already passed the unchanged gate and finished before the change; the change
   applies to the synthetic calibration. Every other gate is unchanged (the sbmax evaluation runs
   keep peak + 4 GB; disk >= 45 GB); frozen_v2.yaml is unchanged.
+
+#### D81 addendum: sbmax budget values (calibrated 2026-11-02/03, committed before any sbmax run)
+Multipliers of each machine's day-0 snapshot size; median over the 40 attack-free DEV
+calibration machines of SlowBurn's per machine max daily retained unique bytes at count K over
+every day (files results/exploratory_dev_v3/d81_{napierone,synthetic}/levels_sbmax.json). The
+same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every cell.
+
+| arm | benign invalid rate | sbmax_K4 | sbmax_K6 | sbmax_K8 | sbmax_K12 |
+|---|---|---|---|---|---|
+| napierone | 0.0 | 3.5263 | 4.2135 | 4.8892 | 5.6782 |
+| napierone | 0.01 | 3.5263 | 4.2135 | 4.8892 | 5.7789 |
+| napierone | 0.05 | 3.5263 | 4.2135 | 4.7926 | 5.6074 |
+| synthetic | 0.0 | 3.5370 | 4.2639 | 4.9800 | 5.8304 |
+| synthetic | 0.01 | 3.5370 | 4.2500 | 4.9733 | 6.1350 |
+| synthetic | 0.05 | 3.5370 | 4.2639 | 4.9800 | 6.1132 |

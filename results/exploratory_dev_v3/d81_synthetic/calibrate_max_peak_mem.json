@@ -1,0 +1,17 @@
+{
+ "cmd": [
+  "uv",
+  "run",
+  "python",
+  "-u",
+  "-m",
+  "slowburn.bench.byte_matched",
+  "calibrate-max",
+  "configs/dev_v3_d81_synthetic.yaml"
+ ],
+ "exit": 0,
+ "wall_s": 3903.2,
+ "tree_peak_mib": 1357.0859375,
+ "sum_of_process_peaks_mib": 5737.1953125,
+ "processes": 18
+}

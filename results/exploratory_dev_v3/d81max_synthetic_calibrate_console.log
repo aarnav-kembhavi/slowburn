@@ -1,0 +1,11 @@
+warning: `VIRTUAL_ENV=C:\Users\kembh\AppData\Local\uv\cache\builds-v0\.tmprDbfMW` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+  tasks 20/40 done
+  tasks 40/40 done
+  benign_invalid_rate=0.0: {'sbmax_K4': 3.5369984329250688, 'sbmax_K6': 4.263883819951339, 'sbmax_K8': 4.979998557934962, 'sbmax_K12': 5.830401067289252, '_check_sb_K': {'sb_K4': 2.497594763986216, 'sb_K6': 3.213438001955444, 'sb_K8': 3.5385733176395364, 'sb_K12': 4.023326542977229}}
+  tasks 20/40 done
+  tasks 40/40 done
+  benign_invalid_rate=0.01: {'sbmax_K4': 3.5369984329250688, 'sbmax_K6': 4.24997553317294, 'sbmax_K8': 4.973345991888191, 'sbmax_K12': 6.135010340155459, '_check_sb_K': {'sb_K4': 2.513410749152194, 'sb_K6': 3.200002673233386, 'sb_K8': 3.5568039950062422, 'sb_K12': 4.045759107275556}}
+  tasks 20/40 done
+  tasks 40/40 done
+  benign_invalid_rate=0.05: {'sbmax_K4': 3.5369984329250688, 'sbmax_K6': 4.263883819951339, 'sbmax_K8': 4.979998557934962, 'sbmax_K12': 6.113164149941921, '_check_sb_K': {'sb_K4': 2.528482281305548, 'sb_K6': 3.221651168594075, 'sb_K8': 3.5381613830700873, 'sb_K12': 4.06346533909046}}
+{"cmd": ["uv", "run", "python", "-u", "-m", "slowburn.bench.byte_matched", "calibrate-max", "configs/dev_v3_d81_synthetic.yaml"], "exit": 0, "wall_s": 3903.2, "tree_peak_mib": 1357.0859375, "sum_of_process_peaks_mib": 5737.1953125, "processes": 18}
