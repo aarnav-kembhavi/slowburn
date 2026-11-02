@@ -1994,3 +1994,115 @@ contradicts a headline is reported as such.
 - Fix already committed in 300bc7e: the day-by-day consistency check now compares the
   scenario's own chunks with the trace (the earlier re-chunking check aborted on day 16; bytes
   backed up are unchanged).
+
+## Protocol v3 (team, 2026-11-02): development on DEV, then a fresh held-out pool TEST2
+
+TEST is spent: nothing in v3 reads or runs anything on TEST. The paper v1 state is tagged
+`paper-v1-ieee-access-candidate`. Every v3 output is labelled exploratory_dev_v3 until a TEST2
+pre-registration says otherwise. One heavy job at a time. D81 is specified by the team; for D82 to
+D88 the hypotheses and criteria below were drafted by Claude Code from the team's one-line spec
+and are NOT final: the team confirms or changes each before any code for that item.
+
+### D81: byte-budget arm (team spec and decisions 2026-11-02; registered before any D81 code)
+- Hypothesis: the C2 and equal-horizon comparisons at matched snapshot count change when every
+  policy is held to the same repository bytes.
+- Data: DEV v2 only, both arms: NapierOne bytes (configs/dev_d72_bytes_napierone_v2pool.yaml
+  machines: seed 202, 4 worlds x 40 reps, benign invalid rate {0, 0.01, 0.05}, delays
+  {7, 14, 30, 45, 60}) and synthetic bytes (configs/dev_d72_bytes_synthetic.yaml, same grid).
+  Restore A (verify_snap). Policies: those of C2 and the equal-horizon comparisons, i.e.
+  SlowBurn, prior-only, Bar-On recursive, Bar-On round robin, GFS, Tower of Hanoi, GFS-eqh and
+  ToH-eqh (the D79 age-capped variants are not part of D81).
+- Bytes: unique bytes of the held snapshots' contents in the simulator (ByteIndex, exact union
+  of chunks in byte mode).
+- Primary budget levels, one per K in {4, 6, 8, 12}: the median unique bytes SlowBurn retains at
+  count K on the attack-free DEV calibration machines (40 per arm, calibration family), over days
+  after warm-up. Following the D46 convention, the median is taken of retained bytes divided by
+  the machine's day-0 snapshot size, and each evaluation machine's budget is that multiplier
+  times its own day-0 size. Computed per arm and per benign invalid rate (SlowBurn's footprint
+  depends on its flags). The values are committed to this entry BEFORE any D81 evaluation run.
+- Secondary level (policy independent, reported separately): the D46 keep-last 30-day footprint
+  (multiplier of day-0 size, calibrated as in D46 on the same calibration machines).
+- Enforcement, identical for every policy including SlowBurn (team rule; replaces native
+  eviction): for each machine, policy and level, K' = the largest count in the supported range
+  2..24 whose retained unique bytes stay within the budget on EVERY day of the run, found by
+  simulating the policy at each count. K' is fixed per machine for the whole run (no mid-run
+  switching). The machine's work lost and recovery at that level are its rows at count K'. No
+  byte-aware planning (a byte-aware SlowBurn DP would be a new method; logged as a possible later
+  D entry).
+- Infeasible: no count in 2..24 fits, or the policy supports no fitting count (for example an
+  eqh schedule whose count cannot reach its horizon). Infeasible cells are recorded and reported
+  per policy and level, never dropped silently. K' = 24 (top of range) is reported as censored.
+- Metrics: per policy, work lost (whole-system hours) and clean recovery at matched bytes and at
+  matched count (count-K rows of the same machines); SlowBurn against each other policy, relative
+  work lost and recovery difference with the paired machine-cluster bootstrap (2000 resamples,
+  seed 0; pairs only where both are feasible; pairs lost to infeasibility reported). Also:
+  repository bytes per policy (mean retained unique bytes), the distribution of K' per policy
+  and level, and per machine the days on which the selected count is at the cap (retained bytes
+  >= 0.95 x budget).
+- Success / kill: none. D81 is a reporting arm (exploratory_dev_v3): no claim, no adoption, no
+  Holm. Kill only on a broken invariant: any selected run exceeding its budget on any day, or
+  count-K rows that do not reproduce the existing DEV v2 rows for the same machines.
+- Memory gate: a pilot (2 machines per arm) measures the peak working set of the run's process
+  tree; the full run starts only with free RAM >= that peak (scaled to the run's worker count)
+  + 4 GB, and C: >= 45 GB free. One heavy job at a time.
+- Outputs: results/exploratory_dev_v3/d81_*. Report numbers only, no interpretation.
+
+### D82: adaptive-horizon SlowBurn (DRAFT criteria, team to confirm)
+- Hypothesis: choosing the assumed discovery bound (retention horizon) from the benign flag rate
+  measured during calibration lowers work lost against fixed-horizon SlowBurn without lowering
+  recovery. Rule developed on DEV only and fixed before TEST2.
+- Metric: work lost and clean recovery against fixed-horizon SlowBurn (M = 60) and against the
+  equal-horizon rotations, by injected benign invalid rate and world.
+- Success: pooled work lost lower than fixed-horizon SlowBurn (upper CI < 0) and recovery not
+  lower by more than 0.01 in any world. Kill: the rule needs more than two free parameters, fails
+  the success criterion on DEV, or depends on test-time quantities.
+
+### D83: format-aware png truncation validator (DRAFT criteria, team to confirm)
+- Hypothesis: a png structure check (signature, chunk lengths and CRCs, IEND) marks benign files
+  truncated at a size cap as truncated-benign rather than damaged, removing their benign flags.
+- Metric (DEV pools): share of the benign flags from the 9 truncated DEV pngs removed; damaged
+  png detection; benign flag rate.
+- Success: at least 90% of those flags removed and damaged png detection lower by at most 0.01.
+  Kill: the check cannot tell truncated benign files from damaged ones (damaged detection drops
+  by more than 0.01).
+
+### D84: detector baselines (DRAFT criteria, team to confirm)
+- Baselines: an entropy threshold; entropy plus magic bytes; both reported per file type.
+- Metric (DEV): per-type detection at matched benign flag rate, AUROC; SlowBurn's downstream
+  work lost and recovery with each detector.
+- Success / kill: reporting item. If a baseline is within 0.01 AUROC of the trained detector
+  pooled, the trained detector is not claimed as necessary.
+
+### D85: FSL Homes benign replay with in-place edits (DRAFT criteria, team to confirm)
+- Hypothesis: replaying FSL Homes per-file rewrite days with in-place edits of each file's own
+  bytes (instead of redrawing content from the pool) lowers benign validity transitions and
+  benign flags relative to the Poisson model.
+- Metric (DEV): benign flag rate, benign validity transitions, C2 and equal-horizon deltas.
+- Success: the replay runs on DEV with both rates measured. Kill: the 13-user, 60-day trace
+  cannot supply machine histories without repeating days more than once per machine.
+
+### D86: hourly model with a rolling-window alarm (DRAFT criteria, team to confirm)
+- Hypothesis: an hourly simulation with a rolling 24-hour flagged-file count alarm keeps the
+  held-out false alarm rate of the daily alarm while detecting within-day bursts.
+- Metric (DEV): false alarms per run (Clopper-Pearson), detection delay, threshold-aware attacker
+  detection. Success: upper 95% bound of false alarms per run <= 0.05 on held-out DEV runs.
+  Kill: a false alarm rate above the daily alarm's at the same threshold, or a simulation cost
+  above 10 times the daily model's.
+
+### D87: calibration shift (DRAFT criteria, team to confirm)
+- Hypothesis: calibrating on one content mix and evaluating on another raises benign flags and
+  false alarms. Design: calibrate on the v1 DEV pool and evaluate on the v2 additions, and the
+  reverse; a type-mix shift as a second axis.
+- Metric: benign flag rate, false alarms, work lost against matched calibration.
+- Success / kill: reporting item; any degradation is reported with its interval.
+
+### D88: TEST2 construction (DRAFT, team to confirm before any file is drawn)
+- TEST2 = NapierOne benign files and encrypted samples disjoint from the DEV and TEST pools (by
+  SHA-256), stratified per type as before, with three ransomware families used in neither DEV
+  nor TEST. The TEST2 inventory (names, hashes, per-type counts, validity failures) is committed
+  before any experiment touches TEST2.
+- Open point for the team: disjointness from TEST needs the committed TEST manifest (names and
+  hashes only, no file contents). Confirm that reading the manifest is allowed under "nothing
+  reads TEST".
+- Kill: a type without enough unused files is reported and reduced or dropped, decided before
+  drawing.
