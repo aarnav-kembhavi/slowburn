@@ -2128,3 +2128,22 @@ keep30: the D46 keep-last 30-day footprint (does not depend on the benign rate).
 Unsupported counts found while writing the code (reported, part of the infeasible rule):
 Bar-On recursive and round robin at count 2 (no schedule for one checkpoint); GFS-eqh at
 counts below 11 and ToH-eqh below 8 (horizon not reachable).
+
+### D81 addendum (team review 2026-11-02, exploratory_dev_v3, DEV only)
+- Level names: the first run's `sb_K{K}` is renamed `sbdaymed_K{K}` in all reports. It is the
+  median over all pooled calibration machine-days after warm-up (40 attack-free DEV machines x
+  days; not a median over machines) of SlowBurn's daily retained unique bytes at count K / that
+  machine's day-0 size.
+- New level `sbmax_K{K}`, K in {4, 6, 8, 12}: the median over the 40 calibration machines of each
+  machine's MAX daily retained unique bytes at count K over every day of the run / day-0 size,
+  so that SlowBurn's own K' is at least K on about half the machines. Same K' rule, same report.
+  Values below are committed before any sbmax evaluation run.
+- Memory gate change, approved by Aarnav on 2026-11-03 for the sbmax calibration job only:
+  headroom reduced from measured peak + 4 GB to measured peak + 2 GB. Reason: the PROMPT
+  project's job holds about 5 GB, so free RAM sat between 9.2 and 9.9 GB, below the 10.6 GB
+  gate; the calibration is DEV only and exploratory_dev_v3, with no confirmatory impact.
+  Measured peak used: 6945 MiB (6.8 GB), the sum of per-process peaks of the full D81 napierone
+  run, which includes the same in-run calibration; gate = 6.8 + 2 = 8.8 GB free RAM. NapierOne
+  calibration had already passed the unchanged gate and finished before the change; the change
+  applies to the synthetic calibration. Every other gate is unchanged (the sbmax evaluation runs
+  keep peak + 4 GB; disk >= 45 GB); frozen_v2.yaml is unchanged.
