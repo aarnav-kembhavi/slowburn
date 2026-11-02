@@ -2106,3 +2106,23 @@ and are NOT final: the team confirms or changes each before any code for that it
   reads TEST".
 - Kill: a type without enough unused files is reported and reduced or dropped, decided before
   drawing.
+
+### D81 budget values (calibrated 2026-11-02 16:40-18:16, committed before any D81 evaluation run)
+Multipliers of each machine's day-0 snapshot size (D46 convention), from 40 attack-free DEV
+calibration machines per arm and benign invalid rate (`slowburn.bench.byte_matched calibrate`;
+files results/exploratory_dev_v3/d81_{napierone,synthetic}/levels.json). Primary sb_K{K}: median
+of SlowBurn's retained unique bytes at count K / day-0 size over days after warm-up. Secondary
+keep30: the D46 keep-last 30-day footprint (does not depend on the benign rate).
+
+| arm | benign invalid rate | sb_K4 | sb_K6 | sb_K8 | sb_K12 | keep30 |
+|---|---|---|---|---|---|---|
+| napierone | 0.0 | 2.3728 | 3.0490 | 3.4664 | 3.9480 | 2.7675 |
+| napierone | 0.01 | 2.3744 | 3.0215 | 3.4527 | 3.9423 | 2.7675 |
+| napierone | 0.05 | 2.3911 | 3.0625 | 3.4497 | 3.9841 | 2.7675 |
+| synthetic | 0.0 | 2.4976 | 3.2134 | 3.5386 | 4.0233 | 2.7602 |
+| synthetic | 0.01 | 2.5134 | 3.2000 | 3.5568 | 4.0458 | 2.7602 |
+| synthetic | 0.05 | 2.5285 | 3.2217 | 3.5382 | 4.0635 | 2.7602 |
+
+Unsupported counts found while writing the code (reported, part of the infeasible rule):
+Bar-On recursive and round robin at count 2 (no schedule for one checkpoint); GFS-eqh at
+counts below 11 and ToH-eqh below 8 (horizon not reachable).
