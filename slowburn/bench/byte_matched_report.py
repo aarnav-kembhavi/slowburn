@@ -3,9 +3,18 @@
 Per arm and level: per policy mean work lost (whole-system hours), clean recovery and retained
 unique bytes; SlowBurn against every other policy with the paired machine-cluster bootstrap of
 ``method_v2.policy_vs_policy`` (2000 resamples, seed 0), at matched count (count_K{K}) and at
-matched bytes (sb_K{K}, keep30); the distribution of K'; infeasible, censored and unsupported
-cells; days at the cap. Checks the kill invariants: count-K rows reproduce the DEV v2 rows of the
-same machines, and no selected run exceeds its budget (also asserted during the run).
+matched bytes; the distribution of K'; infeasible, censored and unsupported cells; days at the cap.
+
+Byte levels (multipliers of each machine's day-0 snapshot size; see LEVEL_DEFS):
+* sbdaymed_K{K} (levels.json key sb_K{K}): median over all pooled calibration machine-days after
+  warm-up (40 attack-free DEV machines x days; NOT a median over machines) of SlowBurn's daily
+  retained unique bytes at count K / that machine's day-0 size;
+* sbmax_K{K} (D81 addendum): median over the 40 calibration machines of each machine's max daily
+  retained unique bytes at count K over every day of the run / day-0 size;
+* keep30: the D46 keep-last 30-day footprint.
+
+Checks the kill invariants: count-K rows reproduce the DEV v2 rows of the same machines, and no
+selected run exceeds its budget (also asserted during the run).
 
     uv run python -m slowburn.bench.byte_matched_report
 """
@@ -28,6 +37,26 @@ ARMS = {"napierone_bytes": ("d81_napierone", "results/dev_d72_bytes_napierone_v2
         "synthetic_bytes": ("d81_synthetic", "results/dev_d72_bytes_synthetic")}  # fmt: skip
 WL, REC, UB = "work_lost_whole_system_hours", "clean_recovery", "retained_unique_bytes"
 KEY = ["world", "benign_invalid_rate", "rep", "discovery_delay", "true_start", "policy"]
+RENAME = {f"sb_K{K}": f"sbdaymed_K{K}" for K in LEVEL_KS}
+LEVEL_DEFS = {
+    "count_K{K}": "every policy at snapshot count K (the DEV v2 rows)",
+    "sbdaymed_K{K}": "median over pooled calibration machine-days after warm-up of SlowBurn's "
+    "daily retained unique bytes at count K / day-0 size (levels.json key sb_K{K})",
+    "sbmax_K{K}": "median over calibration machines of SlowBurn's per machine max daily retained "
+    "unique bytes at count K over every day / day-0 size (levels_sbmax.json)",
+    "keep30": "D46 keep-last 30-day footprint / day-0 size",
+}
+
+
+def load(sub: str) -> pd.DataFrame:
+    """The D81 rows with renamed levels, plus the sbmax addendum byte rows when present."""
+    d = pd.read_csv(ROOT / sub / "d81_machines_rows.csv.gz", low_memory=False)
+    d["d81_level"] = d.d81_level.replace(RENAME)
+    f = ROOT / sub / "d81max_machines_rows.csv.gz"
+    if f.exists():
+        m = pd.read_csv(f, low_memory=False)
+        d = pd.concat([d, m[m.d81_arm == "bytes"]], ignore_index=True)
+    return d
 
 
 def reproduce(d: pd.DataFrame, v2: str) -> dict:
@@ -47,7 +76,7 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     cmp, pol, kp, inf, checks = [], [], [], [], {}
     for arm, (sub, v2) in ARMS.items():
-        d = pd.read_csv(ROOT / sub / "d81_machines_rows.csv.gz", low_memory=False)
+        d = load(sub)
         checks[arm] = {"reproduces_dev_v2_count_rows": reproduce(d, v2)}
         b = d[d.d81_arm == "bytes"]
         over = b[~b.d81_infeasible & (b[UB] > b.d81_budget_bytes)]
@@ -75,9 +104,16 @@ def main() -> None:
             for base in sorted(set(xl.policy) - {"slowburn"}):
                 r = mv.policy_vs_policy(xl, "slowburn", base)
                 cmp.append(r.assign(arm=arm, d81_level=lev))
-        for kind in ("count", "bytes"):  # pooled over the four primary levels
-            pref = "count_K" if kind == "count" else "sb_K"
+        sbk = mach[(mach.policy == "slowburn") & mach.d81_level.str.startswith("sb")]
+        checks[arm]["slowburn_kprime_vs_K"] = {
+            lev: {"machines": len(g), "infeasible": int(g.d81_infeasible.sum()),
+                  "kprime_eq_K": int((g.d81_kprime == int(lev.split("K")[1])).sum()),
+                  "kprime_ge_K": int((g.d81_kprime >= int(lev.split("K")[1])).sum())}
+            for lev, g in sbk.groupby("d81_level")}  # fmt: skip
+        for pref in ("count_K", "sbdaymed_K", "sbmax_K"):  # pooled over the four levels
             xp = x[x.d81_level.isin([f"{pref}{K}" for K in LEVEL_KS])]
+            if xp.empty:
+                continue
             for base in sorted(set(xp.policy) - {"slowburn"}):
                 r = mv.policy_vs_policy(xp, "slowburn", base)
                 cmp.append(r.assign(arm=arm, d81_level=f"{pref}pooled"))
@@ -87,7 +123,8 @@ def main() -> None:
     pd.concat(pol, ignore_index=True).to_csv(OUT / "per_policy.csv", index=False)
     pd.concat(kp, ignore_index=True).to_csv(OUT / "kprime_distribution.csv", index=False)
     pd.concat(inf, ignore_index=True).to_csv(OUT / "feasibility.csv", index=False)
-    info = {"label": LABEL, **checks, "unsupported_counts": unsup}
+    info = {"label": LABEL, "level_definitions": LEVEL_DEFS, **checks,
+            "unsupported_counts": unsup}  # fmt: skip
     (OUT / "checks.json").write_text(json.dumps(info, indent=1))
     print(json.dumps(checks, indent=1))
 

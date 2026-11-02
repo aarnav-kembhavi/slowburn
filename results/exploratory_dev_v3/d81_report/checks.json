@@ -1,5 +1,11 @@
 {
  "label": "exploratory_dev_v3",
+ "level_definitions": {
+  "count_K{K}": "every policy at snapshot count K (the DEV v2 rows)",
+  "sbdaymed_K{K}": "median over pooled calibration machine-days after warm-up of SlowBurn's daily retained unique bytes at count K / day-0 size (levels.json key sb_K{K})",
+  "sbmax_K{K}": "median over calibration machines of SlowBurn's per machine max daily retained unique bytes at count K over every day / day-0 size (levels_sbmax.json)",
+  "keep30": "D46 keep-last 30-day footprint / day-0 size"
+ },
  "napierone_bytes": {
   "reproduces_dev_v2_count_rows": {
    "rows": 64800,
@@ -8,7 +14,33 @@
    "clean_recovery": true,
    "retained_unique_bytes": true
   },
-  "selected_rows_over_budget": 0
+  "selected_rows_over_budget": 0,
+  "slowburn_kprime_vs_K": {
+   "sbdaymed_K12": {
+    "machines": 480,
+    "infeasible": 0,
+    "kprime_eq_K": 3,
+    "kprime_ge_K": 20
+   },
+   "sbdaymed_K4": {
+    "machines": 480,
+    "infeasible": 129,
+    "kprime_eq_K": 7,
+    "kprime_ge_K": 7
+   },
+   "sbdaymed_K6": {
+    "machines": 480,
+    "infeasible": 7,
+    "kprime_eq_K": 2,
+    "kprime_ge_K": 8
+   },
+   "sbdaymed_K8": {
+    "machines": 480,
+    "infeasible": 0,
+    "kprime_eq_K": 11,
+    "kprime_ge_K": 19
+   }
+  }
  },
  "synthetic_bytes": {
   "reproduces_dev_v2_count_rows": {
@@ -18,7 +50,33 @@
    "clean_recovery": true,
    "retained_unique_bytes": true
   },
-  "selected_rows_over_budget": 0
+  "selected_rows_over_budget": 0,
+  "slowburn_kprime_vs_K": {
+   "sbdaymed_K12": {
+    "machines": 480,
+    "infeasible": 0,
+    "kprime_eq_K": 9,
+    "kprime_ge_K": 31
+   },
+   "sbdaymed_K4": {
+    "machines": 480,
+    "infeasible": 15,
+    "kprime_eq_K": 30,
+    "kprime_ge_K": 30
+   },
+   "sbdaymed_K6": {
+    "machines": 480,
+    "infeasible": 0,
+    "kprime_eq_K": 7,
+    "kprime_ge_K": 25
+   },
+   "sbdaymed_K8": {
+    "machines": 480,
+    "infeasible": 0,
+    "kprime_eq_K": 13,
+    "kprime_ge_K": 30
+   }
+  }
  },
  "unsupported_counts": {
   "gfs": [],
