@@ -2104,6 +2104,8 @@ and are NOT final: the team confirms or changes each before any code for that it
 - Open point for the team: disjointness from TEST needs the committed TEST manifest (names and
   hashes only, no file contents). Confirm that reading the manifest is allowed under "nothing
   reads TEST".
+- Team decision (2026-11-02): reading the TEST manifest is allowed for hashes only, to enforce
+  disjointness. No TEST file contents, labels or result files are read.
 - Kill: a type without enough unused files is reported and reduced or dropped, decided before
   drawing.
 
