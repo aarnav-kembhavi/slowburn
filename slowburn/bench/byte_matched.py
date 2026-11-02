@@ -26,6 +26,7 @@ Run from the repo root (one heavy job at a time):
 from __future__ import annotations
 
 import json
+import pickle
 import sys
 import time
 from dataclasses import replace
@@ -164,6 +165,27 @@ def _init(cfg: dict, hp: dict, levels: dict) -> None:
     _W.update(cfg=cfg, hp=hp, levels=levels)
 
 
+TYPES = ("txt", "csv", "bin", "docx", "zip", "png", "jpg", "mp3", "zlib")
+
+
+def machine_features(trace, size0: int) -> dict:
+    """Per machine covariates for the feasibility selection check (review item 5), pre-attack
+    days only: churn = mean new unique bytes per day / day-0 size; benign flag rate = flagged
+    (file, day) pairs per file-day; the file type mix; the attack start."""
+    s = trace.start
+    churn = [len(trace.snapshots[t] - trace.snapshots[t - 1]) * trace.chunk_size / size0
+             for t in range(1, s)]  # fmt: skip
+    n = max(len(trace.histories), 1)
+    flags = sum(sum(1 for d in h.flagged_days if d < s) for h in trace.histories.values())
+    types = list(trace.file_types.values())
+    return {
+        "d81_feat_churn": float(np.mean(churn)),
+        "d81_feat_benign_flag_rate": flags / (n * s),
+        "d81_feat_attack_start": s,
+        **{f"d81_feat_type_{ft}": types.count(ft) / max(len(types), 1) for ft in TYPES},
+    }
+
+
 def evaluate_machine(task: RetentionTask) -> list[dict]:
     cfg, hp, levels = _W["cfg"], _W["hp"], _W["levels"]
     names = list(cfg["policies"])
@@ -172,6 +194,7 @@ def evaluate_machine(task: RetentionTask) -> list[dict]:
     sim_s = time.perf_counter() - t0
     cache: dict = {}
     b, size0 = daily_bytes(cfg, task, trace, hp, names, COUNTS, cache)
+    feat = machine_features(trace, size0)
     lev = levels[f"benign_invalid_rate={task.params.get('benign_invalid_rate')}"]
     sel = []  # (level, policy, budget bytes, K' or None, max bytes at K', days at cap)
     for name, mult in lev.items():
@@ -212,7 +235,7 @@ def evaluate_machine(task: RetentionTask) -> list[dict]:
             if r["retained_unique_bytes"] > budget:  # invariant (kill rule)
                 raise AssertionError(f"{nm} at K'={k} exceeds its byte budget")
             out.append({**r, **meta})
-    return out
+    return [{**r, **feat} for r in out]
 
 
 def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81") -> pd.DataFrame:
@@ -228,6 +251,8 @@ def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81") -> pd.
     if pilot:
         tasks, name = tasks[:pilot], "pilot"
     seed = int(cfg["seed"])
+    with (out / f"{tag}_{name}_tasks.pkl").open("wb") as fh:  # for the review item 4 replay
+        pickle.dump(tasks, fh)
     res = run_tasks(evaluate_machine, tasks, workers=int(cfg.get("workers", 1)), init=_init,
                     init_args=(cfg, hp, levels), cache_dir=out / f"{name}_{tag}",
                     task_key=lambda t: task_cache_key(seed, t), log=log)  # fmt: skip
