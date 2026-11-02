@@ -187,7 +187,8 @@ def evaluate_machine(task: RetentionTask) -> list[dict]:
                     "d81_censored": k == COUNTS[-1]}  # fmt: skip
             if k is None:
                 out.append({"policy": nm, "discovery_delay": d, "split": task.split,
-                            "rep": task.rep, **{c: task.params.get(c) for c in
+                            "rep": task.rep, "true_start": trace.start,
+                            **{c: task.params.get(c) for c in
                             ("world", "benign_invalid_rate")}, **meta})  # fmt: skip
                 continue
             r = by[(nm, k, d)]
