@@ -1,0 +1,54 @@
+{
+ "label": "exploratory_dev_v3",
+ "napierone_bytes": {
+  "reproduces_dev_v2_count_rows": {
+   "rows": 64800,
+   "matched": 64800,
+   "work_lost_whole_system_hours": true,
+   "clean_recovery": true,
+   "retained_unique_bytes": true
+  },
+  "selected_rows_over_budget": 0
+ },
+ "synthetic_bytes": {
+  "reproduces_dev_v2_count_rows": {
+   "rows": 64800,
+   "matched": 64800,
+   "work_lost_whole_system_hours": true,
+   "clean_recovery": true,
+   "retained_unique_bytes": true
+  },
+  "selected_rows_over_budget": 0
+ },
+ "unsupported_counts": {
+  "gfs": [],
+  "tower_of_hanoi": [],
+  "prior_only": [],
+  "slowburn": [],
+  "toh_eqh": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   7
+  ],
+  "gfs_eqh": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "shamir_rr": [
+   2
+  ],
+  "shamir_recursive": [
+   2
+  ]
+ }
+}
