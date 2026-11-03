@@ -2207,3 +2207,34 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
 - Limitation: the DEV discovery-delay grid stops at 60 days, and recovery beyond the assumed
   bound is about 0 (F1). M below 60 therefore cannot be evaluated on this grid; the rule only
   lengthens M.
+
+### D82 stage 1 precheck (pre-registered 2026-11-04, team approval; before any precheck code)
+- Question: does lengthening SlowBurn's assumed discovery bound M beyond 60 lower its work lost
+  at any benign rate? SlowBurn only (frozen v1 operating point, variant method_v2_w075_vsnap),
+  M in {60, 75, 90}. M is the uniform assumed discovery bound; with no separate
+  restore_discovery in the config, restore A uses the same M. Nothing else changes.
+- Grid: DEV v2 (seed 202), both arms (napierone, synthetic), benign invalid rates 0, 0.01, 0.05,
+  all worlds and delays; budgets count K8, K12 and sbmax K8, K12 with the committed
+  levels_sbmax.json multipliers (fixed at the M = 60 SlowBurn footprint) and the unchanged D81
+  K' rule. M = 60 rows are the existing D81 rows (count from d81_machines_rows, sbmax from
+  d81max_machines_rows; same code, same frozen parameters); M = 75 and 90 are new runs.
+- Halves: the D82 fit and check halves by machine (ed3f273: machines (world, true start, rep)
+  sorted by (world, rep), numpy.random.default_rng(82082).permutation, first 80 fit). Fit and
+  check reported separately.
+- Statistics: per half, arm, rate and budget cell, SlowBurn mean work lost and recovery per M;
+  M = 75 and M = 90 against M = 60 with the existing paired machine-cluster bootstrap
+  (method_v2.policy_vs_policy, 2000 resamples, seed 0); K' distribution and infeasible counts per
+  M at the sbmax cells.
+- Kill rule (fit half, as committed): per benign rate, mean SlowBurn work lost pooled over both
+  arms and the four budget cells (point estimate). If M = 60 has the lowest value at every rate,
+  D82 is killed by precheck: commit and stop. Otherwise stop and show the table; stage 2 (GFS-eqh
+  and ToH-eqh at the same M) does not start without team approval.
+- Stated before any number: the DEV delay grid stops at 60 days, so M above 60 cannot gain
+  recovery on this grid and any work lost increase is a pure cost. Under sbmax, the byte cap is
+  fixed, so a larger M changes K' (a policy holding older snapshots can fit fewer of them).
+- Disk floor (approved by Aarnav 2026-11-04, these precheck runs only): lowered from 45 GB to
+  40 GB free on C:. Reason: C: is held at about 41.7 GB free by another project's job, nothing is
+  deleted, and each run writes about 100 MB (measured on the D81 sbmax runs). DEV only,
+  exploratory_dev_v3, no confirmatory impact. RAM gate unchanged (measured peak 6.8 GB + 4 GB =
+  10.8 GB); one heavy job at a time; the 45 GB floor is unchanged for every other job.
+- Code change limited to letting byte_matched accept an M override; no D82 rule code.
