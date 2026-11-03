@@ -98,16 +98,29 @@ def main() -> None:
           "discovery_delay"]  # fmt: skip
     common = fit.groupby(rk).M.transform("nunique") == len(MS)
     pooled_c = fit[common].groupby(["benign_invalid_rate", "M"])[WL].mean().unstack("M")
-    lowest = {float(r): int(pooled.loc[r].idxmin()) for r in pooled.index}
-    killed = all(m == 60 for m in lowest.values())
-    kill = {"label": LABEL, "rule": "fit half; per benign rate, mean SlowBurn work lost pooled "
-            "over both arms and the four cells (all feasible rows); killed if M = 60 lowest at "
-            "every rate", "pooled_work_lost_h": {str(r): {str(m): float(v) for m, v in row.items()}
-                                                 for r, row in pooled.iterrows()},
-            "pooled_work_lost_h_common_rows": {str(r): {str(m): float(v) for m, v in row.items()}
-                                               for r, row in pooled_c.iterrows()},
-            "lowest_M_per_rate": {str(k): v for k, v in lowest.items()},
-            "d82_killed_by_precheck": killed}  # fmt: skip
+    low_c = {str(float(r)): int(pooled_c.loc[r].idxmin()) for r in pooled_c.index}
+    low_a = {str(float(r)): int(pooled.loc[r].idxmin()) for r in pooled.index}
+    kill_c, kill_a = (all(m == 60 for m in lw.values()) for lw in (low_c, low_a))
+    inf_fit = (mach[mach.half == "fit"].groupby(["M", "arm_name", "d81_level"]).feasible
+               .apply(lambda s: int((~s).sum())))  # fmt: skip
+
+    def tab(p):
+        return {str(r): {str(m): float(v) for m, v in row.items()} for r, row in p.iterrows()}
+
+    kill = {"label": LABEL,
+            "rule": "fit half; per benign rate, mean SlowBurn work lost pooled over both arms and "
+                    "the four cells; primary = common rows (feasible at all three M), secondary = "
+                    "all feasible rows; killed only if both show M = 60 lowest at every rate "
+                    "(addendum 8c9fa56)",
+            "primary_common_rows": {"work_lost_h": tab(pooled_c), "lowest_M": low_c,
+                                    "M60_lowest_every_rate": kill_c,
+                                    "rows": int(common.sum())},
+            "secondary_all_feasible": {"work_lost_h": tab(pooled), "lowest_M": low_a,
+                                       "M60_lowest_every_rate": kill_a, "rows": len(fit)},
+            "fit_infeasible_machines_by_M_arm_cell": {f"M{m}|{a}|{c}": v
+                                                      for (m, a, c), v in inf_fit.items()},
+            "versions_disagree": kill_c != kill_a,
+            "d82_killed_by_precheck": kill_c and kill_a}  # fmt: skip
     (OUT / "precheck_kill.json").write_text(json.dumps(kill, indent=1))
     print(json.dumps(kill, indent=1))
 
