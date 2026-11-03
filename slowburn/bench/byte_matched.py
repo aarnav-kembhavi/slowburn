@@ -238,14 +238,21 @@ def evaluate_machine(task: RetentionTask) -> list[dict]:
     return [{**r, **feat} for r in out]
 
 
-def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81") -> pd.DataFrame:
-    """tag "d81": the levels.json levels; "d81max": the sbmax addendum levels only."""
+def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81",
+        M: int | None = None) -> pd.DataFrame:  # fmt: skip
+    """tag "d81": the levels.json levels; "d81max": the sbmax addendum levels only. With ``M``
+    (D82 stage 1 precheck): SlowBurn only, its assumed discovery bound set to M days (restore A
+    uses the same bound), at the fixed sbmax_K8 and sbmax_K12 levels; tag d82pre_M{M}."""
     out = resolve_path(cfg["output_dir"])
     lfile = "levels.json" if tag == "d81" else "levels_sbmax.json"
     levels = json.loads((out / lfile).read_text())["levels"]
-    levels = {s: {k: v for k, v in lv.items() if not k.startswith("_")}
+    keep = ("sbmax_K8", "sbmax_K12") if M else None
+    levels = {s: {k: v for k, v in lv.items() if not k.startswith("_") and (not keep or k in keep)}
               for s, lv in levels.items()}  # fmt: skip
     hp = base_hp(cfg)
+    if M:
+        hp["assumed_discovery"] = {**hp["assumed_discovery"], "max_days": int(M)}
+        cfg = {**cfg, "policies": ["slowburn"]}
     tasks = build_tasks(cfg, "dev", log)
     name = "machines"
     if pilot:
@@ -278,6 +285,9 @@ def main(argv: list[str]) -> None:
     elif cmd in ("run", "run-max"):
         pilot = int(argv[3]) if len(argv) > 3 and argv[2] == "--pilot" else None
         run(cfg, pilot, tag="d81" if cmd == "run" else "d81max")
+    elif cmd == "run-m":  # D82 stage 1 precheck: run-m CONFIG M
+        M = int(argv[2])
+        run(cfg, tag=f"d82pre_M{M}", M=M)
     else:
         raise SystemExit(f"unknown command {cmd!r}")
 
