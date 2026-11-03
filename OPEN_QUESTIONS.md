@@ -2238,3 +2238,8 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
   exploratory_dev_v3, no confirmatory impact. RAM gate unchanged (measured peak 6.8 GB + 4 GB =
   10.8 GB); one heavy job at a time; the 45 GB floor is unchanged for every other job.
 - Code change limited to letting byte_matched accept an M override; no D82 rule code.
+- Addendum (team, 2026-11-04, committed before any precheck run started): the kill rule's primary
+  version uses the common rows (machine, delay and cell rows feasible at all three M). The
+  all-feasible-rows version is reported alongside, with infeasible counts per M. D82 is killed by
+  precheck only if both versions show M = 60 lowest at every rate on the fit half. If they
+  disagree, D82 is not killed: show the table and stop.
