@@ -6,8 +6,9 @@ cells count_K8, count_K12, sbmax_K8, sbmax_K12. M = 60 rows are the existing D81
 * per half, arm, rate, cell and M: mean work lost and recovery, rows, infeasible machines, K';
 * M = 75 and M = 90 against M = 60 with method_v2.policy_vs_policy (paired machine-cluster
   bootstrap, 2000 resamples);
-* the kill rule on the fit half: per rate, mean work lost pooled over both arms and the four cells
-  (all feasible rows, as pre-registered; the rows feasible at all three M shown alongside).
+* the kill rule on the fit half (addendum 8c9fa56): per rate, mean work lost pooled over both
+  arms and the four cells; primary on the rows feasible at all three M, secondary on all feasible
+  rows; killed only if both show M = 60 lowest at every rate.
 
     uv run python -m slowburn.bench.d82_precheck
 """
