@@ -142,5 +142,74 @@ def item5() -> None:
     print(t.round(4).to_string(index=False))
 
 
+LEVELS = [f"{p}{K}" for p in ("count_K", "sbdaymed_K", "sbmax_K") for K in LEVEL_KS]
+PRIMARY = {"sbmax_K8", "sbmax_K12"}  # Bar-On claims: primary byte levels (review 2)
+
+
+def _ci(r, col: str) -> str:
+    return f"{r[col]:+.3f} [{r[col + '_lo']:+.3f}, {r[col + '_hi']:+.3f}]"
+
+
+def review2() -> None:
+    """Review 2 tables 1-3 on existing outputs: SlowBurn minus GFS / ToH by level family and K;
+    Bar-On and eqh comparisons by churn tercile (feasible pairs only); Bar-On primary rows."""
+    c = pd.read_csv(OUT / "slowburn_vs_policy.csv")
+    c["arm"] = c.arm.str.replace("_bytes", "")
+    c = c[c.d81_level.isin(LEVELS)]
+    c["family"] = c.d81_level.str.rsplit("_", n=1).str[0]
+    c["K"] = c.d81_level.str.rsplit("K", n=1).str[1].astype(int)
+    c["recovery_diff_ci"] = c.apply(_ci, axis=1, col="recovery_diff")
+    c["work_lost_rel_ci"] = c.apply(_ci, axis=1, col="work_lost_rel")
+    cols = ["arm", "vs", "family", "K", "pairs", "recovery_diff_ci", "work_lost_rel_ci"]
+    t1 = c[c.vs.isin(["gfs", "tower_of_hanoi"])].sort_values(["arm", "vs", "family", "K"])[cols]
+    t1.to_csv(OUT / "review2_t1_gfs_toh_by_level.csv", index=False)
+    print("T1 SlowBurn minus GFS / ToH\n" + t1.to_string(index=False))
+
+    t2 = []
+    for arm in ARMS:
+        f = ROOT / f"d81_{arm}" / "d81max_machines_rows.csv.gz"
+        if not f.exists():
+            print(f"\nT2 {arm}: no per machine churn yet (sbmax run pending)")
+            continue
+        m = pd.read_csv(f, low_memory=False, usecols=[*MACH, "d81_arm", "d81_feat_churn"])
+        ch = m[m.d81_arm == "bytes"].drop_duplicates(MACH)[[*MACH, "d81_feat_churn"]]
+        ch["churn_tercile"] = pd.qcut(ch.d81_feat_churn, 3, labels=["low", "mid", "high"])
+        d = load(f"d81_{arm}")
+        x = d[~d.d81_infeasible.astype(bool) & d.d81_level.isin(LEVELS)]
+        x = x.drop(columns=[k for k in x.columns if k.startswith("d81_feat_")]).merge(ch, on=MACH)
+        x["budget"], x["budget_kind"] = x.d81_level, x.d81_arm
+        for (lev, terc), g in x.groupby(["d81_level", "churn_tercile"], observed=True):
+            for base in ("shamir_recursive", "shamir_rr", "gfs_eqh", "toh_eqh"):
+                if not {"slowburn", base} <= set(g.policy):
+                    continue
+                r = mv.policy_vs_policy(g, "slowburn", base).iloc[0]
+                t2.append({"arm": arm, "vs": base, "d81_level": lev, "churn_tercile": terc,
+                           "churn_range": f"{g.d81_feat_churn.min():.4f}-"
+                                          f"{g.d81_feat_churn.max():.4f}",
+                           "pairs": int(r.pairs), "recovery_diff_ci": _ci(r, "recovery_diff"),
+                           "work_lost_rel_ci": _ci(r, "work_lost_rel")})  # fmt: skip
+    t2 = pd.DataFrame(t2)
+    if not t2.empty:
+        t2["_o"] = t2.d81_level.map(LEVELS.index)
+        t2 = t2.sort_values(["arm", "vs", "_o", "churn_tercile"]).drop(columns="_o")
+        t2.to_csv(OUT / "review2_t2_baron_eqh_by_churn.csv", index=False)
+        print("\nT2 SlowBurn minus Bar-On / eqh by churn tercile (feasible pairs)\n"
+              + t2.to_string(index=False))  # fmt: skip
+
+    fe = pd.read_csv(OUT / "feasibility.csv")
+    fe["arm"] = fe.arm.str.replace("_bytes", "")
+    t3 = c[c.vs.isin(["shamir_recursive", "shamir_rr"]) & (c.family != "count")]
+    t3 = t3.merge(fe.rename(columns={"policy": "vs"})[["arm", "vs", "d81_level", "infeasible"]],
+                  on=["arm", "vs", "d81_level"], how="left")  # fmt: skip
+    t3["status"] = t3.d81_level.map(lambda v: "primary" if v in PRIMARY else
+                                    ("selected subset" if v.endswith(("K4", "K6")) else
+                                     "secondary"))  # fmt: skip
+    t3 = t3.sort_values(["arm", "vs", "status", "family", "K"])
+    t3 = t3[["arm", "vs", "d81_level", "status", "infeasible", "pairs", "recovery_diff_ci",
+             "work_lost_rel_ci"]]  # fmt: skip
+    t3.to_csv(OUT / "review2_t3_baron_primary.csv", index=False)
+    print("\nT3 SlowBurn minus Bar-On at byte levels\n" + t3.to_string(index=False))
+
+
 if __name__ == "__main__":
-    {"item4": item4, "item5": item5}[sys.argv[1]]()
+    {"item4": item4, "item5": item5, "review2": review2}[sys.argv[1]]()
