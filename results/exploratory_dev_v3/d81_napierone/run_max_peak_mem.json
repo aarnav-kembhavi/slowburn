@@ -1,0 +1,17 @@
+{
+ "cmd": [
+  "uv",
+  "run",
+  "python",
+  "-u",
+  "-m",
+  "slowburn.bench.byte_matched",
+  "run-max",
+  "configs/dev_v3_d81_napierone.yaml"
+ ],
+ "exit": 0,
+ "wall_s": 7323.8,
+ "tree_peak_mib": 5688.17578125,
+ "sum_of_process_peaks_mib": 7059.6015625,
+ "processes": 8
+}
