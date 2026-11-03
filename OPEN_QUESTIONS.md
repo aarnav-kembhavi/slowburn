@@ -2088,8 +2088,12 @@ and are NOT final: the team confirms or changes each before any code for that it
   bytes (instead of redrawing content from the pool) lowers benign validity transitions and
   benign flags relative to the Poisson model.
 - Metric (DEV): benign flag rate, benign validity transitions, C2 and equal-horizon deltas.
-- Success: the replay runs on DEV with both rates measured. Kill: the 13-user, 60-day trace
-  cannot supply machine histories without repeating days more than once per machine.
+- Pre-registered (team review 2026-11-03): reduced benign flags may shrink the gap between
+  SlowBurn and the equal-horizon rotations; that change is reported whatever its direction.
+- Success: the replay runs on DEV with both rates measured. Machine histories may resample user
+  days with repeats; the number of repeated days per machine is reported. Kill: the trace cannot
+  supply machine histories even with resampled days (team review 2026-11-03, replaces "without
+  repeating days more than once per machine").
 
 ### D86: hourly model with a rolling-window alarm (DRAFT criteria, team to confirm)
 - Hypothesis: an hourly simulation with a rolling 24-hour flagged-file count alarm keeps the
