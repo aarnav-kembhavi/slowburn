@@ -2053,9 +2053,17 @@ and are NOT final: the team confirms or changes each before any code for that it
   recovery. Rule developed on DEV only and fixed before TEST2.
 - Metric: work lost and clean recovery against fixed-horizon SlowBurn (M = 60) and against the
   equal-horizon rotations, by injected benign invalid rate and world.
-- Success: pooled work lost lower than fixed-horizon SlowBurn (upper CI < 0) and recovery not
-  lower by more than 0.01 in any world. Kill: the rule needs more than two free parameters, fails
-  the success criterion on DEV, or depends on test-time quantities.
+- Baselines (team review 2026-11-03): adaptive-horizon GFS and adaptive-horizon ToH, with the
+  horizon chosen by the same rule as adaptive SlowBurn.
+- Split (team review 2026-11-03): DEV machines are split at machine level into fit and check
+  halves; the rule is fixed on the fit half and judged on the check half only.
+- Success (team review 2026-11-03, replaces the earlier draft): at benign invalid rates 0.01 and
+  0.05, adaptive SlowBurn work lost below equal-horizon GFS and equal-horizon ToH (upper CI < 0);
+  at rate 0, non-inferiority only (upper CI of the relative work lost difference < +2%); recovery
+  within 0.01 in every world; all evaluated under both count budgets and sbmax byte budgets.
+- Kill (team review 2026-11-03): the rule needs more than two free parameters, fails the success
+  criterion on the check half, needs test-time quantities, or does not beat the adaptive-horizon
+  GFS and ToH baselines.
 
 ### D83: format-aware png truncation validator (DRAFT criteria, team to confirm)
 - Hypothesis: a png structure check (signature, chunk lengths and CRCs, IEND) marks benign files
