@@ -1,0 +1,61 @@
+label exploratory_dev_v3
+
+napierone early rate=0.0 rep=28 sbdaymed_K4 budget 24.05 MiB: attack window [115, disc]; K' slowburn=2.0 prior_only=2.0; rec diff +5
+  slowburn   delay  7 discovery day 122: held [114, 122] restore 114.0 clean 1 WL 192 h
+  slowburn   delay 14 discovery day 129: held [114, 129] restore 114.0 clean 1 WL 360 h
+  slowburn   delay 30 discovery day 145: held [114, 145] restore 114.0 clean 1 WL 744 h
+  slowburn   delay 45 discovery day 160: held [114, 160] restore 114.0 clean 1 WL 1104 h
+  slowburn   delay 60 discovery day 175: held [114, 175] restore 114.0 clean 1 WL 1464 h
+  prior_only delay  7 discovery day 122: held [120, 122] restore 120.0 clean 0 WL 2928 h
+  prior_only delay 14 discovery day 129: held [120, 129] restore 120.0 clean 0 WL 3096 h
+  prior_only delay 30 discovery day 145: held [120, 145] restore 120.0 clean 0 WL 3480 h
+  prior_only delay 45 discovery day 160: held [120, 160] restore 120.0 clean 0 WL 3840 h
+  prior_only delay 60 discovery day 175: held [120, 175] restore 120.0 clean 0 WL 4200 h
+
+napierone early rate=0.01 rep=28 sbdaymed_K4 budget 24.07 MiB: attack window [115, disc]; K' slowburn=2.0 prior_only=2.0; rec diff +5
+  slowburn   delay  7 discovery day 122: held [114, 122] restore 114.0 clean 1 WL 192 h
+  slowburn   delay 14 discovery day 129: held [114, 129] restore 114.0 clean 1 WL 360 h
+  slowburn   delay 30 discovery day 145: held [114, 145] restore 114.0 clean 1 WL 744 h
+  slowburn   delay 45 discovery day 160: held [114, 160] restore 114.0 clean 1 WL 1104 h
+  slowburn   delay 60 discovery day 175: held [114, 175] restore 114.0 clean 1 WL 1464 h
+  prior_only delay  7 discovery day 122: held [120, 122] restore 120.0 clean 0 WL 2928 h
+  prior_only delay 14 discovery day 129: held [120, 129] restore 120.0 clean 0 WL 3096 h
+  prior_only delay 30 discovery day 145: held [120, 145] restore 120.0 clean 0 WL 3480 h
+  prior_only delay 45 discovery day 160: held [120, 160] restore 120.0 clean 0 WL 3840 h
+  prior_only delay 60 discovery day 175: held [120, 175] restore 120.0 clean 0 WL 4200 h
+
+napierone bursty rate=0.0 rep=1 sbdaymed_K4 budget 25.08 MiB: attack window [102, disc]; K' slowburn=2.0 prior_only=2.0; rec diff +3
+  slowburn   delay  7 discovery day 109: held [13, 109] restore 13.0 clean 1 WL 2304 h
+  slowburn   delay 14 discovery day 116: held [13, 116] restore 13.0 clean 1 WL 2472 h
+  slowburn   delay 30 discovery day 132: held [13, 132] restore 13.0 clean 1 WL 2856 h
+  slowburn   delay 45 discovery day 147: held [13, 147] restore 13.0 clean 1 WL 3216 h
+  slowburn   delay 60 discovery day 162: held [13, 162] restore 13.0 clean 1 WL 3576 h
+  prior_only delay  7 discovery day 109: held [13, 109] restore 13.0 clean 1 WL 2304 h
+  prior_only delay 14 discovery day 116: held [13, 116] restore 13.0 clean 1 WL 2472 h
+  prior_only delay 30 discovery day 132: held [120, 132] restore 120.0 clean 0 WL 3168 h
+  prior_only delay 45 discovery day 147: held [120, 147] restore 120.0 clean 0 WL 3528 h
+  prior_only delay 60 discovery day 162: held [120, 162] restore 120.0 clean 0 WL 3888 h
+
+napierone uniform rate=0.05 rep=38 sbdaymed_K6 budget 32.34 MiB: attack window [221, disc]; K' slowburn=3.0 prior_only=3.0; rec diff +3
+  slowburn   delay  7 discovery day 228: held [161, 220, 228] restore 161.0 clean 1 WL 1608 h
+  slowburn   delay 14 discovery day 235: held [220, 234, 235] restore 220.0 clean 1 WL 360 h
+  slowburn   delay 30 discovery day 251: held [220, 234, 251] restore 220.0 clean 1 WL 744 h
+  slowburn   delay 45 discovery day 266: held [220, 234, 266] restore 220.0 clean 1 WL 1104 h
+  slowburn   delay 60 discovery day 281: held [220, 234, 281] restore 220.0 clean 1 WL 1464 h
+  prior_only delay  7 discovery day 228: held [162, 221, 228] restore 162.0 clean 1 WL 1584 h
+  prior_only delay 14 discovery day 235: held [162, 221, 235] restore 162.0 clean 1 WL 1752 h
+  prior_only delay 30 discovery day 251: held [221, 236, 251] restore 221.0 clean 0 WL 6024 h
+  prior_only delay 45 discovery day 266: held [221, 236, 266] restore 221.0 clean 0 WL 6384 h
+  prior_only delay 60 discovery day 281: held [221, 236, 281] restore 221.0 clean 0 WL 6744 h
+
+napierone uniform rate=0.05 rep=38 sbdaymed_K8 budget 36.42 MiB: attack window [221, disc]; K' slowburn=3.0 prior_only=3.0; rec diff +3
+  slowburn   delay  7 discovery day 228: held [161, 220, 228] restore 161.0 clean 1 WL 1608 h
+  slowburn   delay 14 discovery day 235: held [220, 234, 235] restore 220.0 clean 1 WL 360 h
+  slowburn   delay 30 discovery day 251: held [220, 234, 251] restore 220.0 clean 1 WL 744 h
+  slowburn   delay 45 discovery day 266: held [220, 234, 266] restore 220.0 clean 1 WL 1104 h
+  slowburn   delay 60 discovery day 281: held [220, 234, 281] restore 220.0 clean 1 WL 1464 h
+  prior_only delay  7 discovery day 228: held [162, 221, 228] restore 162.0 clean 1 WL 1584 h
+  prior_only delay 14 discovery day 235: held [162, 221, 235] restore 162.0 clean 1 WL 1752 h
+  prior_only delay 30 discovery day 251: held [221, 236, 251] restore 221.0 clean 0 WL 6024 h
+  prior_only delay 45 discovery day 266: held [221, 236, 266] restore 221.0 clean 0 WL 6384 h
+  prior_only delay 60 discovery day 281: held [221, 236, 281] restore 221.0 clean 0 WL 6744 h
