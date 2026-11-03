@@ -31,3 +31,35 @@ napierone,slowburn sbmax_K12,0.9975,shamir_rr,sbdaymed_K12,3.9581961918963247,0.
 napierone,slowburn sbmax_K12,0.9975,slowburn,sbmax_K8,4.857184536735143,0.99875,480.0
 napierone,slowburn sbmax_K12,0.9975,toh_eqh,not reached,,,
 napierone,slowburn sbmax_K12,0.9975,tower_of_hanoi,not reached,,,
+synthetic,slowburn sbmax_K4,0.9883333333333333,gfs,sbmax_K12,6.026191852462211,0.9941666666666666,480.0
+synthetic,slowburn sbmax_K4,0.9883333333333333,gfs_eqh,sbdaymed_K6,3.2117121333946446,1.0,12.0
+synthetic,slowburn sbmax_K4,0.9883333333333333,prior_only,sbmax_K8,4.977784569818998,1.0,480.0
+synthetic,slowburn sbmax_K4,0.9883333333333333,shamir_recursive,sbdaymed_K6,3.2117121333946446,0.996078431372549,408.0
+synthetic,slowburn sbmax_K4,0.9883333333333333,shamir_rr,sbdaymed_K6,3.2117121333946446,0.9955445544554455,404.0
+synthetic,slowburn sbmax_K4,0.9883333333333333,slowburn,sbmax_K4,3.5369984329250688,0.9883333333333333,480.0
+synthetic,slowburn sbmax_K4,0.9883333333333333,toh_eqh,not reached,,,
+synthetic,slowburn sbmax_K4,0.9883333333333333,tower_of_hanoi,not reached,,,
+synthetic,slowburn sbmax_K6,0.9995833333333334,gfs,not reached,,,
+synthetic,slowburn sbmax_K6,0.9995833333333334,gfs_eqh,sbdaymed_K6,3.2117121333946446,1.0,12.0
+synthetic,slowburn sbmax_K6,0.9995833333333334,prior_only,sbmax_K8,4.977784569818998,1.0,480.0
+synthetic,slowburn sbmax_K6,0.9995833333333334,shamir_recursive,sbmax_K4,3.5369984329250688,1.0,462.0
+synthetic,slowburn sbmax_K6,0.9995833333333334,shamir_rr,sbmax_K4,3.5369984329250688,1.0,465.0
+synthetic,slowburn sbmax_K6,0.9995833333333334,slowburn,sbdaymed_K12,4.044251897531805,0.9995833333333334,480.0
+synthetic,slowburn sbmax_K6,0.9995833333333334,toh_eqh,not reached,,,
+synthetic,slowburn sbmax_K6,0.9995833333333334,tower_of_hanoi,not reached,,,
+synthetic,slowburn sbmax_K8,1.0,gfs,not reached,,,
+synthetic,slowburn sbmax_K8,1.0,gfs_eqh,sbdaymed_K6,3.2117121333946446,1.0,12.0
+synthetic,slowburn sbmax_K8,1.0,prior_only,sbmax_K8,4.977784569818998,1.0,480.0
+synthetic,slowburn sbmax_K8,1.0,shamir_recursive,sbmax_K4,3.5369984329250688,1.0,462.0
+synthetic,slowburn sbmax_K8,1.0,shamir_rr,sbmax_K4,3.5369984329250688,1.0,465.0
+synthetic,slowburn sbmax_K8,1.0,slowburn,sbmax_K8,4.977784569818998,1.0,480.0
+synthetic,slowburn sbmax_K8,1.0,toh_eqh,not reached,,,
+synthetic,slowburn sbmax_K8,1.0,tower_of_hanoi,not reached,,,
+synthetic,slowburn sbmax_K12,1.0,gfs,not reached,,,
+synthetic,slowburn sbmax_K12,1.0,gfs_eqh,sbdaymed_K6,3.2117121333946446,1.0,12.0
+synthetic,slowburn sbmax_K12,1.0,prior_only,sbmax_K8,4.977784569818998,1.0,480.0
+synthetic,slowburn sbmax_K12,1.0,shamir_recursive,sbmax_K4,3.5369984329250688,1.0,462.0
+synthetic,slowburn sbmax_K12,1.0,shamir_rr,sbmax_K4,3.5369984329250688,1.0,465.0
+synthetic,slowburn sbmax_K12,1.0,slowburn,sbmax_K8,4.977784569818998,1.0,480.0
+synthetic,slowburn sbmax_K12,1.0,toh_eqh,not reached,,,
+synthetic,slowburn sbmax_K12,1.0,tower_of_hanoi,not reached,,,

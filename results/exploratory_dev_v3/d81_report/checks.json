@@ -99,6 +99,30 @@
     "infeasible": 0,
     "kprime_eq_K": 13,
     "kprime_ge_K": 30
+   },
+   "sbmax_K12": {
+    "machines": 480,
+    "infeasible": 0,
+    "kprime_eq_K": 58,
+    "kprime_ge_K": 187
+   },
+   "sbmax_K4": {
+    "machines": 480,
+    "infeasible": 0,
+    "kprime_eq_K": 168,
+    "kprime_ge_K": 249
+   },
+   "sbmax_K6": {
+    "machines": 480,
+    "infeasible": 0,
+    "kprime_eq_K": 106,
+    "kprime_ge_K": 231
+   },
+   "sbmax_K8": {
+    "machines": 480,
+    "infeasible": 0,
+    "kprime_eq_K": 36,
+    "kprime_ge_K": 173
    }
   }
  },
