@@ -2184,3 +2184,26 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
   the napierone sbmax run: 97 MB per machine cache, 5.6 MB rows, 76 KB tasks, logs). DEV only,
   exploratory_dev_v3, no confirmatory impact. The RAM gate (measured peak 6.8 GB + 4 GB = 10.8 GB)
   is unchanged. The 45 GB floor is unchanged for every other job.
+
+### D82 rule (pre-registered 2026-11-04, team decision; before any D82 code)
+- Rule (G_q; the r_hat variant is not pre-registered). On the 40 attack-free DEV calibration
+  machines per benign setting (the machines attack_free_calibration already simulates), for each
+  day t after warm-up, G_t = days from t back to the newest snapshot that holds no flagged
+  version (the depth restore A walks back past benign flags on a clean machine). G_q = the
+  q-quantile of G_t pooled over machines and days. Output, per benign setting:
+  M = 60 + ceil(lambda * G_q) days, used as SlowBurn's assumed discovery bound (uniform, max M)
+  and as EqualHorizon("gfs", M) and EqualHorizon("toh", M) for the adaptive GFS and ToH
+  baselines. lambda = 0 gives frozen SlowBurn and the existing eqh baselines.
+- Free parameters and grid: q in {0.5, 0.9, 0.99}; lambda in {0, 0.5, 1, 2}. Selected on the fit
+  half by pooled work lost subject to recovery within 0.01 in every world; judged once on the
+  check half under the committed D82 criteria.
+- Fit and check split: unit = DEV machine (world, true start, rep), shared across benign rates
+  and both data arms (160 machines per arm). Sort the machines by (world, rep), permute with
+  numpy.random.default_rng(82082).permutation; the first 80 are the fit half, the rest the check
+  half. The split is fixed before any D82 number is computed.
+- Written prediction: adaptive SlowBurn will likely fail D82, because lengthening M raised work
+  lost in D52 (assumed 90 / 120 vs 60 days: +492.3 / +1084.2 h, old restore) and the same M is
+  given to the adaptive GFS and ToH baselines.
+- Limitation: the DEV discovery-delay grid stops at 60 days, and recovery beyond the assumed
+  bound is about 0 (F1). M below 60 therefore cannot be evaluated on this grid; the rule only
+  lengthens M.
