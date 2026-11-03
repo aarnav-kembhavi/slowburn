@@ -2162,3 +2162,11 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
 | synthetic | 0.0 | 3.5370 | 4.2639 | 4.9800 | 5.8304 |
 | synthetic | 0.01 | 3.5370 | 4.2500 | 4.9733 | 6.1350 |
 | synthetic | 0.05 | 3.5370 | 4.2639 | 4.9800 | 6.1132 |
+
+#### D81 addendum: disk floor change for the synthetic sbmax run (approved by Aarnav 2026-11-03)
+- The disk floor is lowered from 45 GB to 40 GB free on C: for the synthetic sbmax evaluation run
+  only. Reason: C: stayed at 41.7-42.0 GB free (space taken by the PROMPT project's job; nothing
+  was deleted), below the 45 GB floor for more than 6 h; this run writes about 105 MB (measured on
+  the napierone sbmax run: 97 MB per machine cache, 5.6 MB rows, 76 KB tasks, logs). DEV only,
+  exploratory_dev_v3, no confirmatory impact. The RAM gate (measured peak 6.8 GB + 4 GB = 10.8 GB)
+  is unchanged. The 45 GB floor is unchanged for every other job.
