@@ -211,5 +211,61 @@ def review2() -> None:
     print("\nT3 SlowBurn minus Bar-On at byte levels\n" + t3.to_string(index=False))
 
 
+HORIZON = 60
+
+
+def review3() -> None:
+    """Review 3 tables on existing outputs. T1: per policy and sbmax K, the share of the 480
+    machines whose retained set at discovery reaches back HORIZON days at every delay
+    (oldest_retained_age >= 60; infeasible machines count as not reaching), with mean recovery and
+    work lost over those machines. T2: per policy, the smallest byte level (ordered by mean budget
+    / day-0) whose mean recovery (feasible rows) is >= SlowBurn's mean recovery at each sbmax K."""
+    t1, t2 = [], []
+    for arm in ARMS:
+        d = load(f"d81_{arm}")
+        b = d[d.d81_arm == "bytes"].copy()
+        if not b.d81_level.str.startswith("sbmax").any():
+            print(f"{arm}: sbmax rows pending")
+            continue
+        b["feas"] = ~b.d81_infeasible.astype(bool)
+        b["reach"] = b.feas & (b.oldest_retained_age >= HORIZON)
+        for (lev, nm), g in b[b.d81_level.str.startswith("sbmax")].groupby(["d81_level", "policy"]):
+            mach = g.groupby(MACH).reach.all()
+            ok = g.set_index(MACH).loc[mach[mach].index]
+            t1.append({"arm": arm, "d81_level": lev, "policy": nm, "machines": len(mach),
+                       "share_60d": mach.mean(), "n_60d": int(mach.sum()),
+                       "recovery_60d": ok[REC].mean(),
+                       "work_lost_h_60d": ok[WL].mean()})  # fmt: skip
+        f = b[b.feas]
+        mult = (f.d81_budget_bytes / f.d81_day0_bytes).groupby(f.d81_level).mean().sort_values()
+        rec = f.groupby(["d81_level", "policy"])[REC].mean()
+        nfe = (
+            f.drop_duplicates([*MACH, "d81_level", "policy"])
+            .groupby(["d81_level", "policy"])
+            .size()
+        )
+        for K in LEVEL_KS:
+            ref = rec[(f"sbmax_K{K}", "slowburn")]
+            for nm in sorted(f.policy.unique()):
+                hit = [lv for lv in mult.index if (lv, nm) in rec.index and rec[(lv, nm)] >= ref]
+                lv = hit[0] if hit else None
+                t2.append({"arm": arm, "reference": f"slowburn sbmax_K{K}", "ref_recovery": ref,
+                           "policy": nm, "smallest_level": lv or "not reached",
+                           "level_mult": mult[lv] if lv else float("nan"),
+                           "policy_recovery": rec[(lv, nm)] if lv else float("nan"),
+                           "feasible_machines": int(nfe[(lv, nm)]) if lv else None})  # fmt: skip
+        print(f"{arm} level ladder (mean budget / day-0): "
+              + ", ".join(f"{k} {v:.2f}" for k, v in mult.items()))  # fmt: skip
+    t1, t2 = pd.DataFrame(t1), pd.DataFrame(t2)
+    t1["_o"] = t1.d81_level.map(LEVELS.index)
+    t1 = t1.sort_values(["arm", "policy", "_o"]).drop(columns="_o")
+    t1.to_csv(OUT / "review3_t1_horizon60_sbmax.csv", index=False)
+    t2.to_csv(OUT / "review3_t2_smallest_level_matching_slowburn.csv", index=False)
+    print("T1 60-day horizon at sbmax\n" + t1.round(3).to_string(index=False))
+    print(
+        "\nT2 smallest level matching SlowBurn mean recovery\n" + t2.round(3).to_string(index=False)
+    )
+
+
 if __name__ == "__main__":
-    {"item4": item4, "item5": item5, "review2": review2}[sys.argv[1]]()
+    {"item4": item4, "item5": item5, "review2": review2, "review3": review3}[sys.argv[1]]()

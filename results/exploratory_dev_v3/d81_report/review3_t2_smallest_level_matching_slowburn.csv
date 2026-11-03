@@ -1,0 +1,33 @@
+arm,reference,ref_recovery,policy,smallest_level,level_mult,policy_recovery,feasible_machines
+napierone,slowburn sbmax_K4,0.9820833333333333,gfs,not reached,,,
+napierone,slowburn sbmax_K4,0.9820833333333333,gfs_eqh,sbdaymed_K6,3.044449158295482,1.0,3.0
+napierone,slowburn sbmax_K4,0.9820833333333333,prior_only,sbmax_K8,4.857184536735143,0.9920833333333333,480.0
+napierone,slowburn sbmax_K4,0.9820833333333333,shamir_recursive,sbdaymed_K6,3.044449158295482,0.9824,250.0
+napierone,slowburn sbmax_K4,0.9820833333333333,shamir_rr,sbdaymed_K6,3.044449158295482,0.9863117870722433,263.0
+napierone,slowburn sbmax_K4,0.9820833333333333,slowburn,sbmax_K4,3.5263070015017024,0.9820833333333333,480.0
+napierone,slowburn sbmax_K4,0.9820833333333333,toh_eqh,not reached,,,
+napierone,slowburn sbmax_K4,0.9820833333333333,tower_of_hanoi,not reached,,,
+napierone,slowburn sbmax_K6,0.9966666666666667,gfs,not reached,,,
+napierone,slowburn sbmax_K6,0.9966666666666667,gfs_eqh,sbdaymed_K6,3.044449158295482,1.0,3.0
+napierone,slowburn sbmax_K6,0.9966666666666667,prior_only,sbmax_K12,5.688337637326052,0.9975,480.0
+napierone,slowburn sbmax_K6,0.9966666666666667,shamir_recursive,sbdaymed_K12,3.9581961918963247,0.9987012987012988,462.0
+napierone,slowburn sbmax_K6,0.9966666666666667,shamir_rr,sbdaymed_K12,3.9581961918963247,0.9991360691144708,463.0
+napierone,slowburn sbmax_K6,0.9966666666666667,slowburn,sbmax_K6,4.213511059817179,0.9966666666666667,480.0
+napierone,slowburn sbmax_K6,0.9966666666666667,toh_eqh,not reached,,,
+napierone,slowburn sbmax_K6,0.9966666666666667,tower_of_hanoi,not reached,,,
+napierone,slowburn sbmax_K8,0.99875,gfs,not reached,,,
+napierone,slowburn sbmax_K8,0.99875,gfs_eqh,sbdaymed_K6,3.044449158295482,1.0,3.0
+napierone,slowburn sbmax_K8,0.99875,prior_only,not reached,,,
+napierone,slowburn sbmax_K8,0.99875,shamir_recursive,not reached,,,
+napierone,slowburn sbmax_K8,0.99875,shamir_rr,sbdaymed_K12,3.9581961918963247,0.9991360691144708,463.0
+napierone,slowburn sbmax_K8,0.99875,slowburn,sbmax_K8,4.857184536735143,0.99875,480.0
+napierone,slowburn sbmax_K8,0.99875,toh_eqh,not reached,,,
+napierone,slowburn sbmax_K8,0.99875,tower_of_hanoi,not reached,,,
+napierone,slowburn sbmax_K12,0.9975,gfs,not reached,,,
+napierone,slowburn sbmax_K12,0.9975,gfs_eqh,sbdaymed_K6,3.044449158295482,1.0,3.0
+napierone,slowburn sbmax_K12,0.9975,prior_only,sbmax_K12,5.688337637326052,0.9975,480.0
+napierone,slowburn sbmax_K12,0.9975,shamir_recursive,sbdaymed_K12,3.9581961918963247,0.9987012987012988,462.0
+napierone,slowburn sbmax_K12,0.9975,shamir_rr,sbdaymed_K12,3.9581961918963247,0.9991360691144708,463.0
+napierone,slowburn sbmax_K12,0.9975,slowburn,sbmax_K8,4.857184536735143,0.99875,480.0
+napierone,slowburn sbmax_K12,0.9975,toh_eqh,not reached,,,
+napierone,slowburn sbmax_K12,0.9975,tower_of_hanoi,not reached,,,
