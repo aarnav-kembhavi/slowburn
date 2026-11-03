@@ -2070,6 +2070,8 @@ and are NOT final: the team confirms or changes each before any code for that it
   truncated at a size cap as truncated-benign rather than damaged, removing their benign flags.
 - Metric (DEV pools): share of the benign flags from the 9 truncated DEV pngs removed; damaged
   png detection; benign flag rate.
+- Added (team review 2026-11-03): synthetic truncation of DEV pngs at several cut points, with
+  the removed share reported per cut point; damaged png detection reported per damage family.
 - Success: at least 90% of those flags removed and damaged png detection lower by at most 0.01.
   Kill: the check cannot tell truncated benign files from damaged ones (damaged detection drops
   by more than 0.01).
