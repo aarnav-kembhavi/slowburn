@@ -124,6 +124,7 @@ def verified_restore(
     scan_eps: float = 0.001,
     old_flags: str = "skip",
     accept_test: tuple | None = None,
+    tolerance: tuple | None = None,
 ) -> dict:
     """``old_flags``: "skip" = D29 as pre-registered; D62 diagnostics: "select" also restores
     files whose current version is flagged, "verify" additionally rejects a candidate holding any
@@ -132,11 +133,16 @@ def verified_restore(
     each version was written (one draw per version, shared with the daily evidence).
     ``accept_test`` = (null_prior, alpha), method v2.1 (D65, verify_snap only): a candidate is
     rejected only if its flag count over every version it holds is significant under the D60
-    test (``deep_damage``), instead of on any flag."""
+    test (``deep_damage``), instead of on any flag.
+    ``tolerance`` (D89, verify_snap only): ("N", n) rejects a candidate iff x >= n, ("T", t) iff
+    x / c >= t (c = 0: clean), with x its flagged held versions and c its held versions written
+    after day 0; ("N", 1) is the any-flag rule."""
     if old_flags not in ("skip", "select", "verify", "verify_snap"):
         raise ValueError(f"unknown old_flags {old_flags!r}")
     if accept_test is not None and old_flags != "verify_snap":
         raise ValueError("the D65 accept test applies to verify_snap only")
+    if tolerance is not None and (old_flags != "verify_snap" or accept_test is not None):
+        raise ValueError("the D89 tolerance applies to verify_snap without the D65 test only")
     kept = sorted(kept_days)
     L = lower_quantile_start(post, scan_eps)
     pc = p_clean(post, kept)
@@ -153,13 +159,18 @@ def verified_restore(
                 j_r, verified = j, 1
                 break
             continue
-        flagged = False
+        flagged, x, c = False, 0, 0
         for h in histories.values():
             v = version_day_at(h, j)
             if (v >= L or (old_flags == "verify" and v > kept[0])
                     or (old_flags == "verify_snap" and v >= 0)):  # fmt: skip
                 files_scanned += 1
-                flagged |= v in h.flagged_days
+                hit = v in h.flagged_days
+                flagged |= hit
+                x, c = x + hit, c + (v > 0)
+        if tolerance is not None:
+            fam, tv = tolerance
+            flagged = x >= tv if fam == "N" else (c > 0 and x / c >= tv)
         if not flagged:
             j_r, verified = j, 1
             break

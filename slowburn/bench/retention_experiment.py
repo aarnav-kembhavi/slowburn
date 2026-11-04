@@ -427,6 +427,9 @@ def evaluate_trace(
     if sa and p.get("null_prior") is None:
         raise ValueError("the D65 accept test needs the fleet-pooled benign prior")
     accept = (tuple(p["null_prior"]), float(sa["alpha"])) if sa else None
+    tols = [tuple(x) for x in hp["d89_tolerances"]] if hp.get("d89_tolerances") else [None]
+    if tols != [None] and (walk or hp.get("restore_rule", "verified") != "verified"):
+        raise ValueError("the D89 tolerance applies to verified_restore without the walk-back")
     delays = [int(d) for d in cfg["discovery_delay"]]
     start = trace.start
     n = trace.n_days
@@ -540,7 +543,7 @@ def evaluate_trace(
                       "p_started_at_discovery": float(1 - post[-1]),
                       "sim_s": sim_s, "infer_ms_per_day": 1000 * infer_s / n,
                       "dp_ms_per_decision": 1000 * dp_s / max(dp_calls, 1)}  # fmt: skip
-            for nm, pol in pols[bk].items():
+            for (nm, pol), tol in [(x, t_) for x in pols[bk].items() for t_ in tols]:
                 kept = kept_at[(bk, nm)][td]
                 # a posterior-DP policy restores with the posterior it plans with (D33): the
                 # blind policy's DP loss assumes a prior-gated restore, so its gate uses the prior
@@ -556,7 +559,7 @@ def evaluate_trace(
                                          scan_eps, old_flags, accept)  # fmt: skip
                 elif rule == "verified":
                     r = verified_restore(kept, rpost, td, trace.histories, start, g_r, scan_eps,
-                                         old_flags, accept)  # fmt: skip
+                                         old_flags, accept, tol)  # fmt: skip
                 else:
                     r = selective_restore(kept, rpost, td, trace.histories, start,
                                           float(hp["restore_quantile"]))  # fmt: skip
@@ -585,6 +588,8 @@ def evaluate_trace(
                         ),
                     }
                 ub = _unique_bytes(trace, kept)
+                if tol is not None:  # D89: one row per tolerance, same retention
+                    r = {**r, "d89_rule": f"{tol[0]}{tol[1]:g}"}
                 rows.append({**common, "policy": nm, **r,
                              "snapshots_retained": len(kept), "retained_unique_bytes": ub,
                              "storage_vs_keep_last_n": ub / klast_bytes if klast_bytes else np.nan,

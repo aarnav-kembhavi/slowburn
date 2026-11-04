@@ -21,6 +21,7 @@ Run from the repo root (one heavy job at a time):
     uv run python -u -m slowburn.bench.byte_matched calibrate-max CONFIG # -> levels_sbmax.json
     uv run python -u -m slowburn.bench.byte_matched run CONFIG [--pilot N]
     uv run python -u -m slowburn.bench.byte_matched run-max CONFIG [--pilot N]
+    uv run python -u -m slowburn.bench.byte_matched run-tol CONFIG [--pilot N]  # D89
 """
 
 from __future__ import annotations
@@ -55,6 +56,11 @@ COUNTS = tuple(range(2, 25))  # the supported range of K' (team rule)
 LEVEL_KS = (4, 6, 8, 12)
 AT_CAP = 0.95  # a day is "at the cap" when retained bytes >= 0.95 x budget
 LABEL = "exploratory_dev_v3"
+# D89 (OPEN_QUESTIONS 2026-11-04): verify_snap tolerances; ("N", 1) is the untuned restore
+D89_TOLS = [("N", 1), ("N", 2), ("N", 3), ("N", 5), ("N", 10),
+            ("T", 0.001), ("T", 0.002), ("T", 0.005), ("T", 0.01), ("T", 0.02)]  # fmt: skip
+D89_POLICIES = ["slowburn", "gfs", "tower_of_hanoi", "gfs_eqh", "toh_eqh", "shamir_recursive"]
+D89_COUNTS = (8, 12)
 
 
 def base_hp(cfg: dict) -> dict:
@@ -161,8 +167,8 @@ def calibrate(cfg: dict, log=print, kind: str = "daymed") -> dict:
 _W: dict = {}
 
 
-def _init(cfg: dict, hp: dict, levels: dict) -> None:
-    _W.update(cfg=cfg, hp=hp, levels=levels)
+def _init(cfg: dict, hp: dict, levels: dict, count_ks=LEVEL_KS) -> None:
+    _W.update(cfg=cfg, hp=hp, levels=levels, count_ks=tuple(count_ks))
 
 
 TYPES = ("txt", "csv", "bin", "docx", "zip", "png", "jpg", "mp3", "zlib")
@@ -187,7 +193,7 @@ def machine_features(trace, size0: int) -> dict:
 
 
 def evaluate_machine(task: RetentionTask) -> list[dict]:
-    cfg, hp, levels = _W["cfg"], _W["hp"], _W["levels"]
+    cfg, hp, levels, cks = _W["cfg"], _W["hp"], _W["levels"], _W["count_ks"]
     names = list(cfg["policies"])
     t0 = time.perf_counter()
     trace = simulate(cfg, task)
@@ -206,17 +212,18 @@ def evaluate_machine(task: RetentionTask) -> list[dict]:
             sel.append((name, nm, budget, k, b[(nm, k)].max() if k else np.nan, at_cap))
     rows = []
     for nm in names:  # each policy at the registered counts and its own selected K' only
-        need = sorted(set(LEVEL_KS) | {s[3] for s in sel if s[1] == nm and s[3] is not None})
+        need = sorted(set(cks) | {s[3] for s in sel if s[1] == nm and s[3] is not None})
         rows += evaluate_trace({**cfg, "budgets": need}, task, trace, hp, [nm], sim_s,
                                posterior_cache=cache)  # fmt: skip
-    by = {(r["policy"], r["budget"], r["discovery_delay"]): r for r in rows}
+    by = {(r["policy"], r["budget"], r["discovery_delay"], r.get("d89_rule")): r for r in rows}
+    rules = sorted({r.get("d89_rule") for r in rows}, key=str)
     out = []
     for r in rows:  # matched count: the registered count budgets, unchanged rows
-        if r["budget"] in LEVEL_KS:
+        if r["budget"] in cks:
             out.append({**r, "d81_arm": "count", "d81_level": f"count_K{r['budget']}",
                         "d81_kprime": r["budget"], "d81_infeasible": False})  # fmt: skip
     delays = [int(d) for d in cfg["discovery_delay"]]
-    for name, nm, budget, k, mx, at_cap in sel:
+    for (name, nm, budget, k, mx, at_cap), rule in [(s, u) for s in sel for u in rules]:
         for d in delays:
             meta = {"d81_arm": "bytes", "d81_level": name, "d81_budget_bytes": budget,
                     "d81_day0_bytes": size0, "d81_kprime": k, "d81_max_bytes": mx,
@@ -226,9 +233,10 @@ def evaluate_machine(task: RetentionTask) -> list[dict]:
                 out.append({"policy": nm, "discovery_delay": d, "split": task.split,
                             "rep": task.rep, "true_start": trace.start,
                             **{c: task.params.get(c) for c in
-                            ("world", "benign_invalid_rate")}, **meta})  # fmt: skip
+                            ("world", "benign_invalid_rate")}, **meta,
+                            **({"d89_rule": rule} if rule else {})})  # fmt: skip
                 continue
-            r = by[(nm, k, d)]
+            r = by[(nm, k, d, rule)]
             td = trace.start + d
             if r["retained_unique_bytes"] != b[(nm, k)][td]:  # same simulation as evaluate_trace
                 raise AssertionError(f"{nm} K'={k} day {td}: byte replay differs from the rows")
@@ -242,17 +250,22 @@ def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81",
         M: int | None = None) -> pd.DataFrame:  # fmt: skip
     """tag "d81": the levels.json levels; "d81max": the sbmax addendum levels only. With ``M``
     (D82 stage 1 precheck): SlowBurn only, its assumed discovery bound set to M days (restore A
-    uses the same bound), at the fixed sbmax_K8 and sbmax_K12 levels; tag d82pre_M{M}."""
+    uses the same bound), at the fixed sbmax_K8 and sbmax_K12 levels; tag d82pre_M{M}. tag "d89":
+    the D89 policies at count K8 / K12 and sbmax K8 / K12, one row per verify_snap tolerance."""
     out = resolve_path(cfg["output_dir"])
     lfile = "levels.json" if tag == "d81" else "levels_sbmax.json"
     levels = json.loads((out / lfile).read_text())["levels"]
-    keep = ("sbmax_K8", "sbmax_K12") if M else None
+    keep = ("sbmax_K8", "sbmax_K12") if M or tag == "d89" else None
     levels = {s: {k: v for k, v in lv.items() if not k.startswith("_") and (not keep or k in keep)}
               for s, lv in levels.items()}  # fmt: skip
     hp = base_hp(cfg)
     if M:
         hp["assumed_discovery"] = {**hp["assumed_discovery"], "max_days": int(M)}
         cfg = {**cfg, "policies": ["slowburn"]}
+    cks = LEVEL_KS
+    if tag == "d89":
+        hp["d89_tolerances"] = [list(t) for t in D89_TOLS]
+        cfg, cks = {**cfg, "policies": D89_POLICIES}, D89_COUNTS
     tasks = build_tasks(cfg, "dev", log)
     name = "machines"
     if pilot:
@@ -261,7 +274,7 @@ def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81",
     with (out / f"{tag}_{name}_tasks.pkl").open("wb") as fh:  # for the review item 4 replay
         pickle.dump(tasks, fh)
     res = run_tasks(evaluate_machine, tasks, workers=int(cfg.get("workers", 1)), init=_init,
-                    init_args=(cfg, hp, levels), cache_dir=out / f"{name}_{tag}",
+                    init_args=(cfg, hp, levels, cks), cache_dir=out / f"{name}_{tag}",
                     task_key=lambda t: task_cache_key(seed, t), log=log)  # fmt: skip
     df = pd.DataFrame([r for rows in res for r in rows])
     df["label"] = LABEL
@@ -285,6 +298,9 @@ def main(argv: list[str]) -> None:
     elif cmd in ("run", "run-max"):
         pilot = int(argv[3]) if len(argv) > 3 and argv[2] == "--pilot" else None
         run(cfg, pilot, tag="d81" if cmd == "run" else "d81max")
+    elif cmd == "run-tol":  # D89
+        pilot = int(argv[3]) if len(argv) > 3 and argv[2] == "--pilot" else None
+        run(cfg, pilot, tag="d89")
     elif cmd == "run-m":  # D82 stage 1 precheck: run-m CONFIG M
         M = int(argv[2])
         run(cfg, tag=f"d82pre_M{M}", M=M)
