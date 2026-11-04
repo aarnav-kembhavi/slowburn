@@ -1,0 +1,5 @@
+warning: `VIRTUAL_ENV=C:\Users\kembh\AppData\Local\uv\cache\builds-v0\.tmpg0cl1t` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+  calibrated vault thresholds, fleet null priors for 3 evidence settings
+D90: 160 tasks (check half, rates (0.0, 0.01), cap 2)
+  tasks 4/4 done
+{"cmd": ["uv", "run", "python", "-u", "-m", "slowburn.bench.byte_matched", "run-d90", "configs/dev_v3_d81_napierone.yaml", "--pilot", "4", "--workers", "2"], "exit": 0, "wall_s": 1618.0, "tree_peak_mib": 1820.7265625, "sum_of_process_peaks_mib": 2778.65625, "processes": 5}
