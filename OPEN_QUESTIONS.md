@@ -2368,3 +2368,23 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
   N1 / N3 rows, via the same code with the cap off). If either fails, stop and report. Gate:
   free RAM >= measured peak + 4 GB, rechecked every 10 min; a watchdog stops the run tree if free
   RAM falls below 3 GB (finished machines stay cached).
+
+### D90 outcome (2026-11-05, exploratory_dev_v3, DEV only, LIMITATION TEST; no criterion)
+- Checks: all 80 machines per arm in the check half; retention identical N1 vs N3 row for row;
+  25,600 rows. Attacker flags per machine: 2 kept, 24.1 (napierone) / 28.4 (synthetic) removed
+  on average (max 35 / 38). Runs at 2 workers; peaks 3.3 / 1.4 GB (sum of process peaks).
+- Pooled, N3 vs N1 under the capped attacker, recovery change [95% CI], relative work lost:
+  SlowBurn -0.0575 [-0.0675, -0.0481], -10.9%; GFS-eqh -0.0589 [-0.0727, -0.0448], +2.3%
+  [-1.4, +5.9]; ToH-eqh -0.0311 [-0.0428, -0.0211], -8.6%; Bar-On recursive -0.0466
+  [-0.0575, -0.0366], -19.6%. N1 recovery under the same attacker: 0.995 / 0.998 / 0.940 /
+  0.997, near the honest D89 values.
+- Honest attacker reference (D89 rows, same machines and cells): recovery change -0.0022 to
+  0.0000, work lost -12.1% to -26.4%.
+- Per cell: every policy loses 0.021 to 0.088 recovery at N3 in every cell; recovery CIs exclude
+  0 in all 32 cells. Under the cap at benign rate 0 on the synthetic arm, N3 also raises work lost
+  for SlowBurn, GFS-eqh, ToH-eqh (CIs exclude 0) and Bar-On at sbmax K12.
+- Reading, no claim beyond the table: an attacker that keeps its detected versions under the
+  N3 threshold removes the D89 gain in recovery terms (3 to 6 points lost against N1), for every
+  policy; N1 (verify_snap, any flag) is not affected the same way. N3 is not robust to a
+  threshold-aware attacker. Reported as a limitation alongside D65 and D89.
+- Source: results/exploratory_dev_v3/d90_report/. The experimental phase is closed.
