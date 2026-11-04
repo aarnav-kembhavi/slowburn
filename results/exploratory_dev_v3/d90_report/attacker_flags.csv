@@ -1,0 +1,5 @@
+arm_name,benign_invalid_rate,machines,kept_mean,removed_mean,removed_median,removed_max
+napierone,0.0,80,2.0,24.1125,24.0,35
+napierone,0.01,80,2.0,24.1125,24.0,35
+synthetic,0.0,80,2.0,28.35,28.0,38
+synthetic,0.01,80,2.0,28.35,28.0,38

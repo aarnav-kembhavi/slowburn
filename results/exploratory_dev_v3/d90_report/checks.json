@@ -1,0 +1,11 @@
+{
+ "label": "exploratory_dev_v3",
+ "limitation_test": true,
+ "rows": 25600,
+ "machines": 80,
+ "halves_of_d90_machines": [
+  "check"
+ ],
+ "retention_identical_N1_N3": true,
+ "every_row_has_both_rules": true
+}
