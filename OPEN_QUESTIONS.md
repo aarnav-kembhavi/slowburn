@@ -2356,3 +2356,15 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
 - Free parameters: unchanged (N3 from D89; the cap 2 is fixed by the N3 rule, not fitted).
 - Gates: RAM 14 GB free (D89 NapierOne sum of process peaks 10.0 GB + 4 GB), disk floor 45 GB,
   one heavy job at a time. TEST untouched.
+- D90 run setup change (approved by Aarnav 2026-11-05; run setup only, no change to the
+  experiment): workers reduced from 5 to 2 for the D90 runs. Reason: the D89 NapierOne run peaked
+  at 10.0 GB (sum of process peaks; tree peak 7.3 GB) with 5 workers, the PROMPT jobs hold about
+  9 GB, and the first D90 attempt (2026-11-04) was stopped by Claude Code for critically low
+  memory before any machine finished (no results lost; leftover process tree killed and
+  verified). Expected peak with 2 workers: about 0.6 + 2 x 1.9 = 4.4 GB (D89 per-worker upper
+  bound; D90 runs 4 of the 6 policies and no count cells), target at most 6 GB. Checks before
+  the full run: one NapierOne batch at 2 workers with its measured peak; and rows at 2 workers
+  must be byte identical to rows of the same machines from the original 5-worker runs (the D89
+  N1 / N3 rows, via the same code with the cap off). If either fails, stop and report. Gate:
+  free RAM >= measured peak + 4 GB, rechecked every 10 min; a watchdog stops the run tree if free
+  RAM falls below 3 GB (finished machines stay cached).
