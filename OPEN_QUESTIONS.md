@@ -2257,3 +2257,46 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
 - The written prediction (ed3f273) held. Stage 2 not run; no D82 rule code written.
 - Source: results/exploratory_dev_v3/d82_precheck/precheck_kill.json, precheck_cells.csv,
   precheck_vs_M60.csv, precheck_kprime_distribution.csv.
+
+### D89 benign-flag tolerance in verify_snap (pre-registered 2026-11-04, team; before any code or run; exploratory_dev_v3, DEV only)
+- D65's "no further accept-rule iterations" is lifted for D89 only (team, 2026-11-04). The D65
+  result stands and is cited as prior evidence. D65 and D89 are both reported in the paper
+  whatever D89 shows; neither is a headline method claim; any confirmatory claim needs TEST2
+  under a new freeze.
+- Hypothesis: the work lost penalty from benign false flags comes from verify_snap rejecting a
+  candidate on any single flagged version (`slowburn/store/restore.py:156`). A tolerance reduces
+  work lost for every policy.
+- Definitions, per gated candidate j: x = held versions carrying their write-time flag; c = held
+  versions written after day 0 (changed files).
+- Rules (only these two): N(n): j dirty iff x >= n. T(t): j dirty iff x / c >= t (c = 0 means
+  clean). Untuned = N(1), exactly verify_snap. Gate, candidate order, oldest-kept fallback, file
+  selection and retention unchanged.
+- Grid (fixed now): n in {2, 3, 5, 10}; t in {0.001, 0.002, 0.005, 0.01, 0.02}. 9 points plus
+  untuned.
+- Free parameters: two, the rule family and its value, shared by all policies (no per-policy
+  choice, no joint (n, t) rule).
+- Halves: fit and check by machine, the ed3f273 split (machines sorted by (world, rep),
+  numpy.random.default_rng(82082).permutation, first half fit).
+- Selection on the fit half: the grid point with the lowest pooled work lost such that EVERY
+  policy's recovery (pooled over cells, rates and arms) is no more than 0.01 below untuned. Ties
+  go to the smaller tolerance. If no point qualifies, D89 is killed.
+- Scope: SlowBurn, GFS, ToH, GFS-eqh, ToH-eqh, Bar-On recursive; count K8, count K12, sbmax K8,
+  sbmax K12; benign rates 0, 0.01, 0.05; both arms; DEV v2 grid.
+- Metrics: work lost and recovery, and the change against untuned per policy, paired
+  machine-cluster bootstrap CIs (method_v2.policy_vs_policy, 2000 resamples).
+- Success (check half, selected point): pooled work lost lower than untuned and no kill. Reported
+  separately: whether SlowBurn benefits more than each baseline (difference in relative work
+  lost change, paired CI).
+- Kill (check half): any policy's pooled recovery drops by more than 0.01 below untuned, or more
+  than two parameters are used. Pooled recovery is also reported. Per-cell changes are reported
+  and do not enter the verdict.
+- Caveat: under T(t) the effective tolerance depends on what each policy retains, so the
+  SlowBurn versus baseline comparison is primary for N(n) and secondary for T(t).
+- Checks: N(1) must reproduce the existing rows exactly, and retention must be identical row for
+  row. If either fails, stop and report.
+- Written prediction: it will help all policies, and probably help the equal horizon policies at
+  least as much as SlowBurn, because the penalty comes from long retained history. D65 suggests
+  the recovery kill is the likely outcome (a slow attack's early snapshots hold few flagged
+  versions, so any n >= 2 or t > 0 can accept lightly damaged snapshots).
+- Gates: RAM measured peak + 4 GB, disk floor 45 GB, one heavy job at a time. Time box: done by
+  2026-11-06. TEST untouched.
