@@ -2243,3 +2243,17 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
   all-feasible-rows version is reported alongside, with infeasible counts per M. D82 is killed by
   precheck only if both versions show M = 60 lowest at every rate on the fit half. If they
   disagree, D82 is not killed: show the table and stop.
+
+### D82 killed by precheck (2026-11-04, exploratory_dev_v3, DEV only)
+- Outcome: D82 killed by stage 1 precheck under the committed rule (8c9fa56). On the fit half,
+  mean SlowBurn work lost pooled over both arms and the four cells (hours, M = 60 / 75 / 90):
+  rate 0: 1582 / 1633 / 1891; rate 0.01: 1809 / 1885 / 2145; rate 0.05: 2676 / 2817 / 3243.
+  M = 60 is lowest at every rate in both versions. They are identical (28,800 rows each) because
+  0 fit-half machines are infeasible at any M, arm or cell. Recovery is 0.997 to 1.000 at every M.
+- Not hidden by the pooled rule: synthetic count_K8 has lower work lost at M = 75 than at M = 60
+  on both halves (fit -0.027, -0.004, -0.072 relative at rates 0, 0.01, 0.05; only check rate 0.05
+  excludes 0: -0.103 [-0.171, -0.033]). No other cell or arm shows it. It is not a D82 result and
+  supports no claim.
+- The written prediction (ed3f273) held. Stage 2 not run; no D82 rule code written.
+- Source: results/exploratory_dev_v3/d82_precheck/precheck_kill.json, precheck_cells.csv,
+  precheck_vs_M60.csv, precheck_kprime_distribution.csv.
