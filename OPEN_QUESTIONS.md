@@ -2327,3 +2327,32 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
 - Resource note: napierone sum of process peaks 10.0 GB (tree peak 7.3 GB), above the 6.8 GB
   the gate assumed; a rerun of this job should gate on 10.0 + 4 = 14.0 GB.
 - Source: results/exploratory_dev_v3/d89_report/.
+
+### D90 limitation test: threshold-aware attacker against the N3 restore (pre-registered 2026-11-04, team; before any code or run; exploratory_dev_v3, DEV only)
+- Label: LIMITATION TEST. No success or kill criterion; whatever comes out is reported. The
+  experimental phase closes after D90 (team, 2026-11-04). No N3 runs at count K4 / K6; no TEST2.
+- Attacker (a simulation parameter, `d90_attacker_flag_cap` = 2; no attack technique is
+  modelled): an upper bound on an attacker that knows the N3 rule. Attacker versions = versions
+  of a damaged file written on or after its damage day. Processing attacker versions carrying a
+  detector flag in write-day order (ties by file id), a flag is kept only if every snapshot that
+  holds the version (end of its write day up to the day before the file's next change, or the end
+  of the run) still holds fewer than 2 flagged attacker versions; otherwise the flag is removed,
+  i.e. that damaged version goes undetected. The cap is applied consistently: the history flags
+  used by verify_snap, the daily evidence (k and k / n of that day's DailyObs) used by the
+  posterior, and the write-time evidence of the same version. Damage itself is unchanged, so
+  every file the honest attacker damages is still damaged. Benign flags are untouched, so a
+  snapshot can still hold 3 or more flagged versions through benign flags.
+- What it means: worst case for N3 (dirty iff x >= 3). It also weakens the daily evidence for
+  every policy that uses it (SlowBurn's retention and the posterior gate), so retention is not
+  identical to D89; N1 and N3 are paired on the same D90 runs, so retention is identical between
+  them (checked row for row; if not, stop and report).
+- Scope: SlowBurn, GFS-eqh, ToH-eqh, Bar-On recursive; sbmax K8 and K12 (the D81 sbmax levels,
+  unchanged); benign rates 0 and 0.01; both arms; DEV v2 grid; check half only (ed3f273 split);
+  restores N1 (untuned) and N3 (the D89 selection, fixed).
+- Metrics: recovery and work lost per policy, N3 vs N1, per cell (arm x level x rate) and pooled,
+  paired machine-cluster bootstrap CIs (2000 resamples). Reported alongside for reference: the
+  D89 honest-attacker check-half rows for the same cells; and per machine the count of attacker
+  flags removed and kept.
+- Free parameters: unchanged (N3 from D89; the cap 2 is fixed by the N3 rule, not fitted).
+- Gates: RAM 14 GB free (D89 NapierOne sum of process peaks 10.0 GB + 4 GB), disk floor 45 GB,
+  one heavy job at a time. TEST untouched.
