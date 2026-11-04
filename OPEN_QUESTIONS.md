@@ -2300,3 +2300,30 @@ same runs recomputed sb_K (sbdaymed) and matched levels.json exactly on every ce
   versions, so any n >= 2 or t > 0 can accept lightly damaged snapshots).
 - Gates: RAM measured peak + 4 GB, disk floor 45 GB, one heavy job at a time. Time box: done by
   2026-11-06. TEST untouched.
+
+### D89 outcome (2026-11-04, exploratory_dev_v3, DEV only): success, not killed
+- Checks passed: N1 reproduces the existing D81 rows (55,200 per arm, 80 to 81 columns, 0
+  differing) and retention is identical across all 10 rules row for row.
+- Fit half: qualifying points N2, N3 and T0.001 to T0.02; N5 and N10 fail (GFS-eqh recovery
+  -0.0104). Selected N3 (pooled work lost 1904.1 -> 1554.3 h). Every T(t) point is identical to
+  N1 on every row: on this grid one flagged version already gives x / c >= 0.02, so the
+  committed T grid has no effect. Reported as found; not re-gridded.
+- Check half at N3, recovery change [95% CI] and relative work lost change:
+  SlowBurn -0.0018 [-0.0034, -0.0004], -29.2% [-31.4, -26.9]; GFS -0.0025 [-0.0063, -0.0001],
+  -4.3%; ToH 0.0000, -16.1%; GFS-eqh -0.0003, -14.7%; ToH-eqh 0.0000, -16.7%; Bar-On recursive
+  -0.0019 [-0.0035, -0.0005], -33.0%. Pooled: -0.0011 [-0.0021, -0.0004], -19.8%
+  [-21.6, -18.0]. No policy drops by more than 0.01: not killed. Pooled work lost lower:
+  success. Parameters: two (family N, n = 3).
+- SlowBurn minus baseline, relative work lost change (primary, N family): vs GFS -0.249
+  [-0.271, -0.226]; ToH -0.131 [-0.159, -0.102]; GFS-eqh -0.145 [-0.166, -0.125]; ToH-eqh -0.125
+  [-0.153, -0.096]; Bar-On recursive +0.038 [+0.021, +0.055] (Bar-On benefits more).
+- Per cell (reported, not in the verdict): 2 of 138 check-half cells drop recovery by more than
+  0.01, both GFS, napierone sbmax_K12 (-0.0125 at rates 0.01 and 0.05, CIs include 0).
+- Written prediction: "helps all policies" held. "Equal horizon policies at least as much as
+  SlowBurn" failed: SlowBurn gains more than GFS-eqh and ToH-eqh. The recovery kill D65 suggested
+  did not happen at N3; it is near on the fit half at N5 and N10.
+- Status: exploratory DEV result; not a headline method claim; any confirmatory claim needs
+  TEST2 under a new freeze. Reported in the paper alongside D65.
+- Resource note: napierone sum of process peaks 10.0 GB (tree peak 7.3 GB), above the 6.8 GB
+  the gate assumed; a rerun of this job should gate on 10.0 + 4 = 14.0 GB.
+- Source: results/exploratory_dev_v3/d89_report/.
