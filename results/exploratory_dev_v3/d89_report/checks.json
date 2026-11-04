@@ -1,0 +1,20 @@
+{
+ "label": "exploratory_dev_v3",
+ "napierone": {
+  "n1_rows": 55200,
+  "existing_rows": 55200,
+  "paired": 55200,
+  "columns_compared": 81,
+  "differing": {}
+ },
+ "synthetic": {
+  "n1_rows": 55200,
+  "existing_rows": 55200,
+  "paired": 55200,
+  "columns_compared": 80,
+  "differing": {}
+ },
+ "retention_identical_across_rules": true,
+ "every_row_has_every_rule": true,
+ "passed": true
+}

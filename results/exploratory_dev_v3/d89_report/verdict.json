@@ -1,0 +1,106 @@
+{
+ "label": "exploratory_dev_v3",
+ "rule": "OPEN_QUESTIONS D89 (c81ee4c)",
+ "fit_qualifying_points": [
+  "N2",
+  "N3",
+  "T0.001",
+  "T0.002",
+  "T0.005",
+  "T0.01",
+  "T0.02"
+ ],
+ "selected": "N3",
+ "family": "N(n)",
+ "sb_vs_baselines": "primary",
+ "fit_work_lost_h": {
+  "selected": 1554.2676863540034,
+  "N1": 1904.0688473233208
+ },
+ "check_per_policy": {
+  "gfs": {
+   "recovery_diff": -0.0025,
+   "recovery_ci": [
+    -0.006252604166666662,
+    -0.00010416666666666667
+   ],
+   "work_lost_rel": -0.043391171602324384,
+   "work_lost_ci": [
+    -0.05250228139959302,
+    -0.03405299844931146
+   ]
+  },
+  "gfs_eqh": {
+   "recovery_diff": -0.0003048780487804878,
+   "recovery_ci": [
+    -0.0009309722978475297,
+    0.0
+   ],
+   "work_lost_rel": -0.14694886863431342,
+   "work_lost_ci": [
+    -0.16418725831569775,
+    -0.12897290030153852
+   ]
+  },
+  "shamir_recursive": {
+   "recovery_diff": -0.001875,
+   "recovery_ci": [
+    -0.0035416666666666665,
+    -0.0005208333333333333
+   ],
+   "work_lost_rel": -0.3302540201284956,
+   "work_lost_ci": [
+    -0.35491451834280435,
+    -0.3044229094875314
+   ]
+  },
+  "slowburn": {
+   "recovery_diff": -0.0017708333333333332,
+   "recovery_ci": [
+    -0.0034375,
+    -0.0004166666666666667
+   ],
+   "work_lost_rel": -0.29208824835891617,
+   "work_lost_ci": [
+    -0.31395428941070924,
+    -0.26862157925477437
+   ]
+  },
+  "toh_eqh": {
+   "recovery_diff": 0.0,
+   "recovery_ci": [
+    0.0,
+    0.0
+   ],
+   "work_lost_rel": -0.1670236633789104,
+   "work_lost_ci": [
+    -0.19520882958133134,
+    -0.1378921721649793
+   ]
+  },
+  "tower_of_hanoi": {
+   "recovery_diff": 0.0,
+   "recovery_ci": [
+    0.0,
+    0.0
+   ],
+   "work_lost_rel": -0.16133437881779625,
+   "work_lost_ci": [
+    -0.1896183336939799,
+    -0.13319018873374475
+   ]
+  }
+ },
+ "check_pooled": {
+  "recovery_diff": -0.0011241131484382198,
+  "recovery_diff_lo": -0.0021269382539068566,
+  "recovery_diff_hi": -0.0003674764932904305,
+  "work_lost_rel": -0.1983877163231646,
+  "work_lost_rel_lo": -0.21590633350924265,
+  "work_lost_rel_hi": -0.17973212171805625
+ },
+ "d89_killed": false,
+ "kill_reason": null,
+ "d89_success": true,
+ "parameters": 2
+}
