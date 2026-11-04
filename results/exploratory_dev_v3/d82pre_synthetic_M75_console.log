@@ -1,0 +1,27 @@
+warning: `VIRTUAL_ENV=C:\Users\kembh\AppData\Local\uv\cache\builds-v0\.tmpMCLcGb` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+  calibrated vault thresholds, fleet null priors for 3 evidence settings
+  tasks 20/480 done
+  tasks 40/480 done
+  tasks 60/480 done
+  tasks 80/480 done
+  tasks 100/480 done
+  tasks 120/480 done
+  tasks 140/480 done
+  tasks 160/480 done
+  tasks 180/480 done
+  tasks 200/480 done
+  tasks 220/480 done
+  tasks 240/480 done
+  tasks 260/480 done
+  tasks 280/480 done
+  tasks 300/480 done
+  tasks 320/480 done
+  tasks 340/480 done
+  tasks 360/480 done
+  tasks 380/480 done
+  tasks 400/480 done
+  tasks 420/480 done
+  tasks 440/480 done
+  tasks 460/480 done
+  tasks 480/480 done
+{"cmd": ["uv", "run", "python", "-u", "-m", "slowburn.bench.byte_matched", "run-m", "configs/dev_v3_d81_synthetic.yaml", "75"], "exit": 0, "wall_s": 5980.6, "tree_peak_mib": 1747.8984375, "sum_of_process_peaks_mib": 2569.34375, "processes": 8}
