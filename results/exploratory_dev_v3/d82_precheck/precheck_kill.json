@@ -1,0 +1,84 @@
+{
+ "label": "exploratory_dev_v3",
+ "rule": "fit half; per benign rate, mean SlowBurn work lost pooled over both arms and the four cells; primary = common rows (feasible at all three M), secondary = all feasible rows; killed only if both show M = 60 lowest at every rate (addendum 8c9fa56)",
+ "primary_common_rows": {
+  "work_lost_h": {
+   "0.0": {
+    "60": 1582.41,
+    "75": 1633.035,
+    "90": 1891.32
+   },
+   "0.01": {
+    "60": 1809.1725,
+    "75": 1885.065,
+    "90": 2144.805
+   },
+   "0.05": {
+    "60": 2676.3525,
+    "75": 2817.0525,
+    "90": 3243.315
+   }
+  },
+  "lowest_M": {
+   "0.0": 60,
+   "0.01": 60,
+   "0.05": 60
+  },
+  "M60_lowest_every_rate": true,
+  "rows": 28800
+ },
+ "secondary_all_feasible": {
+  "work_lost_h": {
+   "0.0": {
+    "60": 1582.41,
+    "75": 1633.035,
+    "90": 1891.32
+   },
+   "0.01": {
+    "60": 1809.1725,
+    "75": 1885.065,
+    "90": 2144.805
+   },
+   "0.05": {
+    "60": 2676.3525,
+    "75": 2817.0525,
+    "90": 3243.315
+   }
+  },
+  "lowest_M": {
+   "0.0": 60,
+   "0.01": 60,
+   "0.05": 60
+  },
+  "M60_lowest_every_rate": true,
+  "rows": 28800
+ },
+ "fit_infeasible_machines_by_M_arm_cell": {
+  "M60|napierone|count_K12": 0,
+  "M60|napierone|count_K8": 0,
+  "M60|napierone|sbmax_K12": 0,
+  "M60|napierone|sbmax_K8": 0,
+  "M60|synthetic|count_K12": 0,
+  "M60|synthetic|count_K8": 0,
+  "M60|synthetic|sbmax_K12": 0,
+  "M60|synthetic|sbmax_K8": 0,
+  "M75|napierone|count_K12": 0,
+  "M75|napierone|count_K8": 0,
+  "M75|napierone|sbmax_K12": 0,
+  "M75|napierone|sbmax_K8": 0,
+  "M75|synthetic|count_K12": 0,
+  "M75|synthetic|count_K8": 0,
+  "M75|synthetic|sbmax_K12": 0,
+  "M75|synthetic|sbmax_K8": 0,
+  "M90|napierone|count_K12": 0,
+  "M90|napierone|count_K8": 0,
+  "M90|napierone|sbmax_K12": 0,
+  "M90|napierone|sbmax_K8": 0,
+  "M90|synthetic|count_K12": 0,
+  "M90|synthetic|count_K8": 0,
+  "M90|synthetic|sbmax_K12": 0,
+  "M90|synthetic|sbmax_K8": 0
+ },
+ "versions_disagree": false,
+ "d82_killed_by_precheck": true
+}
