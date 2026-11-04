@@ -1,0 +1,1 @@
+count K4 and K6 rows: not in the D89 outputs. The D89 runs used count K8 / K12 and sbmax K8 / K12 only (levels present: ['count_K12', 'count_K8', 'sbmax_K12', 'sbmax_K8']); N3 at K4 / K6 needs a new run.
