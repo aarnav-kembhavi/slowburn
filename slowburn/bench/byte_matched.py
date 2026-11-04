@@ -318,8 +318,11 @@ def main(argv: list[str]) -> None:
     elif cmd in ("run", "run-max"):
         pilot = int(argv[3]) if len(argv) > 3 and argv[2] == "--pilot" else None
         run(cfg, pilot, tag="d81" if cmd == "run" else "d81max")
-    elif cmd in ("run-tol", "run-d90"):  # D89, D90
-        pilot = int(argv[3]) if len(argv) > 3 and argv[2] == "--pilot" else None
+    elif cmd in ("run-tol", "run-d90"):  # D89, D90; [--pilot N] [--workers W] (run setup only)
+        opt = dict(zip(argv[2::2], argv[3::2], strict=False))
+        pilot = int(opt["--pilot"]) if "--pilot" in opt else None
+        if "--workers" in opt:
+            cfg = {**cfg, "workers": int(opt["--workers"])}
         run(cfg, pilot, tag="d89" if cmd == "run-tol" else "d90")
     elif cmd == "run-m":  # D82 stage 1 precheck: run-m CONFIG M
         M = int(argv[2])
