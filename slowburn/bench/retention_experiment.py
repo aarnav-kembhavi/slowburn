@@ -14,7 +14,7 @@ selective restore and record metrics.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import lru_cache
 
 import numpy as np
@@ -127,6 +127,27 @@ class MachineTrace:
     writes: list[list[Write]]  # per day
     chunk_size: int
     file_types: dict[str, str] = field(default_factory=dict)  # file -> declared type (D72)
+    d90_flags: tuple[int, int] = (0, 0)  # D90: attacker flags (kept, removed) under the cap
+
+
+def cap_attacker_flags(change_days: dict, damaged_on: dict, flagged_days: dict, n_days: int,
+                       cap: int) -> dict[tuple[str, int], bool]:  # fmt: skip
+    """D90 limitation test (a simulation parameter, not an attack technique): the flagged
+    attacker versions (a damaged file's versions written on or after its damage day), in
+    write-day order, keep their flag only while every snapshot holding the version holds fewer
+    than ``cap`` flagged attacker versions; the rest go undetected. Returns {(file, day): kept}."""
+    held = np.zeros(n_days, int)
+    out = {}
+    todo = sorted((d, f) for f, dd in damaged_on.items() if dd is not None
+                  for d in change_days.get(f, []) if d >= dd and d in flagged_days.get(f, ()))
+    for d, f in todo:
+        later = [c for c in change_days[f] if c > d]
+        end = later[0] if later else n_days
+        keep = held[d:end].max(initial=0) < cap
+        if keep:
+            held[d:end] += 1
+        out[(f, d)] = bool(keep)
+    return out
 
 
 def trace_days(cfg: dict, start: int | None) -> int:
@@ -208,11 +229,27 @@ def simulate(cfg: dict, task: RetentionTask) -> MachineTrace:
         if day.day > 0:
             recent_changes.append(len(files_today))
         writes.append(day_writes)
+    d90 = (0, 0)
+    if p.get("d90_attacker_flag_cap") is not None:  # D90: flags, daily evidence, write evidence
+        kept = cap_attacker_flags(change_days, dict(scen.damaged_on), flagged_days, n_days,
+                                  int(p["d90_attacker_flag_cap"]))  # fmt: skip
+        gone = [fd for fd, k in kept.items() if not k]
+        for f, d in gone:
+            flagged_days[f].discard(d)
+            o = obs[d]
+            if o.k < 1:
+                raise AssertionError(f"D90: flag of {f} on day {d} is not in the daily count")
+            obs[d] = replace(o, value=(o.k - 1) / o.n if o.n else 0.0, k=o.k - 1)
+        gone_set = set(gone)
+        writes = [[replace(w, evidence=0.0) if (w.file_id, w.day) in gone_set else w
+                   for w in day] for day in writes]  # fmt: skip
+        d90 = (len(kept) - len(gone), len(gone))
     histories = {f: FileHistory(tuple(d), scen.damaged_on.get(f),
                                 frozenset(flagged_days.get(f, ())))
                  for f, d in change_days.items()}  # fmt: skip
     return MachineTrace(
-        start, n_days, snapshots, obs, histories, writes, scen.cfg.chunk_size, dict(scen.file_types)
+        start, n_days, snapshots, obs, histories, writes, scen.cfg.chunk_size,
+        dict(scen.file_types), d90,
     )
 
 

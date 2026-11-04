@@ -22,6 +22,7 @@ Run from the repo root (one heavy job at a time):
     uv run python -u -m slowburn.bench.byte_matched run CONFIG [--pilot N]
     uv run python -u -m slowburn.bench.byte_matched run-max CONFIG [--pilot N]
     uv run python -u -m slowburn.bench.byte_matched run-tol CONFIG [--pilot N]  # D89
+    uv run python -u -m slowburn.bench.byte_matched run-d90 CONFIG [--pilot N]  # D90
 """
 
 from __future__ import annotations
@@ -61,6 +62,11 @@ D89_TOLS = [("N", 1), ("N", 2), ("N", 3), ("N", 5), ("N", 10),
             ("T", 0.001), ("T", 0.002), ("T", 0.005), ("T", 0.01), ("T", 0.02)]  # fmt: skip
 D89_POLICIES = ["slowburn", "gfs", "tower_of_hanoi", "gfs_eqh", "toh_eqh", "shamir_recursive"]
 D89_COUNTS = (8, 12)
+# D90 limitation test (OPEN_QUESTIONS 2026-11-04): threshold-aware attacker, N1 vs N3
+D90_TOLS = [("N", 1), ("N", 3)]
+D90_POLICIES = ["slowburn", "gfs_eqh", "toh_eqh", "shamir_recursive"]
+D90_RATES = (0.0, 0.01)
+D90_CAP = 2
 
 
 def base_hp(cfg: dict) -> dict:
@@ -243,7 +249,8 @@ def evaluate_machine(task: RetentionTask) -> list[dict]:
             if r["retained_unique_bytes"] > budget:  # invariant (kill rule)
                 raise AssertionError(f"{nm} at K'={k} exceeds its byte budget")
             out.append({**r, **meta})
-    return [{**r, **feat} for r in out]
+    d90 = {"d90_flags_kept": trace.d90_flags[0], "d90_flags_removed": trace.d90_flags[1]}
+    return [{**r, **feat, **d90} for r in out]
 
 
 def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81",
@@ -255,7 +262,7 @@ def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81",
     out = resolve_path(cfg["output_dir"])
     lfile = "levels.json" if tag == "d81" else "levels_sbmax.json"
     levels = json.loads((out / lfile).read_text())["levels"]
-    keep = ("sbmax_K8", "sbmax_K12") if M or tag == "d89" else None
+    keep = ("sbmax_K8", "sbmax_K12") if M or tag in ("d89", "d90") else None
     levels = {s: {k: v for k, v in lv.items() if not k.startswith("_") and (not keep or k in keep)}
               for s, lv in levels.items()}  # fmt: skip
     hp = base_hp(cfg)
@@ -266,7 +273,20 @@ def run(cfg: dict, pilot: int | None = None, log=print, tag: str = "d81",
     if tag == "d89":
         hp["d89_tolerances"] = [list(t) for t in D89_TOLS]
         cfg, cks = {**cfg, "policies": D89_POLICIES}, D89_COUNTS
+    if tag == "d90":
+        hp["d89_tolerances"] = [list(t) for t in D90_TOLS]
+        cfg, cks = {**cfg, "policies": D90_POLICIES}, ()
     tasks = build_tasks(cfg, "dev", log)
+    if tag == "d90":  # check half (ed3f273 split), rates 0 and 0.01, the attacker flag cap
+        from slowburn.bench.d82_precheck import halves
+
+        m = pd.DataFrame([{"world": t.params["world"], "true_start": t.params["attack_start"],
+                           "rep": t.rep} for t in tasks])  # fmt: skip
+        h = halves(m)
+        tasks = [replace(t, params={**t.params, "d90_attacker_flag_cap": D90_CAP}) for t in tasks
+                 if h[(t.params["world"], t.params["attack_start"], t.rep)] == "check"
+                 and t.params.get("benign_invalid_rate") in D90_RATES]  # fmt: skip
+        log(f"D90: {len(tasks)} tasks (check half, rates {D90_RATES}, cap {D90_CAP})")
     name = "machines"
     if pilot:
         tasks, name = tasks[:pilot], "pilot"
@@ -298,9 +318,9 @@ def main(argv: list[str]) -> None:
     elif cmd in ("run", "run-max"):
         pilot = int(argv[3]) if len(argv) > 3 and argv[2] == "--pilot" else None
         run(cfg, pilot, tag="d81" if cmd == "run" else "d81max")
-    elif cmd == "run-tol":  # D89
+    elif cmd in ("run-tol", "run-d90"):  # D89, D90
         pilot = int(argv[3]) if len(argv) > 3 and argv[2] == "--pilot" else None
-        run(cfg, pilot, tag="d89")
+        run(cfg, pilot, tag="d89" if cmd == "run-tol" else "d90")
     elif cmd == "run-m":  # D82 stage 1 precheck: run-m CONFIG M
         M = int(argv[2])
         run(cfg, tag=f"d82pre_M{M}", M=M)
