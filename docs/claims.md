@@ -178,7 +178,7 @@ work lost inside the bound. Fixed schedules (D63, K = 8, benign 0.01, all
 under-estimated rows pooled): q = 0: 0 for every policy; q = 1: Tower of Hanoi 0.565,
 prior-only 0.333, SlowBurn 0.286, GFS 0.165. With a short bound (M 7 / 14 / 30) Tower of Hanoi
 recovers more than SlowBurn at q = 1 (0.708 / 0.634 / 0.525 vs 0 / 0.230 / 0.142, Holm p <
-0.05); SlowBurn recovers more at M 60 / 90 (`paper/generated/delay_grid_under_vs_fixed_K8.csv`). The earlier
+0.05); SlowBurn recovers more at M 60 / 90 (`delay_grid_under_vs_fixed_K8.csv`, a generated table not kept in this repository). The earlier
 "collapses to 0 even with a perfect detector" was an artifact of the old restore's scan window
 (CHANGELOG 2026-10-22). Over-estimating is safe but costs work lost (D52: assumed 90 / 120 vs
 60 days, +492.3 / +1084.2 h; old restore, not rerun).
@@ -312,7 +312,7 @@ and Tower of Hanoi 0.0 / 0.93 (DEV 1.0 vs 0.395 / 0.6 and 0.0 / 0.99).
   but lowers recovery in every world (bursty / early / late / uniform -0.0122 / -0.0170 /
   -0.0196 / -0.0155; worst case -0.0188 [-0.0238, -0.0144]), failing pre-registered criterion
   (a) (drop <= 0.01). `results/dev_d65_*/v21_vs_step1*.csv`.
-- Guideline figure: done (D63, `paper/generated/fig_delay_guideline_*`); caption must state
+- Guideline figure: done (D63, `fig_delay_guideline_*`, generated figures not kept in this repository); caption must state
   the edge effect at true delay = M (D63 outcome).
 - TEST done 2026-10-29 for C2, D79, D72, D71, D73, ALARM and D74 (frozen_v2). C1, C3', F1 to
   F3 and F5 are DEV only and not covered by TEST.

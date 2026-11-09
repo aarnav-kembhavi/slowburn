@@ -1,4 +1,4 @@
-# Threat model: simulation rules (working notes behind `paper/sections/threat_model.tex`)
+# Threat model: simulation rules (working notes behind the paper's threat-model section; the manuscript is not kept in this repository)
 
 Defensive study only. The attacker exists only as simulation parameters (start day, discovery
 delay, files damaged per day, damage placement and fraction, targeted types) and as public

@@ -43,7 +43,7 @@ held-out alarm check -> truncated-png sensitivity row (unscored).
 2. C2 wording (draft sent 2026-10-25).
 3. Whether per-file walk-back's near-oracle-or-collapse behaviour becomes a pre-registered
    finding.
-4. paper/sections/limitations.tex line 36 still says no real corpus is used (stale since D67).
+4. The manuscript's limitations section (line 36; source not kept in this repository) still says no real corpus is used (stale since D67).
 5. D76 restic workload rule (FSL is complete); D77 needs written approval (not started).
 
 ## Next week plan
@@ -62,7 +62,7 @@ frozen_v2.yaml (to the team before any test run).
 
 ## Paper draft (added 2026-10-26)
 
-- IEEE Access draft, compiled: `paper/ieee_access/main.pdf` (build: `bash paper/ieee_access/build.sh`;
-  template 20260513 from ieeeaccess.ieee.org, `paper/ieee_access/TEMPLATE_SOURCE.md`). Abstract,
+- IEEE Access draft, compiled (manuscript, PDF and build files not kept in this repository;
+  template 20260513 from ieeeaccess.ieee.org). Abstract,
   introduction, background, threat model, benchmark, methodology and related work drafted; results
   and discussion are outlines; every number is DEV and from docs/claims.md.

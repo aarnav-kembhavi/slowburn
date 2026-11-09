@@ -11,6 +11,15 @@ A "damaged" chunk is modelled abstractly: bytes are overwritten with seeded high
 bytes, or with bytes from public datasets of real ransomware-encrypted samples (NapierOne). The
 only outputs are per-chunk benign/damaged labels and backup-retention decisions.
 
+## History note
+
+On 2026-11-09 this repository's history was rewritten to remove the manuscript sources, figures and
+generated tables (`paper/ieee_access/`, `paper/sections/`, `paper/generated/`, `paper/main.tex`,
+`paper/references.bib`). Every commit hash changed; commit hashes quoted in `OPEN_QUESTIONS.md`,
+`configs/frozen_v2.yaml` and the reports are the pre-rewrite hashes, and the original hashes are kept
+in the private audit record. `paper/scripts/` (the experiment and analysis scripts) is unchanged.
+Scripts that write to `paper/generated/` or `paper/ieee_access/` create those directories.
+
 ## Setup
 
 ```sh
@@ -31,7 +40,7 @@ uv run slowburn preregister-grid configs/headline.yaml  # record the scenario gr
 uv run slowburn tune-retention configs/tune_retention.yaml   # DEV rule D30   -> configs/frozen.yaml
 uv run slowburn retention configs/headline.yaml       # headline grid (TEST split; needs frozen.yaml incl. the grid)
 uv run slowburn theory-check configs/theory.yaml      # numerical checks for docs/theory.md
-uv run slowburn fig all                               # every paper figure/table -> paper/generated/
+uv run slowburn fig all                               # paper figures/tables -> paper/generated/ (output dir; not tracked here)
 ```
 
 `configs/*_smoke.yaml` variants run the same pipelines in seconds. Experiments use 4-6 worker

@@ -296,7 +296,7 @@ Surprises and caveats:
 
 ## JOB 5: Pareto summary (D70)
 
-Status: done, committed (93c376d). Outputs in paper/generated/:
+Status: done, committed (93c376d). Outputs (generated; not kept in this repository):
 - pareto_points.csv
 - pareto_reference_products_d66.csv
 - fig_pareto_{verify_snap,oracle}[_q0|_q1].png

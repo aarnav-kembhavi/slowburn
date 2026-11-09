@@ -37,7 +37,7 @@ number are in `results/CHANGELOG.md`; decisions in `OPEN_QUESTIONS.md` D42-D51.
 
 | step | what | commit(s) |
 |---|---|---|
-| P0 | `gate_day`, `restore_p_clean` logged per restore (with `gate_candidates`, `verified`); DEV v2 rerun row-identical to `results/headline_dev_v2` (576000 rows, 45 columns); v1 TEST spent (D43); prototype appendix `paper/sections/appendix_prototype.tex` with `table_gate_q.tex` | d6424a6 |
+| P0 | `gate_day`, `restore_p_clean` logged per restore (with `gate_candidates`, `verified`); DEV v2 rerun row-identical to `results/headline_dev_v2` (576000 rows, 45 columns); v1 TEST spent (D43); prototype appendix `appendix_prototype.tex` (manuscript source; not kept in this repository) with `table_gate_q.tex` | d6424a6 |
 | P1 | `slowburn/sim/worlds.py` (uniform, early, late, bursty), `slowburn/retention/bytes.py` (exact unique bytes, byte budgets via each policy's own deletion rule), worst-case grid and assumed-delay sweep configs, Oracle keeps today's snapshot | 6158122 |
 | DEV | `results/dev_v2` (2400 machines), `results/dev_v2_worst` (480), `results/dev_v2_delay` (640 x 6 variants) | 544ba32, a514088, ac1862c, 925c516 |
 | P4 | blind-detector weight and adaptive gate options, mechanical selection rules (`slowburn/bench/method_v2.py`), stage A and B runs, full-grid comparison | cab1e61, 1de5602, 3ea8a3b, 706eb7a, e10b518, a8687fd, and the commit containing this report |

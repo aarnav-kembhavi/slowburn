@@ -1,6 +1,7 @@
 """`slowburn fig <name>`: every paper figure and table, generated from result CSVs.
 
-Outputs go to paper/generated/ (PDF + PNG figures, LaTeX tables, numbers.tex macros).
+Outputs go to paper/generated/ (created on demand; not kept in this repository):
+PDF + PNG figures, LaTeX tables, numbers.tex macros.
 No number is typed by hand anywhere in the paper.
 """
 
@@ -521,6 +522,7 @@ def auroc_figure() -> list[Path]:
     from slowburn.bench.plots import plot_auroc_vs_fraction
 
     a = pd.read_csv(resolve_path("results/detector/auroc_by_fraction.csv"))
+    resolve_path(GEN).mkdir(parents=True, exist_ok=True)
     png = plot_auroc_vs_fraction(a, resolve_path(GEN))
     return [png]
 

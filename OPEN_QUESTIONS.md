@@ -896,7 +896,7 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   adoption; every variant now sets `old_flags: verify_snap`. Nothing else in D63 changes.
 - **D63 outcome (2026-10-22; descriptive, nothing selected; adopted verify_snap restore).**
   `results/dev_d63_delay_grid` (exit 0), figure `fig_delay_guideline_{recovery,work_lost_h,
-  scatter}` and CSVs in `paper/generated/` (K = 8; all budgets in
+  scatter}` and CSVs (generated; not kept in this repository) (K = 8; all budgets in
   `delay_grid_cells_all_budgets.csv`). Pre-registered question, under-estimated rows (hard M,
   true delay > M), paired, one-sided McNemar, Holm over 30 rows: at q = 0 no policy recovers
   anything (all 0; ties). At q = 1 a fixed schedule DOES beat SlowBurn where the bound is short:
@@ -1071,7 +1071,7 @@ wording, e.g. "detection quality varies by format and attacker, and retention mu
   1-400, no budget K), so they are drawn on every panel as separately marked reference points
   from their own grid (restricted to delays 7-60, verify_snap and their "held" curve). They are
   NOT included in the Pareto comparison: mixing machine sets would be invalid. Also written: the
-  q = 0 and q = 1 panels separately. CSVs and figures in paper/generated/
+  q = 0 and q = 1 panels separately. CSVs and figures (generated; not kept in this repository)
   (`pareto_points.csv`, `fig_pareto_<restore>.png`).
 
 ## Team decisions after the overnight run (2026-10-23)

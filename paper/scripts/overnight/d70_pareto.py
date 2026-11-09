@@ -12,6 +12,7 @@ from slowburn.bench import plotstyle as ps  # noqa: E402
 plt = ps.plt
 ps.apply_style()
 OUT = Path("paper/generated")
+OUT.mkdir(parents=True, exist_ok=True)
 WORLDS, KS = ["uniform", "early", "late", "bursty"], [4, 6, 8, 12]
 STYLE = {  # policy -> (slot, marker, filled, label)
     "slowburn": (0, "o", True, "SlowBurn"), "prior_only": (1, "o", True, "prior-only"),
